@@ -26,6 +26,7 @@ class ProfileManager extends ChangeNotifier {
   Future<void> _init() async {
     await loadProfiles();
     _ensureDefaultProfile();
+    await _migrateLegacyCode();
     notifyListeners();
   }
 
@@ -103,12 +104,23 @@ class ProfileManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  Profile? findProfileByCode(String code) {
+    try {
+      return _profiles.firstWhere((p) => p.unlockCode == code);
+    } catch (_) {
+      return null;
+    }
+  }
+
   void updateProfile({
     required String id,
     String? name,
     int? iconCodePoint,
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
+    String? unlockCode,
+    int? failsafeMinutes,
+    bool clearUnlockCode = false,
   }) {
     final index = _profiles.indexWhere((p) => p.id == id);
     if (index == -1) return;
@@ -120,6 +132,14 @@ class ProfileManager extends ChangeNotifier {
     }
     if (blockedWebsites != null) {
       _profiles[index].blockedWebsites = blockedWebsites;
+    }
+    if (clearUnlockCode) {
+      _profiles[index].unlockCode = null;
+    } else if (unlockCode != null) {
+      _profiles[index].unlockCode = unlockCode;
+    }
+    if (failsafeMinutes != null) {
+      _profiles[index].failsafeMinutes = failsafeMinutes;
     }
 
     saveProfiles();
@@ -138,5 +158,22 @@ class ProfileManager extends ChangeNotifier {
           );
       _currentProfileId = defaultProfile?.id ?? _profiles.first.id;
     }
+  }
+
+  Future<void> _migrateLegacyCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final legacyCode = prefs.getString('savedCodeValue');
+    if (legacyCode == null) return;
+
+    // Assign legacy code to Default profile (or first profile)
+    final defaultProfile = _profiles.cast<Profile?>().firstWhere(
+          (p) => p!.name == 'Default',
+          orElse: () => _profiles.isNotEmpty ? _profiles.first : null,
+        );
+    if (defaultProfile != null && defaultProfile.unlockCode == null) {
+      defaultProfile.unlockCode = legacyCode;
+      await saveProfiles();
+    }
+    await prefs.remove('savedCodeValue');
   }
 }

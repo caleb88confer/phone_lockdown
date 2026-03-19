@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/code_scan_service.dart';
 import '../services/platform_channel_service.dart';
 import '../services/app_blocker_service.dart';
-import 'scan_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -43,24 +41,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     Navigator.of(context).pushReplacementNamed('/home');
   }
 
-  Future<void> _registerCode() async {
-    final codeScanService = context.read<CodeScanService>();
-
-    final scannedValue = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => const ScanScreen(
-          title: 'Register Code',
-          instruction:
-              'Scan the QR code or barcode you want to use as your lock/unlock key',
-        ),
-      ),
-    );
-
-    if (!mounted || scannedValue == null) return;
-    await codeScanService.registerCode(scannedValue);
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       case 0:
         return _buildWelcomeStep();
       case 1:
-        return _buildCodeStep();
+        return _buildProfilesStep();
       case 2:
         return _buildPermissionsStep();
       default:
@@ -106,7 +86,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         const SizedBox(height: 16),
         const Text(
           'Take control of your phone usage by blocking distracting apps and websites. '
-          'Use a physical QR code or barcode as your key to lock and unlock.',
+          'Use physical QR codes or barcodes as keys to lock and unlock different profiles.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16),
         ),
@@ -114,43 +94,27 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildCodeStep() {
-    final codeScanService = context.watch<CodeScanService>();
-    final hasCode = codeScanService.hasRegisteredCode;
-
+  Widget _buildProfilesStep() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          hasCode ? Icons.check_circle : Icons.qr_code_scanner,
-          size: 80,
-          color: hasCode ? Colors.green : Colors.blue,
-        ),
+        const Icon(Icons.qr_code_scanner, size: 80, color: Colors.blue),
         const SizedBox(height: 32),
         Text(
-          'Register Your Unlock Code',
+          'Profiles & Unlock Codes',
           style: Theme.of(context).textTheme.headlineSmall,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         const Text(
-          'Scan a QR code or barcode to use as your lock/unlock key. '
-          'You will need to scan this code each time you want to toggle blocking.',
+          'Create profiles for different situations — work, full day, study, etc. '
+          'Each profile has its own list of blocked apps/websites, its own QR code key, '
+          'and a failsafe timer that auto-unlocks after a set period.\n\n'
+          'Multiple profiles can be active at the same time. '
+          'Long-press a profile on the home screen to set it up.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16),
         ),
-        const SizedBox(height: 32),
-        if (hasCode)
-          const Text(
-            'Code registered!',
-            style: TextStyle(color: Colors.green, fontSize: 18),
-          )
-        else
-          ElevatedButton.icon(
-            onPressed: _registerCode,
-            icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Scan Code'),
-          ),
       ],
     );
   }

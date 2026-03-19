@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_blocker_service.dart';
-import '../services/code_scan_service.dart';
 import '../services/profile_manager.dart';
 import '../theme/app_colors.dart';
 import '../widgets/block_button.dart';
@@ -9,129 +9,99 @@ import '../widgets/profile_picker.dart';
 import 'permissions_screen.dart';
 import 'scan_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Restore timers once profiles are loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appBlocker = context.read<AppBlockerService>();
+      final profileManager = context.read<ProfileManager>();
+      appBlocker.restoreTimers(profileManager.profiles);
+    });
+    _startCountdownRefresh();
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startCountdownRefresh() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   void _scanCode(BuildContext context) async {
-    final codeScanService = context.read<CodeScanService>();
     final appBlocker = context.read<AppBlockerService>();
     final profileManager = context.read<ProfileManager>();
 
-    if (!codeScanService.hasRegisteredCode) {
+    final scannedValue = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ScanScreen(
+          title: appBlocker.isBlocking ? 'Scan to Unlock' : 'Scan to Lock',
+          instruction: appBlocker.isBlocking
+              ? 'Scan a profile\'s code to unlock it'
+              : 'Scan a profile\'s code to activate blocking',
+        ),
+      ),
+    );
+
+    if (!context.mounted || scannedValue == null) return;
+
+    final matchedProfile = profileManager.findProfileByCode(scannedValue);
+
+    if (matchedProfile == null) {
       _showAlert(
         context,
-        title: 'No Code Registered',
-        message:
-            'You need to register a QR code or barcode first. Use the + button to set one up.',
+        title: 'Code Not Recognized',
+        message: 'No profile is linked to this code. Assign it to a profile in the profile settings.',
       );
       return;
     }
 
-    final scannedValue = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => const ScanScreen(
-          title: 'Scan to Toggle',
-          instruction: 'Scan your registered code to lock or unlock',
-        ),
-      ),
-    );
-
-    if (!context.mounted || scannedValue == null) return;
-
-    if (codeScanService.isValidCode(scannedValue)) {
-      final success =
-          await appBlocker.toggleBlocking(profileManager.currentProfile);
+    // If this profile is currently active, deactivate it
+    if (appBlocker.activeProfileIds.contains(matchedProfile.id)) {
+      final success = await appBlocker.deactivateProfile(
+        matchedProfile.id,
+        allProfiles: profileManager.profiles,
+      );
       if (!context.mounted) return;
-      if (!success) {
-        _showAlert(
-          context,
-          title: 'Accessibility Service Required',
-          message:
-              'Please enable the Phone Lockdown accessibility service in Settings to block apps.',
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unlocked: ${matchedProfile.name}')),
         );
-        return;
       }
-    } else {
+      return;
+    }
+
+    // Activate this profile
+    final success = await appBlocker.activateProfile(
+      matchedProfile,
+      allProfiles: profileManager.profiles,
+    );
+    if (!context.mounted) return;
+    if (!success) {
       _showAlert(
         context,
-        title: 'Code Not Recognized',
-        message:
-            'This code does not match your registered code. Use the + button to register a new one.',
+        title: 'Accessibility Service Required',
+        message: 'Please enable the Phone Lockdown accessibility service in Settings to block apps.',
       );
+      return;
     }
-  }
-
-  void _showRegisterCodeDialog(BuildContext context) {
-    final codeScanService = context.read<CodeScanService>();
-    final hasCode = codeScanService.hasRegisteredCode;
-    final codePreview = hasCode
-        ? '${codeScanService.registeredCode!.substring(0, codeScanService.registeredCode!.length.clamp(0, 8))}...'
-        : null;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Unlock Code'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (hasCode) ...[
-              const Text('Current code:'),
-              const SizedBox(height: 4),
-              Text(codePreview!, style: const TextStyle(fontFamily: 'monospace', fontSize: 16)),
-              const SizedBox(height: 16),
-            ],
-            const Text('Scan a QR code or barcode to use as your lock/unlock key.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          if (hasCode)
-            TextButton(
-              onPressed: () {
-                codeScanService.clearRegisteredCode();
-                Navigator.of(ctx).pop();
-              },
-              child: const Text('Clear Code', style: TextStyle(color: Colors.red)),
-            ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _registerCode(context);
-            },
-            child: Text(hasCode ? 'Change Code' : 'Scan'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _registerCode(BuildContext context) async {
-    final codeScanService = context.read<CodeScanService>();
-
-    final scannedValue = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => const ScanScreen(
-          title: 'Register Code',
-          instruction: 'Scan the QR code or barcode you want to use as your key',
-        ),
-      ),
-    );
-
-    if (!context.mounted || scannedValue == null) return;
-
-    await codeScanService.registerCode(scannedValue);
-
-    if (!context.mounted) return;
-
-    _showAlert(
-      context,
-      title: 'Code Registered',
-      message: 'Your unlock code has been saved. Scan it again to toggle blocking.',
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Locked: ${matchedProfile.name}')),
     );
   }
 
@@ -152,10 +122,22 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+    final seconds = d.inSeconds.remainder(60);
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else if (minutes > 0) {
+      return '${minutes}m ${seconds}s';
+    }
+    return '${seconds}s';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppBlockerService>(
-      builder: (context, appBlocker, _) {
+    return Consumer2<AppBlockerService, ProfileManager>(
+      builder: (context, appBlocker, profileManager, _) {
         final isBlocking = appBlocker.isBlocking;
 
         return Scaffold(
@@ -173,11 +155,6 @@ class HomeScreen extends StatelessWidget {
                   );
                 },
               ),
-              IconButton(
-                icon: const Icon(Icons.vpn_key),
-                tooltip: 'Manage unlock code',
-                onPressed: () => _showRegisterCodeDialog(context),
-              ),
             ],
           ),
           body: AnimatedContainer(
@@ -189,12 +166,96 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               children: [
                 Expanded(
-                  flex: isBlocking ? 1 : 1,
+                  flex: 1,
                   child: BlockButton(
                     isBlocking: isBlocking,
                     onTap: () => _scanCode(context),
                   ),
                 ),
+                if (isBlocking) ...[
+                  // Show active profiles with countdown timers
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Active Profiles',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...appBlocker.activeProfileIds.map((profileId) {
+                          final lock = appBlocker.getLock(profileId);
+                          final profile = profileManager.profiles
+                              .cast<dynamic>()
+                              .firstWhere(
+                                (p) => p.id == profileId,
+                                orElse: () => null,
+                              );
+                          if (lock == null || profile == null) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    IconData(profile.iconCodePoint,
+                                        fontFamily: 'MaterialIcons'),
+                                    size: 20,
+                                    color: Colors.red.shade300,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      profile.name,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.timer_outlined,
+                                    size: 16,
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _formatDuration(lock.remaining),
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                      fontFamily: 'monospace',
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 4),
+                        Center(
+                          child: Text(
+                            'Scan a profile\'s code to unlock it',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (!isBlocking) ...[
                   const Divider(height: 1),
                   const Expanded(

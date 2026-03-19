@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/profile.dart';
 import '../screens/app_picker_screen.dart';
+import '../screens/scan_screen.dart';
 import '../services/profile_manager.dart';
 
 
@@ -24,6 +25,8 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   late int _selectedIconCodePoint;
   late List<String> _blockedAppPackages;
   late List<String> _blockedWebsites;
+  late String? _unlockCode;
+  late int _failsafeMinutes;
 
   bool get isEditing => widget.profile != null;
 
@@ -50,6 +53,17 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
     Icons.shield,
   ];
 
+  static const _failsafePresets = [
+    (minutes: 15, label: '15 min'),
+    (minutes: 30, label: '30 min'),
+    (minutes: 60, label: '1 hour'),
+    (minutes: 120, label: '2 hours'),
+    (minutes: 240, label: '4 hours'),
+    (minutes: 480, label: '8 hours'),
+    (minutes: 720, label: '12 hours'),
+    (minutes: 1440, label: '24 hours'),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +74,8 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
     _blockedAppPackages =
         List<String>.from(widget.profile?.blockedAppPackages ?? []);
     _blockedWebsites = List<String>.from(widget.profile?.blockedWebsites ?? []);
+    _unlockCode = widget.profile?.unlockCode;
+    _failsafeMinutes = widget.profile?.failsafeMinutes ?? 1440;
   }
 
   @override
@@ -80,6 +96,9 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
         iconCodePoint: _selectedIconCodePoint,
         blockedAppPackages: _blockedAppPackages,
         blockedWebsites: _blockedWebsites,
+        unlockCode: _unlockCode,
+        clearUnlockCode: _unlockCode == null && widget.profile?.unlockCode != null,
+        failsafeMinutes: _failsafeMinutes,
       );
     } else {
       final profile = Profile(
@@ -87,6 +106,8 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
         iconCodePoint: _selectedIconCodePoint,
         blockedAppPackages: _blockedAppPackages,
         blockedWebsites: _blockedWebsites,
+        unlockCode: _unlockCode,
+        failsafeMinutes: _failsafeMinutes,
       );
       widget.profileManager.addProfileInstance(profile);
     }
@@ -102,6 +123,43 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
     setState(() {
       _blockedWebsites.add(website);
       _websiteController.clear();
+    });
+  }
+
+  void _scanUnlockCode() async {
+    final scannedValue = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const ScanScreen(
+          title: 'Register Code',
+          instruction: 'Scan the QR code or barcode to use as this profile\'s key',
+        ),
+      ),
+    );
+
+    if (!mounted || scannedValue == null) return;
+
+    // Check if this code is already used by another profile
+    final existingProfile = widget.profileManager.findProfileByCode(scannedValue);
+    if (existingProfile != null && existingProfile.id != widget.profile?.id) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Code Already Used'),
+          content: Text('This code is already assigned to "${existingProfile.name}". Each profile needs a unique code.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _unlockCode = scannedValue;
     });
   }
 
@@ -127,6 +185,14 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
         ],
       ),
     );
+  }
+
+  String _formatFailsafe(int minutes) {
+    if (minutes < 60) return '$minutes min';
+    final hours = minutes ~/ 60;
+    final remaining = minutes % 60;
+    if (remaining == 0) return hours == 1 ? '1 hour' : '$hours hours';
+    return '${hours}h ${remaining}m';
   }
 
   @override
@@ -195,6 +261,52 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
           ),
           const SizedBox(height: 24),
 
+          // Unlock code
+          Text('Unlock Code',
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _unlockCode != null ? Icons.vpn_key : Icons.vpn_key_off,
+                  size: 20,
+                  color: _unlockCode != null ? Colors.green : Colors.grey,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _unlockCode != null
+                        ? '${_unlockCode!.substring(0, _unlockCode!.length.clamp(0, 12))}...'
+                        : 'No code set',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      color: _unlockCode != null ? Colors.white : Colors.grey,
+                    ),
+                  ),
+                ),
+                if (_unlockCode != null)
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => setState(() => _unlockCode = null),
+                    tooltip: 'Clear code',
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner, size: 20),
+                  onPressed: _scanUnlockCode,
+                  tooltip: 'Scan code',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Blocked apps
           ListTile(
             title: const Text('Configure Blocked Apps'),
@@ -253,6 +365,39 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
                   },
                 ),
               )),
+          const SizedBox(height: 24),
+
+          // Failsafe timer
+          Text('Failsafe Auto-Unlock',
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          Text(
+            'Automatically unlocks after this duration, even without scanning the code.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _failsafePresets.map((preset) {
+              final isSelected = _failsafeMinutes == preset.minutes;
+              return ChoiceChip(
+                label: Text(preset.label),
+                selected: isSelected,
+                onSelected: (_) => setState(() {
+                  _failsafeMinutes = preset.minutes;
+                }),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Current: ${_formatFailsafe(_failsafeMinutes)}',
+            style: const TextStyle(color: Colors.grey),
+          ),
 
           // Delete button (edit mode only)
           if (isEditing) ...[

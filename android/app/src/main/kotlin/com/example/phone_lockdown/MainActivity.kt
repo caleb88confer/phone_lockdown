@@ -1,6 +1,8 @@
 package com.example.phone_lockdown
 
 import android.app.Activity
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -15,6 +17,8 @@ import androidx.work.WorkManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class MainActivity : FlutterActivity() {
@@ -45,7 +49,8 @@ class MainActivity : FlutterActivity() {
                         val isBlocking = call.argument<Boolean>("isBlocking") ?: false
                         val packages = call.argument<List<String>>("blockedPackages") ?: emptyList()
                         val websites = call.argument<List<String>>("blockedWebsites") ?: emptyList()
-                        updateBlockingState(isBlocking, packages, websites)
+                        val activeProfileBlocks = call.argument<List<Map<String, Any>>>("activeProfileBlocks")
+                        updateBlockingState(isBlocking, packages, websites, activeProfileBlocks)
                         result.success(null)
                     }
                     "openAccessibilitySettings" -> {
@@ -72,6 +77,17 @@ class MainActivity : FlutterActivity() {
                     }
                     "isVpnActive" -> {
                         result.success(LockdownVpnService.instance != null)
+                    }
+                    "scheduleFailsafeAlarm" -> {
+                        val profileId = call.argument<String>("profileId") ?: ""
+                        val failsafeMillis = call.argument<Int>("failsafeMillis") ?: 0
+                        scheduleFailsafeAlarm(profileId, failsafeMillis.toLong())
+                        result.success(null)
+                    }
+                    "cancelFailsafeAlarm" -> {
+                        val profileId = call.argument<String>("profileId") ?: ""
+                        cancelFailsafeAlarm(profileId)
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }
@@ -107,14 +123,39 @@ class MainActivity : FlutterActivity() {
     private fun updateBlockingState(
         isBlocking: Boolean,
         packages: List<String>,
-        websites: List<String>
+        websites: List<String>,
+        activeProfileBlocks: List<Map<String, Any>>? = null
     ) {
         val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
-        prefs.edit()
+        val editor = prefs.edit()
             .putBoolean("isBlocking", isBlocking)
             .putStringSet("blockedPackages", packages.toSet())
             .putStringSet("blockedWebsites", websites.toSet())
-            .apply()
+
+        // Store per-profile block data for FailsafeAlarmReceiver to recompute
+        if (activeProfileBlocks != null) {
+            val jsonArray = JSONArray()
+            for (block in activeProfileBlocks) {
+                val obj = JSONObject()
+                obj.put("profileId", block["profileId"])
+                val pkgArray = JSONArray()
+                @Suppress("UNCHECKED_CAST")
+                for (pkg in (block["blockedPackages"] as? List<String>) ?: emptyList()) {
+                    pkgArray.put(pkg)
+                }
+                obj.put("blockedPackages", pkgArray)
+                val webArray = JSONArray()
+                @Suppress("UNCHECKED_CAST")
+                for (web in (block["blockedWebsites"] as? List<String>) ?: emptyList()) {
+                    webArray.put(web)
+                }
+                obj.put("blockedWebsites", webArray)
+                jsonArray.put(obj)
+            }
+            editor.putString("activeProfileBlocks", jsonArray.toString())
+        }
+
+        editor.apply()
 
         LockdownAccessibilityService.isBlockingActive = isBlocking
         LockdownAccessibilityService.blockedPackages = packages.toSet()
@@ -129,6 +170,72 @@ class MainActivity : FlutterActivity() {
         } else {
             stopVpnService()
         }
+    }
+
+    private fun scheduleFailsafeAlarm(profileId: String, failsafeMillis: Long) {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, FailsafeAlarmReceiver::class.java).apply {
+            putExtra("profileId", profileId)
+        }
+        val requestCode = profileId.hashCode()
+        val pendingIntent = PendingIntent.getBroadcast(
+            this, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val triggerTime = System.currentTimeMillis() + failsafeMillis
+
+        // Store alarm data for ServiceMonitorWorker backup check
+        val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val alarmsJson = prefs.getString("failsafeAlarms", "[]")
+        val alarms = JSONArray(alarmsJson)
+        // Remove existing alarm for this profile
+        val updatedAlarms = JSONArray()
+        for (i in 0 until alarms.length()) {
+            val obj = alarms.getJSONObject(i)
+            if (obj.getString("profileId") != profileId) {
+                updatedAlarms.put(obj)
+            }
+        }
+        val newAlarm = JSONObject()
+        newAlarm.put("profileId", profileId)
+        newAlarm.put("alarmTimeMillis", triggerTime)
+        updatedAlarms.put(newAlarm)
+        prefs.edit().putString("failsafeAlarms", updatedAlarms.toString()).apply()
+
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+            )
+        } catch (e: SecurityException) {
+            // Fallback for devices that don't allow exact alarms
+            Log.w(TAG, "Exact alarm not allowed, using inexact alarm", e)
+            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+        }
+    }
+
+    private fun cancelFailsafeAlarm(profileId: String) {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, FailsafeAlarmReceiver::class.java)
+        val requestCode = profileId.hashCode()
+        val pendingIntent = PendingIntent.getBroadcast(
+            this, requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.cancel(pendingIntent)
+
+        // Remove from stored alarms
+        val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val alarmsJson = prefs.getString("failsafeAlarms", "[]")
+        val alarms = JSONArray(alarmsJson)
+        val updatedAlarms = JSONArray()
+        for (i in 0 until alarms.length()) {
+            val obj = alarms.getJSONObject(i)
+            if (obj.getString("profileId") != profileId) {
+                updatedAlarms.put(obj)
+            }
+        }
+        prefs.edit().putString("failsafeAlarms", updatedAlarms.toString()).apply()
     }
 
     private fun prepareVpn(result: MethodChannel.Result) {

@@ -7,6 +7,8 @@ class Profile {
   int iconCodePoint;
   List<String> blockedAppPackages;
   List<String> blockedWebsites;
+  String? unlockCode;
+  int failsafeMinutes;
 
   bool get isDefault => name == 'Default';
 
@@ -16,6 +18,8 @@ class Profile {
     this.iconCodePoint = 0xe7f5, // Icons.notifications_off
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
+    this.unlockCode,
+    this.failsafeMinutes = 1440,
   })  : id = id ?? const Uuid().v4(),
         blockedAppPackages = blockedAppPackages ?? [],
         blockedWebsites = blockedWebsites ?? [];
@@ -30,6 +34,8 @@ class Profile {
         'iconCodePoint': iconCodePoint,
         'blockedAppPackages': blockedAppPackages,
         'blockedWebsites': blockedWebsites,
+        'unlockCode': unlockCode,
+        'failsafeMinutes': failsafeMinutes,
       };
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -39,6 +45,8 @@ class Profile {
       iconCodePoint: json['iconCodePoint'] as int,
       blockedAppPackages: List<String>.from(json['blockedAppPackages'] ?? []),
       blockedWebsites: List<String>.from(json['blockedWebsites'] ?? []),
+      unlockCode: json['unlockCode'] as String?,
+      failsafeMinutes: (json['failsafeMinutes'] as int?) ?? 1440,
     );
   }
 

@@ -18,11 +18,29 @@ class PlatformChannelService {
     required bool isBlocking,
     required List<String> blockedPackages,
     required List<String> blockedWebsites,
+    List<Map<String, dynamic>>? activeProfileBlocks,
   }) async {
     await _channel.invokeMethod('updateBlockingState', {
       'isBlocking': isBlocking,
       'blockedPackages': blockedPackages,
       'blockedWebsites': blockedWebsites,
+      'activeProfileBlocks': activeProfileBlocks ?? [],
+    });
+  }
+
+  static Future<void> scheduleFailsafeAlarm({
+    required String profileId,
+    required int failsafeMillis,
+  }) async {
+    await _channel.invokeMethod('scheduleFailsafeAlarm', {
+      'profileId': profileId,
+      'failsafeMillis': failsafeMillis,
+    });
+  }
+
+  static Future<void> cancelFailsafeAlarm({required String profileId}) async {
+    await _channel.invokeMethod('cancelFailsafeAlarm', {
+      'profileId': profileId,
     });
   }
 

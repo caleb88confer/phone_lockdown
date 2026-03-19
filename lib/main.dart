@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/app_blocker_service.dart';
-import 'services/code_scan_service.dart';
 import 'services/profile_manager.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -26,7 +25,6 @@ class PhoneLockdownApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AppBlockerService()),
         ChangeNotifierProvider(create: (_) => ProfileManager()),
-        ChangeNotifierProvider(create: (_) => CodeScanService()),
       ],
       child: MaterialApp(
         title: 'Phone Lockdown',

@@ -5,9 +5,11 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import org.json.JSONArray
 
 class ServiceMonitorWorker(
     context: Context,
@@ -25,6 +27,12 @@ class ServiceMonitorWorker(
         val isBlocking = prefs.getBoolean("isBlocking", false)
 
         if (!isBlocking) return Result.success()
+
+        // Backup check: expire any overdue failsafe alarms
+        checkExpiredFailsafeAlarms(prefs)
+
+        // Re-read isBlocking in case failsafe check cleared it
+        if (!prefs.getBoolean("isBlocking", false)) return Result.success()
 
         val isServiceRunning = isAccessibilityServiceEnabled()
         if (!isServiceRunning) {
@@ -53,6 +61,26 @@ class ServiceMonitorWorker(
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: return false
         return enabledServices.contains(serviceName)
+    }
+
+    private fun checkExpiredFailsafeAlarms(prefs: android.content.SharedPreferences) {
+        try {
+            val alarmsJson = prefs.getString("failsafeAlarms", "[]") ?: "[]"
+            val alarms = JSONArray(alarmsJson)
+            val now = System.currentTimeMillis()
+
+            for (i in 0 until alarms.length()) {
+                val obj = alarms.getJSONObject(i)
+                val alarmTime = obj.getLong("alarmTimeMillis")
+                if (now >= alarmTime) {
+                    val profileId = obj.getString("profileId")
+                    Log.d("ServiceMonitorWorker", "Failsafe expired (backup) for profile: $profileId")
+                    FailsafeAlarmReceiver.deactivateProfile(applicationContext, profileId)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("ServiceMonitorWorker", "Error checking failsafe alarms", e)
+        }
     }
 
     private fun showNotification(title: String, message: String) {
