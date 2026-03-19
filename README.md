@@ -1,16 +1,37 @@
-# broke_app
+# Phone Lockdown
 
-A new Flutter project.
+A Flutter app for Android that helps you control phone usage by blocking apps with NFC-based toggling.
+
+## Features
+
+### NFC Tag System
+- Scan NFC tags to toggle app blocking on and off
+- Create custom NFC tags by writing a validation phrase to blank tags
+- Tags are validated before toggling to prevent accidental activation
+
+### Profile Management
+- Create multiple blocking profiles, each with its own set of blocked apps
+- Default profile included out of the box
+- Choose from 20 different icons to personalize each profile
+- Long-press a profile to edit or delete it
+
+### App Blocking
+- Tap the lock button to toggle blocking on or off
+- Visual feedback with animated color transitions (red when blocking, green when not)
+- Blocking state persists across app restarts
+- Profile picker is hidden while blocking is active to prevent changes
+
+## Current Limitations
+
+- **App blocking is stubbed** — the UI and state management work, but actual enforcement via Android AccessibilityService is not yet implemented
+- **App picker is a placeholder** — the "Configure Blocked Apps" button in profile editing does not yet list installed apps
+- Android only (no iOS support)
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Requires an Android device or emulator. NFC features require a device with NFC hardware.
