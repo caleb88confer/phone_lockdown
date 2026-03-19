@@ -53,6 +53,19 @@ class _PermissionsScreenState extends State<PermissionsScreen>
                 onGrant: () =>
                     PlatformChannelService.openAccessibilitySettings(),
               ),
+              if (!blocker.isAccessibilityEnabled)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Text(
+                    'After tapping Grant, look for "Installed apps" or "Downloaded apps" '
+                    'at the bottom of the Accessibility page, then find Phone Lockdown and enable it.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white70,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 8),
               _PermissionTile(
                 title: 'Device Admin',

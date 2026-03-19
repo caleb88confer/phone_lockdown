@@ -39,7 +39,7 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "openAccessibilitySettings" -> {
-                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        openAccessibilitySettings()
                         result.success(null)
                     }
                     "openUsageStatsSettings" -> {
@@ -106,6 +106,22 @@ class MainActivity : FlutterActivity() {
         }
         startActivity(intent)
         result.success(null)
+    }
+
+    private fun openAccessibilitySettings() {
+        // Try to open the specific service settings page directly
+        try {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            val serviceName = "${packageName}/${LockdownAccessibilityService::class.java.canonicalName}"
+            val bundle = android.os.Bundle()
+            bundle.putString(":settings:fragment_args_key", serviceName)
+            intent.putExtra(":settings:fragment_args_key", serviceName)
+            intent.putExtra(":settings:show_fragment_args", bundle)
+            startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback to general accessibility settings
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
     }
 
     private fun scheduleServiceMonitor() {
