@@ -1,10 +1,14 @@
 package com.example.phone_lockdown
 
+import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.VpnService
+import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -15,6 +19,12 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : FlutterActivity() {
     private val channelName = "com.example.phone_lockdown/blocker"
+    private var pendingVpnResult: MethodChannel.Result? = null
+
+    companion object {
+        private const val VPN_REQUEST_CODE = 1001
+        private const val TAG = "MainActivity"
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -49,6 +59,20 @@ class MainActivity : FlutterActivity() {
                     "requestDeviceAdmin" -> {
                         requestDeviceAdmin(result)
                     }
+                    "prepareVpn" -> {
+                        prepareVpn(result)
+                    }
+                    "startVpn" -> {
+                        startVpnService()
+                        result.success(null)
+                    }
+                    "stopVpn" -> {
+                        stopVpnService()
+                        result.success(null)
+                    }
+                    "isVpnActive" -> {
+                        result.success(LockdownVpnService.instance != null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -57,9 +81,11 @@ class MainActivity : FlutterActivity() {
     private fun checkPermissions(): Map<String, Boolean> {
         val accessibilityEnabled = isAccessibilityServiceEnabled()
         val deviceAdminEnabled = isDeviceAdminEnabled()
+        val vpnPrepared = VpnService.prepare(this) == null
         return mapOf(
             "accessibility" to accessibilityEnabled,
             "deviceAdmin" to deviceAdminEnabled,
+            "vpn" to vpnPrepared,
         )
     }
 
@@ -93,6 +119,61 @@ class MainActivity : FlutterActivity() {
         LockdownAccessibilityService.isBlockingActive = isBlocking
         LockdownAccessibilityService.blockedPackages = packages.toSet()
         LockdownAccessibilityService.blockedWebsites = websites.toSet()
+
+        // Manage VPN service based on blocking state and website list
+        if (isBlocking && websites.isNotEmpty()) {
+            LockdownVpnService.blockedWebsites = websites.toSet()
+            if (LockdownVpnService.instance == null && VpnService.prepare(this) == null) {
+                startVpnService()
+            }
+        } else {
+            stopVpnService()
+        }
+    }
+
+    private fun prepareVpn(result: MethodChannel.Result) {
+        val intent = VpnService.prepare(this)
+        if (intent == null) {
+            // Already consented
+            result.success(true)
+        } else {
+            pendingVpnResult = result
+            startActivityForResult(intent, VPN_REQUEST_CODE)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == VPN_REQUEST_CODE) {
+            val approved = resultCode == Activity.RESULT_OK
+            pendingVpnResult?.success(approved)
+            pendingVpnResult = null
+        } else {
+            super.onActivityResult(requestCode, resultCode, data)
+        }
+    }
+
+    private fun startVpnService() {
+        try {
+            val intent = Intent(this, LockdownVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start VPN service", e)
+        }
+    }
+
+    private fun stopVpnService() {
+        try {
+            val intent = Intent(this, LockdownVpnService::class.java).apply {
+                action = "STOP"
+            }
+            startService(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop VPN service", e)
+        }
     }
 
     private fun requestDeviceAdmin(result: MethodChannel.Result) {

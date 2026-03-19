@@ -7,7 +7,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 
@@ -34,13 +33,10 @@ class LockdownAccessibilityService : AccessibilityService() {
         }
     }
 
-    private var browserPackages: Set<String> = emptySet()
-
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         loadStateFromPrefs()
-        browserPackages = BrowserDetector(this).getInstalledBrowserPackages()
         createNotificationChannel()
         updateForegroundNotification()
     }
@@ -56,11 +52,6 @@ class LockdownAccessibilityService : AccessibilityService() {
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 handleAppBlocking(packageName)
-            }
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
-                if (blockedWebsites.isNotEmpty() && browserPackages.contains(packageName)) {
-                    handleBrowserContentChanged(packageName)
-                }
             }
         }
     }
@@ -82,59 +73,6 @@ class LockdownAccessibilityService : AccessibilityService() {
                 Toast.LENGTH_SHORT
             ).show()
         }
-    }
-
-    private fun handleBrowserContentChanged(browserPackage: String) {
-        val rootNode = rootInActiveWindow ?: return
-        val urlText = extractUrlFromBrowser(rootNode, browserPackage)
-        rootNode.recycle()
-
-        if (urlText != null && DomainMatcher.matches(urlText, blockedWebsites)) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
-            Toast.makeText(
-                this,
-                "This website is blocked by Phone Lockdown",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
-
-    private fun extractUrlFromBrowser(
-        rootNode: AccessibilityNodeInfo,
-        browserPackage: String
-    ): String? {
-        // Try known URL bar IDs for this browser
-        val knownIds = BrowserDetector.URL_BAR_IDS[browserPackage]
-        if (knownIds != null) {
-            for (id in knownIds) {
-                val nodes = rootNode.findAccessibilityNodeInfosByViewId(id)
-                if (nodes.isNullOrEmpty()) continue
-                val text = nodes[0].text?.toString()
-                nodes.forEach { it.recycle() }
-                if (!text.isNullOrBlank()) return text
-            }
-        }
-
-        // Fallback: search for an EditText node that looks like a URL bar
-        return findUrlBarFallback(rootNode)
-    }
-
-    private fun findUrlBarFallback(node: AccessibilityNodeInfo): String? {
-        if (node.className?.toString() == "android.widget.EditText") {
-            val text = node.text?.toString()
-            if (text != null && text.contains(".") && !text.contains(" ")) {
-                return text
-            }
-        }
-
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val result = findUrlBarFallback(child)
-            child.recycle()
-            if (result != null) return result
-        }
-
-        return null
     }
 
     override fun onInterrupt() {

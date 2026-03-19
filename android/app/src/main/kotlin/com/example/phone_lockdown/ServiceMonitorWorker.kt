@@ -28,7 +28,19 @@ class ServiceMonitorWorker(
 
         val isServiceRunning = isAccessibilityServiceEnabled()
         if (!isServiceRunning) {
-            showNotification()
+            showNotification(
+                "Accessibility Service Disabled",
+                "The accessibility service was disabled. App blocking is not active. Please re-enable it."
+            )
+        }
+
+        // Check if VPN should be running for website blocking
+        val blockedWebsites = prefs.getStringSet("blockedWebsites", emptySet()) ?: emptySet()
+        if (blockedWebsites.isNotEmpty() && LockdownVpnService.instance == null) {
+            showNotification(
+                "VPN Service Stopped",
+                "The VPN service was stopped. Website blocking is not active. Please re-enable it."
+            )
         }
 
         return Result.success()
@@ -43,7 +55,7 @@ class ServiceMonitorWorker(
         return enabledServices.contains(serviceName)
     }
 
-    private fun showNotification() {
+    private fun showNotification(title: String, message: String) {
         val notificationManager =
             applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -60,8 +72,8 @@ class ServiceMonitorWorker(
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("Phone Lockdown Disabled")
-            .setContentText("The accessibility service was disabled. Blocking is not active. Please re-enable it.")
+            .setContentTitle(title)
+            .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()

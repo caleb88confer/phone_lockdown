@@ -7,10 +7,12 @@ class AppBlockerService extends ChangeNotifier {
   bool _isBlocking = false;
   bool _isAccessibilityEnabled = false;
   bool _isDeviceAdminEnabled = false;
+  bool _isVpnPrepared = false;
 
   bool get isBlocking => _isBlocking;
   bool get isAccessibilityEnabled => _isAccessibilityEnabled;
   bool get isDeviceAdminEnabled => _isDeviceAdminEnabled;
+  bool get isVpnPrepared => _isVpnPrepared;
 
   AppBlockerService() {
     _loadBlockingState();
@@ -22,6 +24,7 @@ class AppBlockerService extends ChangeNotifier {
       final permissions = await PlatformChannelService.checkPermissions();
       _isAccessibilityEnabled = permissions['accessibility'] ?? false;
       _isDeviceAdminEnabled = permissions['deviceAdmin'] ?? false;
+      _isVpnPrepared = permissions['vpn'] ?? false;
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to check permissions: $e');
@@ -62,5 +65,17 @@ class AppBlockerService extends ChangeNotifier {
   Future<void> _saveBlockingState() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isBlocking', _isBlocking);
+  }
+
+  Future<bool> prepareVpn() async {
+    try {
+      final result = await PlatformChannelService.prepareVpn();
+      _isVpnPrepared = result;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      debugPrint('Failed to prepare VPN: $e');
+      return false;
+    }
   }
 }

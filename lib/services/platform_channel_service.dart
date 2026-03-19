@@ -37,4 +37,22 @@ class PlatformChannelService {
   static Future<void> requestDeviceAdmin() async {
     await _channel.invokeMethod('requestDeviceAdmin');
   }
+
+  static Future<bool> prepareVpn() async {
+    final result = await _channel.invokeMethod<bool>('prepareVpn');
+    return result ?? false;
+  }
+
+  static Future<void> startVpn() async {
+    await _channel.invokeMethod('startVpn');
+  }
+
+  static Future<void> stopVpn() async {
+    await _channel.invokeMethod('stopVpn');
+  }
+
+  static Future<bool> isVpnActive() async {
+    final result = await _channel.invokeMethod<bool>('isVpnActive');
+    return result ?? false;
+  }
 }

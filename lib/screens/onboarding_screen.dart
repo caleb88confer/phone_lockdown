@@ -170,16 +170,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
         const SizedBox(height: 16),
         const Text(
-          'Phone Lockdown needs the Accessibility Service permission to block apps. '
+          'Phone Lockdown needs permissions to block apps and websites. '
           'You can grant additional permissions later from the app.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 32),
         _PermissionRow(
-          label: 'Accessibility Service',
+          label: 'Accessibility Service (App Blocking)',
           isGranted: blocker.isAccessibilityEnabled,
           onGrant: () => PlatformChannelService.openAccessibilitySettings(),
+        ),
+        const SizedBox(height: 12),
+        _PermissionRow(
+          label: 'VPN Service (Website Blocking)',
+          isGranted: blocker.isVpnPrepared,
+          onGrant: () => blocker.prepareVpn(),
         ),
       ],
     );
