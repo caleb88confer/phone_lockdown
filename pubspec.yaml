@@ -1,4 +1,4 @@
-name: broke_app
+name: phone_lockdown
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -32,8 +32,7 @@ dependencies:
     sdk: flutter
   provider: ^6.1.0
   shared_preferences: ^2.2.0
-  nfc_manager: ^4.1.1
-  ndef_record: ^1.4.1
+  mobile_scanner: ^6.0.2
   uuid: ^4.2.0
 
 dev_dependencies:

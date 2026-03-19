@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">Phone Lockdown uses this service to detect when blocked apps are opened and redirect you to the home screen.</string>
+</resources>

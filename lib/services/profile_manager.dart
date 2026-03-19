@@ -108,6 +108,7 @@ class ProfileManager extends ChangeNotifier {
     String? name,
     int? iconCodePoint,
     List<String>? blockedAppPackages,
+    List<String>? blockedWebsites,
   }) {
     final index = _profiles.indexWhere((p) => p.id == id);
     if (index == -1) return;
@@ -116,6 +117,9 @@ class ProfileManager extends ChangeNotifier {
     if (iconCodePoint != null) _profiles[index].iconCodePoint = iconCodePoint;
     if (blockedAppPackages != null) {
       _profiles[index].blockedAppPackages = blockedAppPackages;
+    }
+    if (blockedWebsites != null) {
+      _profiles[index].blockedWebsites = blockedWebsites;
     }
 
     saveProfiles();

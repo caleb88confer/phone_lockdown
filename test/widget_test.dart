@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:broke_app/main.dart';
+import 'package:phone_lockdown/main.dart';
 
 void main() {
   testWidgets('App renders home screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const BrokeApp());
-    expect(find.text('Broke'), findsOneWidget);
+    await tester.pumpWidget(const PhoneLockdownApp(onboardingComplete: true));
+    expect(find.text('Phone Lockdown'), findsOneWidget);
   });
 }

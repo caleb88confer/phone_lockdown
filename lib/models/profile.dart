@@ -6,6 +6,7 @@ class Profile {
   String name;
   int iconCodePoint;
   List<String> blockedAppPackages;
+  List<String> blockedWebsites;
 
   bool get isDefault => name == 'Default';
 
@@ -14,8 +15,10 @@ class Profile {
     required this.name,
     this.iconCodePoint = 0xe7f5, // Icons.notifications_off
     List<String>? blockedAppPackages,
+    List<String>? blockedWebsites,
   })  : id = id ?? const Uuid().v4(),
-        blockedAppPackages = blockedAppPackages ?? [];
+        blockedAppPackages = blockedAppPackages ?? [],
+        blockedWebsites = blockedWebsites ?? [];
 
   factory Profile.defaultProfile() {
     return Profile(name: 'Default');
@@ -26,6 +29,7 @@ class Profile {
         'name': name,
         'iconCodePoint': iconCodePoint,
         'blockedAppPackages': blockedAppPackages,
+        'blockedWebsites': blockedWebsites,
       };
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -34,6 +38,7 @@ class Profile {
       name: json['name'] as String,
       iconCodePoint: json['iconCodePoint'] as int,
       blockedAppPackages: List<String>.from(json['blockedAppPackages'] ?? []),
+      blockedWebsites: List<String>.from(json['blockedWebsites'] ?? []),
     );
   }
 

@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'services/app_blocker_service.dart';
-import 'services/nfc_service.dart';
+import 'services/code_scan_service.dart';
 import 'services/profile_manager.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BrokeApp());
+  final prefs = await SharedPreferences.getInstance();
+  final onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
+  runApp(PhoneLockdownApp(onboardingComplete: onboardingComplete));
 }
 
-class BrokeApp extends StatelessWidget {
-  const BrokeApp({super.key});
+class PhoneLockdownApp extends StatelessWidget {
+  final bool onboardingComplete;
+
+  const PhoneLockdownApp({super.key, required this.onboardingComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +26,16 @@ class BrokeApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AppBlockerService()),
         ChangeNotifierProvider(create: (_) => ProfileManager()),
-        ChangeNotifierProvider(create: (_) => NfcService()),
+        ChangeNotifierProvider(create: (_) => CodeScanService()),
       ],
       child: MaterialApp(
-        title: 'Broke',
+        title: 'Phone Lockdown',
         theme: AppTheme.dark,
-        home: const HomeScreen(),
+        initialRoute: onboardingComplete ? '/home' : '/onboarding',
+        routes: {
+          '/home': (_) => const HomeScreen(),
+          '/onboarding': (_) => const OnboardingScreen(),
+        },
         debugShowCheckedModeBanner: false,
       ),
     );

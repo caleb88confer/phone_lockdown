@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/profile.dart';
+import '../screens/app_picker_screen.dart';
 import '../services/profile_manager.dart';
+
 
 class ProfileFormDialog extends StatefulWidget {
   final Profile? profile;
@@ -18,7 +20,10 @@ class ProfileFormDialog extends StatefulWidget {
 
 class _ProfileFormDialogState extends State<ProfileFormDialog> {
   late TextEditingController _nameController;
+  late TextEditingController _websiteController;
   late int _selectedIconCodePoint;
+  late List<String> _blockedAppPackages;
+  late List<String> _blockedWebsites;
 
   bool get isEditing => widget.profile != null;
 
@@ -49,13 +54,18 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile?.name ?? '');
+    _websiteController = TextEditingController();
     _selectedIconCodePoint =
         widget.profile?.iconCodePoint ?? Icons.notifications_off.codePoint;
+    _blockedAppPackages =
+        List<String>.from(widget.profile?.blockedAppPackages ?? []);
+    _blockedWebsites = List<String>.from(widget.profile?.blockedWebsites ?? []);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -68,15 +78,31 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
         id: widget.profile!.id,
         name: name,
         iconCodePoint: _selectedIconCodePoint,
+        blockedAppPackages: _blockedAppPackages,
+        blockedWebsites: _blockedWebsites,
       );
     } else {
-      widget.profileManager.addProfile(
+      final profile = Profile(
         name: name,
         iconCodePoint: _selectedIconCodePoint,
+        blockedAppPackages: _blockedAppPackages,
+        blockedWebsites: _blockedWebsites,
       );
+      widget.profileManager.addProfileInstance(profile);
     }
 
     Navigator.of(context).pop();
+  }
+
+  void _addWebsite() {
+    final website = _websiteController.text.trim().toLowerCase();
+    if (website.isEmpty || !website.contains('.')) return;
+    if (_blockedWebsites.contains(website)) return;
+
+    setState(() {
+      _blockedWebsites.add(website);
+      _websiteController.clear();
+    });
   }
 
   void _handleDelete() {
@@ -169,23 +195,64 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
           ),
           const SizedBox(height: 24),
 
-          // Blocked apps (placeholder)
+          // Blocked apps
           ListTile(
             title: const Text('Configure Blocked Apps'),
-            subtitle: Text(
-              '${widget.profile?.blockedAppPackages.length ?? 0} apps blocked',
-            ),
+            subtitle: Text('${_blockedAppPackages.length} apps blocked'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Implement app picker using Android PackageManager
-              // via platform channel to list installed applications.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('App picker coming soon — requires Android platform integration'),
+            onTap: () async {
+              final selected = await Navigator.of(context).push<List<String>>(
+                MaterialPageRoute(
+                  builder: (_) => AppPickerScreen(
+                    initialSelected: _blockedAppPackages,
+                  ),
                 ),
               );
+              if (selected != null) {
+                setState(() {
+                  _blockedAppPackages = selected;
+                });
+              }
             },
           ),
+          const SizedBox(height: 24),
+
+          // Blocked websites
+          Text('Blocked Websites',
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _websiteController,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. youtube.com',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _addWebsite(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.add_circle),
+                onPressed: _addWebsite,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ..._blockedWebsites.map((website) => ListTile(
+                dense: true,
+                title: Text(website),
+                trailing: IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      _blockedWebsites.remove(website);
+                    });
+                  },
+                ),
+              )),
 
           // Delete button (edit mode only)
           if (isEditing) ...[

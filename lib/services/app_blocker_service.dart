@@ -1,47 +1,55 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/profile.dart';
+import 'platform_channel_service.dart';
 
 class AppBlockerService extends ChangeNotifier {
   bool _isBlocking = false;
-  bool _isAuthorized = false;
+  bool _isAccessibilityEnabled = false;
+  bool _isDeviceAdminEnabled = false;
 
   bool get isBlocking => _isBlocking;
-  bool get isAuthorized => _isAuthorized;
+  bool get isAccessibilityEnabled => _isAccessibilityEnabled;
+  bool get isDeviceAdminEnabled => _isDeviceAdminEnabled;
 
   AppBlockerService() {
     _loadBlockingState();
-    requestAuthorization();
+    refreshPermissions();
   }
 
-  Future<void> requestAuthorization() async {
-    // TODO: On Android, request PACKAGE_USAGE_STATS permission
-    // and prompt user to enable AccessibilityService in settings.
-    _isAuthorized = true;
-    notifyListeners();
+  Future<void> refreshPermissions() async {
+    try {
+      final permissions = await PlatformChannelService.checkPermissions();
+      _isAccessibilityEnabled = permissions['accessibility'] ?? false;
+      _isDeviceAdminEnabled = permissions['deviceAdmin'] ?? false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to check permissions: $e');
+    }
   }
 
-  void toggleBlocking(Profile profile) {
-    if (!_isAuthorized) {
-      debugPrint('Not authorized to block apps');
-      return;
+  Future<bool> toggleBlocking(Profile profile) async {
+    if (!_isAccessibilityEnabled) {
+      debugPrint('Accessibility service not enabled');
+      return false;
     }
 
     _isBlocking = !_isBlocking;
     _saveBlockingState();
-    _applyBlockingSettings(profile);
+    await _applyBlockingSettings(profile);
     notifyListeners();
+    return true;
   }
 
-  void _applyBlockingSettings(Profile profile) {
-    if (_isBlocking) {
-      debugPrint('Blocking ${profile.blockedAppPackages.length} apps');
-      // TODO: Implement Android app blocking via AccessibilityService.
-      // Monitor TYPE_WINDOW_STATE_CHANGED events and overlay a blocking
-      // screen when a blocked app's package name is detected in foreground.
-    } else {
-      debugPrint('Unblocking apps');
-      // TODO: Remove blocking overlay / stop intercepting app launches.
+  Future<void> _applyBlockingSettings(Profile profile) async {
+    try {
+      await PlatformChannelService.updateBlockingState(
+        isBlocking: _isBlocking,
+        blockedPackages: profile.blockedAppPackages,
+        blockedWebsites: profile.blockedWebsites,
+      );
+    } catch (e) {
+      debugPrint('Failed to update blocking state: $e');
     }
   }
 
