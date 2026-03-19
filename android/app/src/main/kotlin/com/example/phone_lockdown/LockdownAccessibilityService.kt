@@ -17,14 +17,21 @@ class LockdownAccessibilityService : AccessibilityService() {
         var instance: LockdownAccessibilityService? = null
         var blockedPackages: Set<String> = emptySet()
         var blockedWebsites: Set<String> = emptySet()
-        var isBlockingActive: Boolean = false
+        private var _isBlockingActive: Boolean = false
+        var isBlockingActive: Boolean
+            get() = _isBlockingActive
             set(value) {
-                field = value
+                _isBlockingActive = value
                 instance?.updateForegroundNotification()
             }
 
         private const val CHANNEL_ID = "lockdown_active"
         private const val NOTIFICATION_ID = 1001
+
+        /** Set blocking state without triggering notification update */
+        fun setBlockingActiveSilently(value: Boolean) {
+            _isBlockingActive = value
+        }
     }
 
     private var browserPackages: Set<String> = emptySet()
@@ -141,11 +148,7 @@ class LockdownAccessibilityService : AccessibilityService() {
 
     private fun loadStateFromPrefs() {
         val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
-        // Set field directly to avoid triggering the setter before instance is ready
-        Companion::class.java.getDeclaredField("isBlockingActive").let {
-            it.isAccessible = true
-            it.setBoolean(Companion, prefs.getBoolean("isBlocking", false))
-        }
+        setBlockingActiveSilently(prefs.getBoolean("isBlocking", false))
         blockedPackages = prefs.getStringSet("blockedPackages", emptySet()) ?: emptySet()
         blockedWebsites = prefs.getStringSet("blockedWebsites", emptySet()) ?: emptySet()
     }
