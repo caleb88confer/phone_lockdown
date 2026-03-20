@@ -1,6 +1,7 @@
 package com.example.phone_lockdown
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -14,13 +15,20 @@ class AppListHelper(private val context: Context) {
 
     fun getInstalledApps(): List<Map<String, Any>> {
         val pm = context.packageManager
+
+        // Query all launcher activities in a single batch call
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val launchablePackages = pm.queryIntentActivities(launcherIntent, 0)
+            .map { it.activityInfo.packageName }
+            .filter { it != context.packageName }
+            .toSet()
+
         val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
 
         return apps
-            .filter { app ->
-                pm.getLaunchIntentForPackage(app.packageName) != null &&
-                    app.packageName != context.packageName
-            }
+            .filter { app -> launchablePackages.contains(app.packageName) }
             .map { app ->
                 mapOf(
                     "packageName" to app.packageName,
