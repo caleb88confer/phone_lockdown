@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants.dart';
 import '../models/profile.dart';
 import 'platform_channel_service.dart';
 
@@ -194,7 +195,7 @@ class AppBlockerService extends ChangeNotifier {
   }
 
   Future<void> _loadBlockingState() async {
-    final locksJson = _prefs.getString('activeLocks');
+    final locksJson = _prefs.getString(kPrefActiveLocks);
 
     if (locksJson != null) {
       try {
@@ -212,10 +213,10 @@ class AppBlockerService extends ChangeNotifier {
 
     // Also handle legacy single isBlocking state
     if (_activeLocks.isEmpty) {
-      final legacyBlocking = _prefs.getBool('isBlocking') ?? false;
+      final legacyBlocking = _prefs.getBool(kPrefIsBlocking) ?? false;
       if (legacyBlocking) {
         // Clear legacy state since we can't reconstruct profile info
-        await _prefs.setBool('isBlocking', false);
+        await _prefs.setBool(kPrefIsBlocking, false);
       }
     }
 
@@ -224,9 +225,9 @@ class AppBlockerService extends ChangeNotifier {
 
   Future<void> _saveActiveLocks() async {
     final list = _activeLocks.values.map((l) => l.toJson()).toList();
-    await _prefs.setString('activeLocks', jsonEncode(list));
+    await _prefs.setString(kPrefActiveLocks, jsonEncode(list));
     // Also maintain legacy key for Android-side compatibility
-    await _prefs.setBool('isBlocking', _activeLocks.isNotEmpty);
+    await _prefs.setBool(kPrefIsBlocking, _activeLocks.isNotEmpty);
   }
 
   /// Call after app restart once profiles are available to start timers
