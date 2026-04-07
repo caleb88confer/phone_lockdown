@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/profile.dart';
 
 class ProfileManager extends ChangeNotifier {
+  final SharedPreferences _prefs;
   List<Profile> _profiles = [];
   String? _currentProfileId;
 
@@ -19,7 +20,7 @@ class ProfileManager extends ChangeNotifier {
     );
   }
 
-  ProfileManager() {
+  ProfileManager({required SharedPreferences prefs}) : _prefs = prefs {
     _init();
   }
 
@@ -31,8 +32,7 @@ class ProfileManager extends ChangeNotifier {
   }
 
   Future<void> loadProfiles() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedProfiles = prefs.getString('savedProfiles');
+    final savedProfiles = _prefs.getString('savedProfiles');
 
     if (savedProfiles != null) {
       _profiles = Profile.decodeList(savedProfiles);
@@ -42,7 +42,7 @@ class ProfileManager extends ChangeNotifier {
       _currentProfileId = defaultProfile.id;
     }
 
-    final savedId = prefs.getString('currentProfileId');
+    final savedId = _prefs.getString('currentProfileId');
     if (savedId != null && _profiles.any((p) => p.id == savedId)) {
       _currentProfileId = savedId;
     } else {
@@ -53,10 +53,9 @@ class ProfileManager extends ChangeNotifier {
   }
 
   Future<void> saveProfiles() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('savedProfiles', Profile.encodeList(_profiles));
+    await _prefs.setString('savedProfiles', Profile.encodeList(_profiles));
     if (_currentProfileId != null) {
-      await prefs.setString('currentProfileId', _currentProfileId!);
+      await _prefs.setString('currentProfileId', _currentProfileId!);
     }
   }
 
@@ -161,8 +160,7 @@ class ProfileManager extends ChangeNotifier {
   }
 
   Future<void> _migrateLegacyCode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final legacyCode = prefs.getString('savedCodeValue');
+    final legacyCode = _prefs.getString('savedCodeValue');
     if (legacyCode == null) return;
 
     // Assign legacy code to Default profile (or first profile)
@@ -174,6 +172,6 @@ class ProfileManager extends ChangeNotifier {
       defaultProfile.unlockCode = legacyCode;
       await saveProfiles();
     }
-    await prefs.remove('savedCodeValue');
+    await _prefs.remove('savedCodeValue');
   }
 }

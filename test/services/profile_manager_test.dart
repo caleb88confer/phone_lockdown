@@ -7,8 +7,11 @@ import 'package:phone_lockdown/services/profile_manager.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
   });
 
   group('Profile JSON round-trip', () {
@@ -62,7 +65,7 @@ void main() {
 
   group('ProfileManager CRUD', () {
     test('starts with default profile', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -72,7 +75,7 @@ void main() {
     });
 
     test('addProfile creates new profile and sets it current', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -84,7 +87,7 @@ void main() {
     });
 
     test('deleteProfile removes profile and falls back to first', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -98,7 +101,7 @@ void main() {
     });
 
     test('deleteProfile ensures default profile always exists', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -110,7 +113,7 @@ void main() {
     });
 
     test('updateProfile modifies fields', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -131,7 +134,7 @@ void main() {
     });
 
     test('findProfileByCode returns matching profile', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -144,7 +147,7 @@ void main() {
     });
 
     test('findProfileByCode returns null for non-existent code', () async {
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -157,16 +160,16 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'savedCodeValue': 'legacy-code-123',
       });
+      final legacyPrefs = await SharedPreferences.getInstance();
 
-      final manager = ProfileManager();
+      final manager = ProfileManager(prefs: legacyPrefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
       expect(manager.profiles.first.unlockCode, 'legacy-code-123');
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('savedCodeValue'), isNull);
+      expect(legacyPrefs.getString('savedCodeValue'), isNull);
     });
   });
 }
