@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final appBlocker = context.read<AppBlockerService>();
       final profileManager = context.read<ProfileManager>();
       appBlocker.restoreTimers(profileManager.profiles);
+      appBlocker.reconcileWithAndroid(profileManager.profiles);
     });
     _startCountdownRefresh();
   }
