@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/platform_channel_service.dart';
 
 class AppPickerScreen extends StatefulWidget {
@@ -29,7 +30,8 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
 
   Future<void> _loadApps() async {
     try {
-      final apps = await PlatformChannelService.getInstalledApps();
+      final platform = context.read<PlatformChannelService>();
+      final apps = await platform.getInstalledApps();
       setState(() {
         _allApps = apps;
         _isLoading = false;

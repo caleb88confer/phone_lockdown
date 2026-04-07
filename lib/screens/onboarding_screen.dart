@@ -143,7 +143,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _PermissionRow(
           label: 'Accessibility Service (App Blocking)',
           isGranted: blocker.isAccessibilityEnabled,
-          onGrant: () => PlatformChannelService.openAccessibilitySettings(),
+          onGrant: () => context.read<PlatformChannelService>().openAccessibilitySettings(),
         ),
         const SizedBox(height: 12),
         _PermissionRow(

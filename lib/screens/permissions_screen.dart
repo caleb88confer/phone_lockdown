@@ -51,7 +51,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
                     'Required to detect when blocked apps are opened and redirect you to the home screen.',
                 isGranted: blocker.isAccessibilityEnabled,
                 onGrant: () =>
-                    PlatformChannelService.openAccessibilitySettings(),
+                    context.read<PlatformChannelService>().openAccessibilitySettings(),
               ),
               if (!blocker.isAccessibilityEnabled)
                 const Padding(
@@ -82,7 +82,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
                 description:
                     'Optional. Prevents the app from being uninstalled while blocking is active.',
                 isGranted: blocker.isDeviceAdminEnabled,
-                onGrant: () => PlatformChannelService.requestDeviceAdmin(),
+                onGrant: () => context.read<PlatformChannelService>().requestDeviceAdmin(),
               ),
             ],
           );
