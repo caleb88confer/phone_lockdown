@@ -1,46 +1,111 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phone_lockdown/models/profile.dart';
 import 'package:phone_lockdown/services/app_blocker_service.dart';
+import 'package:phone_lockdown/services/platform_channel_service.dart';
+
+class FakePlatformService implements PlatformChannelService {
+  final List<String> calls = [];
+  Map<String, bool> permissionsResult = {
+    'accessibility': true,
+    'deviceAdmin': true,
+    'vpn': true,
+  };
+
+  @override
+  Future<Map<String, bool>> checkPermissions() async {
+    calls.add('checkPermissions');
+    return permissionsResult;
+  }
+
+  @override
+  Future<void> updateBlockingState({
+    required bool isBlocking,
+    required List<String> blockedPackages,
+    required List<String> blockedWebsites,
+    List<Map<String, dynamic>>? activeProfileBlocks,
+  }) async {
+    calls.add('updateBlockingState(isBlocking=$isBlocking, '
+        'packages=${blockedPackages.length}, '
+        'websites=${blockedWebsites.length})');
+  }
+
+  @override
+  Future<void> scheduleFailsafeAlarm({
+    required String profileId,
+    required int failsafeMillis,
+  }) async {
+    calls.add('scheduleFailsafeAlarm($profileId)');
+  }
+
+  @override
+  Future<void> cancelFailsafeAlarm({required String profileId}) async {
+    calls.add('cancelFailsafeAlarm($profileId)');
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getInstalledApps() async {
+    calls.add('getInstalledApps');
+    return [];
+  }
+
+  @override
+  Future<void> openAccessibilitySettings() async {
+    calls.add('openAccessibilitySettings');
+  }
+
+  @override
+  Future<void> openUsageStatsSettings() async {
+    calls.add('openUsageStatsSettings');
+  }
+
+  @override
+  Future<void> requestDeviceAdmin() async {
+    calls.add('requestDeviceAdmin');
+  }
+
+  @override
+  Future<bool> prepareVpn() async {
+    calls.add('prepareVpn');
+    return true;
+  }
+
+  @override
+  Future<void> startVpn() async {
+    calls.add('startVpn');
+  }
+
+  @override
+  Future<void> stopVpn() async {
+    calls.add('stopVpn');
+  }
+
+  @override
+  Future<bool> isVpnActive() async {
+    calls.add('isVpnActive');
+    return false;
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  late FakePlatformService fakePlatform;
+  late SharedPreferences prefs;
+
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('com.example.phone_lockdown/blocker'),
-      (MethodCall methodCall) async {
-        switch (methodCall.method) {
-          case 'checkPermissions':
-            return {
-              'accessibility': true,
-              'deviceAdmin': true,
-              'vpn': true,
-            };
-          case 'updateBlockingState':
-            return null;
-          case 'scheduleFailsafeAlarm':
-            return null;
-          case 'cancelFailsafeAlarm':
-            return null;
-          default:
-            return null;
-        }
-      },
-    );
+    prefs = await SharedPreferences.getInstance();
+    fakePlatform = FakePlatformService();
   });
 
-  tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('com.example.phone_lockdown/blocker'),
-      null,
+  AppBlockerService createService({SharedPreferences? overridePrefs}) {
+    return AppBlockerService(
+      platform: fakePlatform,
+      prefs: overridePrefs ?? prefs,
     );
-  });
+  }
 
   List<Profile> makeProfiles() {
     return [
@@ -102,7 +167,7 @@ void main() {
 
   group('AppBlockerService activation', () {
     test('activateProfile adds lock and reports blocking', () async {
-      final service = AppBlockerService();
+      final service = createService();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -118,7 +183,7 @@ void main() {
     });
 
     test('deactivateProfile removes lock', () async {
-      final service = AppBlockerService();
+      final service = createService();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -135,7 +200,7 @@ void main() {
     });
 
     test('multiple profiles stack — blocking continues until all deactivated', () async {
-      final service = AppBlockerService();
+      final service = createService();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -153,7 +218,7 @@ void main() {
     });
 
     test('deactivateProfile returns false for non-existent profile', () async {
-      final service = AppBlockerService();
+      final service = createService();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -169,14 +234,14 @@ void main() {
 
   group('AppBlockerService persistence', () {
     test('saves and restores active locks across instances', () async {
-      final service1 = AppBlockerService();
+      final service1 = createService();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
       final profiles = makeProfiles();
       await service1.activateProfile(profiles[0], allProfiles: profiles);
 
-      final service2 = AppBlockerService();
+      final service2 = createService();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
@@ -193,12 +258,61 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'activeLocks': jsonEncode([expiredLock.toJson()]),
       });
+      final freshPrefs = await SharedPreferences.getInstance();
 
-      final service = AppBlockerService();
+      final service = createService(overridePrefs: freshPrefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
       expect(service.isBlocking, isFalse);
+    });
+  });
+
+  group('AppBlockerService platform calls', () {
+    test('activateProfile calls updateBlockingState with merged packages', () async {
+      final service = createService();
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      fakePlatform.calls.clear();
+
+      final profiles = makeProfiles();
+      await service.activateProfile(profiles[0], allProfiles: profiles);
+
+      expect(
+        fakePlatform.calls,
+        contains(
+          'updateBlockingState(isBlocking=true, packages=1, websites=1)',
+        ),
+      );
+      expect(
+        fakePlatform.calls,
+        contains('scheduleFailsafeAlarm(profile-1)'),
+      );
+    });
+
+    test('deactivateProfile calls updateBlockingState with empty lists when last profile', () async {
+      final service = createService();
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      final profiles = makeProfiles();
+      await service.activateProfile(profiles[0], allProfiles: profiles);
+
+      fakePlatform.calls.clear();
+
+      await service.deactivateProfile('profile-1', allProfiles: profiles);
+
+      expect(
+        fakePlatform.calls,
+        contains(
+          'updateBlockingState(isBlocking=false, packages=0, websites=0)',
+        ),
+      );
+      expect(
+        fakePlatform.calls,
+        contains('cancelFailsafeAlarm(profile-1)'),
+      );
     });
   });
 }

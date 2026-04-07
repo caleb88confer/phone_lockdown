@@ -43,6 +43,8 @@ class ActiveLock {
 }
 
 class AppBlockerService extends ChangeNotifier {
+  final PlatformChannelService _platform;
+  final SharedPreferences _prefs;
   final Map<String, ActiveLock> _activeLocks = {};
   bool _isAccessibilityEnabled = false;
   bool _isDeviceAdminEnabled = false;
@@ -56,14 +58,18 @@ class AppBlockerService extends ChangeNotifier {
 
   ActiveLock? getLock(String profileId) => _activeLocks[profileId];
 
-  AppBlockerService() {
+  AppBlockerService({
+    required PlatformChannelService platform,
+    required SharedPreferences prefs,
+  })  : _platform = platform,
+        _prefs = prefs {
     _loadBlockingState();
     refreshPermissions();
   }
 
   Future<void> refreshPermissions() async {
     try {
-      final permissions = await PlatformChannelService.checkPermissions();
+      final permissions = await _platform.checkPermissions();
       _isAccessibilityEnabled = permissions['accessibility'] ?? false;
       _isDeviceAdminEnabled = permissions['deviceAdmin'] ?? false;
       _isVpnPrepared = permissions['vpn'] ?? false;
@@ -93,7 +99,7 @@ class AppBlockerService extends ChangeNotifier {
 
     // Schedule Android-side alarm
     try {
-      await PlatformChannelService.scheduleFailsafeAlarm(
+      await _platform.scheduleFailsafeAlarm(
         profileId: profile.id,
         failsafeMillis: lock.remaining.inMilliseconds,
       );
@@ -116,7 +122,7 @@ class AppBlockerService extends ChangeNotifier {
 
     // Cancel Android-side alarm
     try {
-      await PlatformChannelService.cancelFailsafeAlarm(profileId: profileId);
+      await _platform.cancelFailsafeAlarm(profileId: profileId);
     } catch (e) {
       debugPrint('Failed to cancel failsafe alarm: $e');
     }
@@ -141,7 +147,7 @@ class AppBlockerService extends ChangeNotifier {
   Future<void> _recomputeAndApply(List<Profile> allProfiles) async {
     if (_activeLocks.isEmpty) {
       try {
-        await PlatformChannelService.updateBlockingState(
+        await _platform.updateBlockingState(
           isBlocking: false,
           blockedPackages: [],
           blockedWebsites: [],
@@ -174,7 +180,7 @@ class AppBlockerService extends ChangeNotifier {
     }
 
     try {
-      await PlatformChannelService.updateBlockingState(
+      await _platform.updateBlockingState(
         isBlocking: true,
         blockedPackages: mergedPackages.toList(),
         blockedWebsites: mergedWebsites.toList(),
@@ -186,8 +192,7 @@ class AppBlockerService extends ChangeNotifier {
   }
 
   Future<void> _loadBlockingState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final locksJson = prefs.getString('activeLocks');
+    final locksJson = _prefs.getString('activeLocks');
 
     if (locksJson != null) {
       try {
@@ -205,10 +210,10 @@ class AppBlockerService extends ChangeNotifier {
 
     // Also handle legacy single isBlocking state
     if (_activeLocks.isEmpty) {
-      final legacyBlocking = prefs.getBool('isBlocking') ?? false;
+      final legacyBlocking = _prefs.getBool('isBlocking') ?? false;
       if (legacyBlocking) {
         // Clear legacy state since we can't reconstruct profile info
-        await prefs.setBool('isBlocking', false);
+        await _prefs.setBool('isBlocking', false);
       }
     }
 
@@ -216,11 +221,10 @@ class AppBlockerService extends ChangeNotifier {
   }
 
   Future<void> _saveActiveLocks() async {
-    final prefs = await SharedPreferences.getInstance();
     final list = _activeLocks.values.map((l) => l.toJson()).toList();
-    await prefs.setString('activeLocks', jsonEncode(list));
+    await _prefs.setString('activeLocks', jsonEncode(list));
     // Also maintain legacy key for Android-side compatibility
-    await prefs.setBool('isBlocking', _activeLocks.isNotEmpty);
+    await _prefs.setBool('isBlocking', _activeLocks.isNotEmpty);
   }
 
   /// Call after app restart once profiles are available to start timers
@@ -245,7 +249,7 @@ class AppBlockerService extends ChangeNotifier {
 
   Future<bool> prepareVpn() async {
     try {
-      final result = await PlatformChannelService.prepareVpn();
+      final result = await _platform.prepareVpn();
       _isVpnPrepared = result;
       notifyListeners();
       return result;
