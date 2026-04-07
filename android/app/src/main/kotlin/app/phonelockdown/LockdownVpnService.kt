@@ -40,6 +40,7 @@ class LockdownVpnService : VpnService() {
     @Volatile
     private var isRunning = false
     private var processingThread: Thread? = null
+    private val dnsCache = DnsCache()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
@@ -107,6 +108,7 @@ class LockdownVpnService : VpnService() {
 
     private fun stopVpn() {
         isRunning = false
+        dnsCache.clear()
         processingThread?.interrupt()
         processingThread = null
 
@@ -195,10 +197,29 @@ class LockdownVpnService : VpnService() {
             return
         }
 
+        // Check DNS cache before forwarding
+        if (domain != null) {
+            val cachedResponse = dnsCache.get(domain)
+            if (cachedResponse != null) {
+                // Rewrite transaction ID (first 2 bytes) to match the current query
+                cachedResponse[0] = dnsPayload[0]
+                cachedResponse[1] = dnsPayload[1]
+                val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, cachedResponse)
+                outputStream.write(responsePacket)
+                outputStream.flush()
+                return
+            }
+        }
+
         // Forward non-blocked DNS queries to real DNS server
         try {
             val responseDns = forwardDnsQuery(dnsPayload)
             if (responseDns != null) {
+                // Cache the response before sending it back
+                if (domain != null) {
+                    val ttl = DnsPacketParser.extractTtl(responseDns)
+                    dnsCache.put(domain, responseDns, ttl)
+                }
                 val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, responseDns)
                 outputStream.write(responsePacket)
                 outputStream.flush()
