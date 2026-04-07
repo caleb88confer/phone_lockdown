@@ -325,4 +325,83 @@ void main() {
       );
     });
   });
+
+  group('AppBlockerService reconciliation', () {
+    test('reconcile removes Flutter locks that Android deactivated', () async {
+      // Simulate: Flutter thinks profile-1 is active, but Android says it's not
+      SharedPreferences.setMockInitialValues({
+        'activeLocks': jsonEncode([
+          ActiveLock(
+            profileId: 'profile-1',
+            lockStartTime: DateTime.now(),
+            failsafeMinutes: 60,
+          ).toJson(),
+        ]),
+      });
+      final reconPrefs = await SharedPreferences.getInstance();
+      final reconPlatform = FakePlatformService();
+      reconPlatform.enforcementActiveProfileIds = []; // Android says nothing active
+
+      final service = AppBlockerService(platform: reconPlatform, prefs: reconPrefs);
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      // Before reconciliation, Flutter thinks it's blocking
+      expect(service.isBlocking, isTrue);
+
+      final profiles = makeProfiles();
+      await service.reconcileWithAndroid(profiles);
+
+      // After reconciliation, Flutter agrees with Android
+      expect(service.isBlocking, isFalse);
+      expect(service.activeProfileIds, isEmpty);
+    });
+
+    test('reconcile cleans up Android orphans not in Flutter', () async {
+      final service = createService();
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      // Android thinks profile-1 is active, but Flutter has no locks
+      fakePlatform.enforcementActiveProfileIds = ['profile-1'];
+
+      final profiles = makeProfiles();
+      await service.reconcileWithAndroid(profiles);
+
+      expect(service.isBlocking, isFalse);
+      expect(fakePlatform.calls, contains('cancelFailsafeAlarm(profile-1)'));
+    });
+
+    test('reconcile is a no-op when both sides agree', () async {
+      final service = createService();
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      final profiles = makeProfiles();
+      await service.activateProfile(profiles[0], allProfiles: profiles);
+      fakePlatform.calls.clear();
+
+      // Android agrees profile-1 is active
+      fakePlatform.enforcementActiveProfileIds = ['profile-1'];
+
+      await service.reconcileWithAndroid(profiles);
+
+      // Still blocking, no unexpected calls
+      expect(service.isBlocking, isTrue);
+      expect(service.activeProfileIds, contains('profile-1'));
+    });
+
+    test('reconcile handles both sides empty', () async {
+      final service = createService();
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      fakePlatform.enforcementActiveProfileIds = [];
+
+      final profiles = makeProfiles();
+      await service.reconcileWithAndroid(profiles);
+
+      expect(service.isBlocking, isFalse);
+    });
+  });
 }

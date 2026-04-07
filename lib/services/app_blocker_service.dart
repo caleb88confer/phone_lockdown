@@ -247,6 +247,40 @@ class AppBlockerService extends ChangeNotifier {
     }
   }
 
+  /// Reconcile Flutter state with Android enforcement state on app startup.
+  /// Android is authoritative for enforcement; Flutter is authoritative for profiles.
+  Future<void> reconcileWithAndroid(List<Profile> allProfiles) async {
+    final enforcement = await _platform.getEnforcementState();
+    final androidActiveIds =
+        Set<String>.from((enforcement['activeProfileIds'] as List?) ?? []);
+    final flutterActiveIds = _activeLocks.keys.toSet();
+
+    // Profiles that Android deactivated (failsafe fired while Flutter was dead)
+    for (final id in flutterActiveIds.difference(androidActiveIds)) {
+      final lock = _activeLocks.remove(id);
+      lock?.timer?.cancel();
+    }
+
+    // Profiles that shouldn't be active on Android (orphans)
+    for (final id in androidActiveIds.difference(flutterActiveIds)) {
+      await _platform.cancelFailsafeAlarm(profileId: id);
+    }
+
+    // Persist corrected state and reapply
+    await _saveActiveLocks();
+    if (_activeLocks.isNotEmpty) {
+      await _recomputeAndApply(allProfiles);
+    } else {
+      await _platform.updateBlockingState(
+        isBlocking: false,
+        blockedPackages: [],
+        blockedWebsites: [],
+        activeProfileBlocks: [],
+      );
+    }
+    notifyListeners();
+  }
+
   Future<bool> prepareVpn() async {
     try {
       final result = await _platform.prepareVpn();
