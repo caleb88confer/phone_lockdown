@@ -1,4 +1,4 @@
-package com.example.phone_lockdown
+package app.phonelockdown
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Notification

@@ -1,4 +1,4 @@
-package com.example.phone_lockdown
+package app.phonelockdown
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
