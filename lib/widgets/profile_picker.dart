@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/profile_manager.dart';
 import '../theme/app_colors.dart';
 import 'profile_cell.dart';
-import 'profile_form_dialog.dart';
+import 'profile_form/profile_form_dialog.dart';
 
 class ProfilePicker extends StatelessWidget {
   const ProfilePicker({super.key});
