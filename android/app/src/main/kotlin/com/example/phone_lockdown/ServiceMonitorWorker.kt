@@ -23,7 +23,7 @@ class ServiceMonitorWorker(
     }
 
     override fun doWork(): Result {
-        val prefs = applicationContext.getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val prefs = PrefsHelper.getPrefs(applicationContext)
         val isBlocking = prefs.getBoolean("isBlocking", false)
 
         if (!isBlocking) return Result.success()

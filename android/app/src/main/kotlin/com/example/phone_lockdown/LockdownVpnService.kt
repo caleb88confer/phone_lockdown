@@ -321,7 +321,7 @@ class LockdownVpnService : VpnService() {
     }
 
     private fun loadStateFromPrefs() {
-        val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val prefs = PrefsHelper.getPrefs(this)
         blockedWebsites = prefs.getStringSet("blockedWebsites", emptySet()) ?: emptySet()
     }
 

@@ -23,7 +23,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
          * Returns true if there are still active profiles remaining.
          */
         fun deactivateProfile(context: Context, profileId: String): Boolean {
-            val prefs = context.getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+            val prefs = PrefsHelper.getPrefs(context)
 
             // Remove this profile from failsafe alarms
             val alarmsJson = prefs.getString("failsafeAlarms", "[]")

@@ -126,7 +126,7 @@ class MainActivity : FlutterActivity() {
         websites: List<String>,
         activeProfileBlocks: List<Map<String, Any>>? = null
     ) {
-        val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val prefs = PrefsHelper.getPrefs(this)
         val editor = prefs.edit()
             .putBoolean("isBlocking", isBlocking)
             .putStringSet("blockedPackages", packages.toSet())
@@ -186,7 +186,7 @@ class MainActivity : FlutterActivity() {
         val triggerTime = System.currentTimeMillis() + failsafeMillis
 
         // Store alarm data for ServiceMonitorWorker backup check
-        val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val prefs = PrefsHelper.getPrefs(this)
         val alarmsJson = prefs.getString("failsafeAlarms", "[]")
         val alarms = JSONArray(alarmsJson)
         // Remove existing alarm for this profile
@@ -225,7 +225,7 @@ class MainActivity : FlutterActivity() {
         alarmManager.cancel(pendingIntent)
 
         // Remove from stored alarms
-        val prefs = getSharedPreferences("lockdown_prefs", Context.MODE_PRIVATE)
+        val prefs = PrefsHelper.getPrefs(this)
         val alarmsJson = prefs.getString("failsafeAlarms", "[]")
         val alarms = JSONArray(alarmsJson)
         val updatedAlarms = JSONArray()
