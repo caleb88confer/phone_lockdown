@@ -27,6 +27,8 @@ class LockdownVpnService : VpnService() {
         private const val VPN_ROUTE = "0.0.0.0"
         private const val DNS_SERVER = "8.8.8.8"
         private const val DNS_SERVER_SECONDARY = "8.8.4.4"
+        private val DNS_SERVERS = listOf("8.8.8.8", "8.8.4.4", "1.1.1.1")
+        private const val DNS_TIMEOUT_MS = 3000
         private const val DNS_PORT = 53
         private const val MAX_PACKET_SIZE = 32767
 
@@ -207,31 +209,34 @@ class LockdownVpnService : VpnService() {
     }
 
     /**
-     * Forwards a DNS query to the real DNS server and returns the response.
+     * Forwards a DNS query to real DNS servers with failover.
+     * Tries each server in DNS_SERVERS sequentially; moves to the next on timeout or error.
      */
     private fun forwardDnsQuery(dnsPayload: ByteArray): ByteArray? {
-        var socket: DatagramSocket? = null
-        try {
-            socket = DatagramSocket()
-            // Protect the socket so its traffic doesn't loop back through the VPN
-            protect(socket)
+        for (server in DNS_SERVERS) {
+            var socket: DatagramSocket? = null
+            try {
+                socket = DatagramSocket()
+                protect(socket)
 
-            val dnsServer = InetAddress.getByName(DNS_SERVER)
-            val sendPacket = DatagramPacket(dnsPayload, dnsPayload.size, dnsServer, DNS_PORT)
-            socket.soTimeout = 5000
-            socket.send(sendPacket)
+                val dnsServer = InetAddress.getByName(server)
+                val sendPacket = DatagramPacket(dnsPayload, dnsPayload.size, dnsServer, DNS_PORT)
+                socket.soTimeout = DNS_TIMEOUT_MS
+                socket.send(sendPacket)
 
-            val responseBuffer = ByteArray(MAX_PACKET_SIZE)
-            val receivePacket = DatagramPacket(responseBuffer, responseBuffer.size)
-            socket.receive(receivePacket)
+                val responseBuffer = ByteArray(MAX_PACKET_SIZE)
+                val receivePacket = DatagramPacket(responseBuffer, responseBuffer.size)
+                socket.receive(receivePacket)
 
-            return responseBuffer.copyOf(receivePacket.length)
-        } catch (e: Exception) {
-            Log.e(TAG, "DNS forwarding failed", e)
-            return null
-        } finally {
-            socket?.close()
+                return responseBuffer.copyOf(receivePacket.length)
+            } catch (e: Exception) {
+                Log.w(TAG, "DNS forwarding to $server failed: ${e.message}")
+            } finally {
+                socket?.close()
+            }
         }
+        Log.e(TAG, "All DNS servers failed")
+        return null
     }
 
     /**
