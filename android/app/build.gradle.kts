@@ -48,6 +48,7 @@ android {
 dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
 
