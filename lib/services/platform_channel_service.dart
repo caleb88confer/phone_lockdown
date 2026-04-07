@@ -1,20 +1,46 @@
 import 'package:flutter/services.dart';
 
-class PlatformChannelService {
+abstract class PlatformChannelService {
+  Future<List<Map<String, dynamic>>> getInstalledApps();
+  Future<Map<String, bool>> checkPermissions();
+  Future<void> updateBlockingState({
+    required bool isBlocking,
+    required List<String> blockedPackages,
+    required List<String> blockedWebsites,
+    List<Map<String, dynamic>>? activeProfileBlocks,
+  });
+  Future<void> scheduleFailsafeAlarm({
+    required String profileId,
+    required int failsafeMillis,
+  });
+  Future<void> cancelFailsafeAlarm({required String profileId});
+  Future<void> openAccessibilitySettings();
+  Future<void> openUsageStatsSettings();
+  Future<void> requestDeviceAdmin();
+  Future<bool> prepareVpn();
+  Future<void> startVpn();
+  Future<void> stopVpn();
+  Future<bool> isVpnActive();
+}
+
+class MethodChannelPlatformService implements PlatformChannelService {
   static const _channel = MethodChannel('com.example.phone_lockdown/blocker');
 
-  static Future<List<Map<String, dynamic>>> getInstalledApps() async {
+  @override
+  Future<List<Map<String, dynamic>>> getInstalledApps() async {
     final List<dynamic> result = await _channel.invokeMethod('getInstalledApps');
     return result.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
-  static Future<Map<String, bool>> checkPermissions() async {
+  @override
+  Future<Map<String, bool>> checkPermissions() async {
     final Map<dynamic, dynamic> result =
         await _channel.invokeMethod('checkPermissions');
     return result.map((k, v) => MapEntry(k as String, v as bool));
   }
 
-  static Future<void> updateBlockingState({
+  @override
+  Future<void> updateBlockingState({
     required bool isBlocking,
     required List<String> blockedPackages,
     required List<String> blockedWebsites,
@@ -28,7 +54,8 @@ class PlatformChannelService {
     });
   }
 
-  static Future<void> scheduleFailsafeAlarm({
+  @override
+  Future<void> scheduleFailsafeAlarm({
     required String profileId,
     required int failsafeMillis,
   }) async {
@@ -38,38 +65,46 @@ class PlatformChannelService {
     });
   }
 
-  static Future<void> cancelFailsafeAlarm({required String profileId}) async {
+  @override
+  Future<void> cancelFailsafeAlarm({required String profileId}) async {
     await _channel.invokeMethod('cancelFailsafeAlarm', {
       'profileId': profileId,
     });
   }
 
-  static Future<void> openAccessibilitySettings() async {
+  @override
+  Future<void> openAccessibilitySettings() async {
     await _channel.invokeMethod('openAccessibilitySettings');
   }
 
-  static Future<void> openUsageStatsSettings() async {
+  @override
+  Future<void> openUsageStatsSettings() async {
     await _channel.invokeMethod('openUsageStatsSettings');
   }
 
-  static Future<void> requestDeviceAdmin() async {
+  @override
+  Future<void> requestDeviceAdmin() async {
     await _channel.invokeMethod('requestDeviceAdmin');
   }
 
-  static Future<bool> prepareVpn() async {
+  @override
+  Future<bool> prepareVpn() async {
     final result = await _channel.invokeMethod<bool>('prepareVpn');
     return result ?? false;
   }
 
-  static Future<void> startVpn() async {
+  @override
+  Future<void> startVpn() async {
     await _channel.invokeMethod('startVpn');
   }
 
-  static Future<void> stopVpn() async {
+  @override
+  Future<void> stopVpn() async {
     await _channel.invokeMethod('stopVpn');
   }
 
-  static Future<bool> isVpnActive() async {
+  @override
+  Future<bool> isVpnActive() async {
     final result = await _channel.invokeMethod<bool>('isVpnActive');
     return result ?? false;
   }
