@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
+import '../constants.dart';
 
 class Profile {
   final String id;
@@ -19,7 +20,7 @@ class Profile {
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
     this.unlockCode,
-    this.failsafeMinutes = 1440,
+    this.failsafeMinutes = kDefaultFailsafeMinutes,
   })  : id = id ?? const Uuid().v4(),
         blockedAppPackages = blockedAppPackages ?? [],
         blockedWebsites = blockedWebsites ?? [];
@@ -46,7 +47,7 @@ class Profile {
       blockedAppPackages: List<String>.from(json['blockedAppPackages'] ?? []),
       blockedWebsites: List<String>.from(json['blockedWebsites'] ?? []),
       unlockCode: json['unlockCode'] as String?,
-      failsafeMinutes: (json['failsafeMinutes'] as int?) ?? 1440,
+      failsafeMinutes: (json['failsafeMinutes'] as int?) ?? kDefaultFailsafeMinutes,
     );
   }
 
