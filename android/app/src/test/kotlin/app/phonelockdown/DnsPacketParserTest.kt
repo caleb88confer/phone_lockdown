@@ -127,4 +127,73 @@ class DnsPacketParserTest {
         val response = DnsPacketParser.buildNxdomainResponse(tooShort)
         assertArrayEquals(tooShort, response)
     }
+
+    // --- TTL extraction tests ---
+
+    /**
+     * Builds a minimal DNS response with one A record answer.
+     * The answer section has: name pointer (2 bytes), type (2), class (2), TTL (4), rdlength (2), rdata (4).
+     */
+    private fun buildDnsResponseWithTtl(domain: String, ttlSeconds: Int): ByteArray {
+        val query = buildDnsQuery(domain)
+        // Make it a response
+        query[2] = (query[2].toInt() or 0x80).toByte()
+        // Set ANCOUNT = 1
+        query[6] = 0x00
+        query[7] = 0x01
+
+        // Answer section: name pointer + type A + class IN + TTL + rdlength + rdata
+        val answer = ByteArray(16)
+        // Name pointer to offset 12 (start of question QNAME)
+        answer[0] = 0xC0.toByte()
+        answer[1] = 0x0C
+        // Type A = 1
+        answer[2] = 0x00
+        answer[3] = 0x01
+        // Class IN = 1
+        answer[4] = 0x00
+        answer[5] = 0x01
+        // TTL (4 bytes, big-endian)
+        answer[6] = ((ttlSeconds shr 24) and 0xFF).toByte()
+        answer[7] = ((ttlSeconds shr 16) and 0xFF).toByte()
+        answer[8] = ((ttlSeconds shr 8) and 0xFF).toByte()
+        answer[9] = (ttlSeconds and 0xFF).toByte()
+        // RDLENGTH = 4 (IPv4 address)
+        answer[10] = 0x00
+        answer[11] = 0x04
+        // RDATA = 1.2.3.4
+        answer[12] = 1
+        answer[13] = 2
+        answer[14] = 3
+        answer[15] = 4
+
+        return query + answer
+    }
+
+    @Test
+    fun `extractTtl returns TTL from answer record`() {
+        val response = buildDnsResponseWithTtl("example.com", 120)
+        assertEquals(120, DnsPacketParser.extractTtl(response))
+    }
+
+    @Test
+    fun `extractTtl clamps low TTL to floor of 30`() {
+        val response = buildDnsResponseWithTtl("example.com", 5)
+        assertEquals(30, DnsPacketParser.extractTtl(response))
+    }
+
+    @Test
+    fun `extractTtl clamps high TTL to cap of 300`() {
+        val response = buildDnsResponseWithTtl("example.com", 86400)
+        assertEquals(300, DnsPacketParser.extractTtl(response))
+    }
+
+    @Test
+    fun `extractTtl returns default 60 when no answer records`() {
+        // Build a response with ANCOUNT=0
+        val query = buildDnsQuery("example.com")
+        query[2] = (query[2].toInt() or 0x80).toByte() // make it a response
+        // ANCOUNT is already 0 from buildDnsQuery
+        assertEquals(60, DnsPacketParser.extractTtl(query))
+    }
 }

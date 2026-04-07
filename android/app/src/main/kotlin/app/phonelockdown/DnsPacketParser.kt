@@ -97,4 +97,72 @@ object DnsPacketParser {
 
         return response
     }
+
+    private const val TTL_FLOOR = 30
+    private const val TTL_CAP = 300
+    private const val TTL_DEFAULT = 60
+
+    /**
+     * Extracts the TTL from the first answer record in a DNS response.
+     * Returns the TTL clamped between TTL_FLOOR and TTL_CAP.
+     * Returns TTL_DEFAULT if there are no answer records.
+     */
+    fun extractTtl(packet: ByteArray): Int {
+        if (packet.size < DNS_HEADER_SIZE) return TTL_DEFAULT
+
+        // ANCOUNT is bytes 6-7
+        val anCount = ((packet[6].toInt() and 0xFF) shl 8) or (packet[7].toInt() and 0xFF)
+        if (anCount < 1) return TTL_DEFAULT
+
+        // Skip past the question section to reach the answer section
+        var offset = DNS_HEADER_SIZE
+
+        // QDCOUNT is bytes 4-5
+        val qdCount = ((packet[4].toInt() and 0xFF) shl 8) or (packet[5].toInt() and 0xFF)
+
+        // Skip each question: QNAME + QTYPE(2) + QCLASS(2)
+        for (i in 0 until qdCount) {
+            while (offset < packet.size) {
+                val labelLen = packet[offset].toInt() and 0xFF
+                if (labelLen == 0) {
+                    offset++ // skip the zero-length label
+                    break
+                }
+                if ((labelLen and 0xC0) == 0xC0) {
+                    offset += 2 // pointer is 2 bytes
+                    break
+                }
+                offset += 1 + labelLen
+            }
+            offset += 4 // QTYPE + QCLASS
+        }
+
+        // Now at the first answer RR
+        // Skip NAME (could be a pointer or labels)
+        if (offset >= packet.size) return TTL_DEFAULT
+        val firstByte = packet[offset].toInt() and 0xFF
+        if ((firstByte and 0xC0) == 0xC0) {
+            offset += 2 // name pointer
+        } else {
+            while (offset < packet.size) {
+                val labelLen = packet[offset].toInt() and 0xFF
+                if (labelLen == 0) {
+                    offset++
+                    break
+                }
+                offset += 1 + labelLen
+            }
+        }
+
+        // TYPE(2) + CLASS(2) = 4 bytes, then TTL(4)
+        offset += 4
+        if (offset + 4 > packet.size) return TTL_DEFAULT
+
+        val ttl = ((packet[offset].toInt() and 0xFF) shl 24) or
+                  ((packet[offset + 1].toInt() and 0xFF) shl 16) or
+                  ((packet[offset + 2].toInt() and 0xFF) shl 8) or
+                  (packet[offset + 3].toInt() and 0xFF)
+
+        return ttl.coerceIn(TTL_FLOOR, TTL_CAP)
+    }
 }
