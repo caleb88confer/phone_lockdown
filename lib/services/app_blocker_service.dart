@@ -94,8 +94,9 @@ class AppBlockerService extends ChangeNotifier {
     _activeLocks[profile.id] = lock;
     _startFailsafeTimer(lock, allProfiles);
 
-    await _saveActiveLocks();
+    // Send intent to Android first, then persist Flutter state
     await _recomputeAndApply(allProfiles);
+    await _saveActiveLocks();
 
     // Schedule Android-side alarm
     try {
@@ -117,8 +118,9 @@ class AppBlockerService extends ChangeNotifier {
 
     lock.timer?.cancel();
 
-    await _saveActiveLocks();
+    // Send intent to Android first, then persist Flutter state
     await _recomputeAndApply(allProfiles);
+    await _saveActiveLocks();
 
     // Cancel Android-side alarm
     try {
