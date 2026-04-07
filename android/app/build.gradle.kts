@@ -37,11 +37,18 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.core:core-ktx:1.12.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
 }
 
 flutter {
