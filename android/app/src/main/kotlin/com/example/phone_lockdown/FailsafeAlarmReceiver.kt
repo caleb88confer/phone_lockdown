@@ -26,7 +26,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
             val prefs = PrefsHelper.getPrefs(context)
 
             // Remove this profile from failsafe alarms
-            val alarmsJson = prefs.getString("failsafeAlarms", "[]")
+            val alarmsJson = prefs.getString(Constants.PREF_FAILSAFE_ALARMS, "[]")
             val alarms = JSONArray(alarmsJson)
             val updatedAlarms = JSONArray()
             for (i in 0 until alarms.length()) {
@@ -37,7 +37,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
             }
 
             // Remove this profile from active profile blocks and recompute merged lists
-            val blocksJson = prefs.getString("activeProfileBlocks", "[]")
+            val blocksJson = prefs.getString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, "[]")
             val blocks = JSONArray(blocksJson)
             val updatedBlocks = JSONArray()
             val mergedPackages = mutableSetOf<String>()
@@ -61,11 +61,11 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
             val hasRemainingProfiles = updatedBlocks.length() > 0
 
             prefs.edit()
-                .putBoolean("isBlocking", hasRemainingProfiles)
-                .putStringSet("blockedPackages", if (hasRemainingProfiles) mergedPackages else emptySet())
-                .putStringSet("blockedWebsites", if (hasRemainingProfiles) mergedWebsites else emptySet())
-                .putString("activeProfileBlocks", updatedBlocks.toString())
-                .putString("failsafeAlarms", updatedAlarms.toString())
+                .putBoolean(Constants.PREF_IS_BLOCKING, hasRemainingProfiles)
+                .putStringSet(Constants.PREF_BLOCKED_PACKAGES, if (hasRemainingProfiles) mergedPackages else emptySet())
+                .putStringSet(Constants.PREF_BLOCKED_WEBSITES, if (hasRemainingProfiles) mergedWebsites else emptySet())
+                .putString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, updatedBlocks.toString())
+                .putString(Constants.PREF_FAILSAFE_ALARMS, updatedAlarms.toString())
                 .apply()
 
             // Update accessibility service

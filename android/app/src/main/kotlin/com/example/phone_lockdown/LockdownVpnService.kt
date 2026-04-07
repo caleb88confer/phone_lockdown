@@ -322,7 +322,7 @@ class LockdownVpnService : VpnService() {
 
     private fun loadStateFromPrefs() {
         val prefs = PrefsHelper.getPrefs(this)
-        blockedWebsites = prefs.getStringSet("blockedWebsites", emptySet()) ?: emptySet()
+        blockedWebsites = prefs.getStringSet(Constants.PREF_BLOCKED_WEBSITES, emptySet()) ?: emptySet()
     }
 
     private fun createNotificationChannel() {

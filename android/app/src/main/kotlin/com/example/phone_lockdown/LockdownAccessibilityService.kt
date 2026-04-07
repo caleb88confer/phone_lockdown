@@ -86,9 +86,9 @@ class LockdownAccessibilityService : AccessibilityService() {
 
     private fun loadStateFromPrefs() {
         val prefs = PrefsHelper.getPrefs(this)
-        setBlockingActiveSilently(prefs.getBoolean("isBlocking", false))
-        blockedPackages = prefs.getStringSet("blockedPackages", emptySet()) ?: emptySet()
-        blockedWebsites = prefs.getStringSet("blockedWebsites", emptySet()) ?: emptySet()
+        setBlockingActiveSilently(prefs.getBoolean(Constants.PREF_IS_BLOCKING, false))
+        blockedPackages = prefs.getStringSet(Constants.PREF_BLOCKED_PACKAGES, emptySet()) ?: emptySet()
+        blockedWebsites = prefs.getStringSet(Constants.PREF_BLOCKED_WEBSITES, emptySet()) ?: emptySet()
     }
 
     private fun createNotificationChannel() {

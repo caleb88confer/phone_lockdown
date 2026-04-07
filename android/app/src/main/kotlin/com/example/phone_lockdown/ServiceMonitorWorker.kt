@@ -24,7 +24,7 @@ class ServiceMonitorWorker(
 
     override fun doWork(): Result {
         val prefs = PrefsHelper.getPrefs(applicationContext)
-        val isBlocking = prefs.getBoolean("isBlocking", false)
+        val isBlocking = prefs.getBoolean(Constants.PREF_IS_BLOCKING, false)
 
         if (!isBlocking) return Result.success()
 
@@ -32,7 +32,7 @@ class ServiceMonitorWorker(
         checkExpiredFailsafeAlarms(prefs)
 
         // Re-read isBlocking in case failsafe check cleared it
-        if (!prefs.getBoolean("isBlocking", false)) return Result.success()
+        if (!prefs.getBoolean(Constants.PREF_IS_BLOCKING, false)) return Result.success()
 
         val isServiceRunning = isAccessibilityServiceEnabled()
         if (!isServiceRunning) {
@@ -43,7 +43,7 @@ class ServiceMonitorWorker(
         }
 
         // Check if VPN should be running for website blocking
-        val blockedWebsites = prefs.getStringSet("blockedWebsites", emptySet()) ?: emptySet()
+        val blockedWebsites = prefs.getStringSet(Constants.PREF_BLOCKED_WEBSITES, emptySet()) ?: emptySet()
         if (blockedWebsites.isNotEmpty() && LockdownVpnService.instance == null) {
             showNotification(
                 "VPN Service Stopped",
@@ -65,7 +65,7 @@ class ServiceMonitorWorker(
 
     private fun checkExpiredFailsafeAlarms(prefs: android.content.SharedPreferences) {
         try {
-            val alarmsJson = prefs.getString("failsafeAlarms", "[]") ?: "[]"
+            val alarmsJson = prefs.getString(Constants.PREF_FAILSAFE_ALARMS, "[]") ?: "[]"
             val alarms = JSONArray(alarmsJson)
             val now = System.currentTimeMillis()
 
