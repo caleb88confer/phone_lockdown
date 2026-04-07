@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -108,19 +107,12 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
         final app = apps[index];
         final packageName = app['packageName'] as String;
         final appName = app['appName'] as String;
-        final iconBase64 = app['icon'] as String;
+        final iconPath = app['iconPath'] as String?;
         final isSelected = _selected.contains(packageName);
 
-        Uint8List? iconBytes;
-        try {
-          iconBytes = base64Decode(iconBase64);
-        } catch (_) {
-          iconBytes = null;
-        }
-
         return ListTile(
-          leading: iconBytes != null
-              ? Image.memory(iconBytes, width: 40, height: 40)
+          leading: iconPath != null && File(iconPath).existsSync()
+              ? Image.file(File(iconPath), width: 40, height: 40)
               : const Icon(Icons.android, size: 40),
           title: Text(appName),
           subtitle: Text(
