@@ -10,7 +10,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.util.concurrent.TimeUnit
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "com.example.phone_lockdown/blocker"
+    private val channelName = Constants.METHOD_CHANNEL
     private lateinit var vpnController: VpnController
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

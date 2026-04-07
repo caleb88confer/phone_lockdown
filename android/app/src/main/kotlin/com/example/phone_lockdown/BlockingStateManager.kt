@@ -25,9 +25,9 @@ class BlockingStateManager(
     ) {
         val prefs = PrefsHelper.getPrefs(context)
         val editor = prefs.edit()
-            .putBoolean("isBlocking", isBlocking)
-            .putStringSet("blockedPackages", packages.toSet())
-            .putStringSet("blockedWebsites", websites.toSet())
+            .putBoolean(Constants.PREF_IS_BLOCKING, isBlocking)
+            .putStringSet(Constants.PREF_BLOCKED_PACKAGES, packages.toSet())
+            .putStringSet(Constants.PREF_BLOCKED_WEBSITES, websites.toSet())
 
         if (activeProfileBlocks != null) {
             val jsonArray = JSONArray()
@@ -48,7 +48,7 @@ class BlockingStateManager(
                 obj.put("blockedWebsites", webArray)
                 jsonArray.put(obj)
             }
-            editor.putString("activeProfileBlocks", jsonArray.toString())
+            editor.putString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, jsonArray.toString())
         }
 
         editor.apply()
@@ -69,8 +69,8 @@ class BlockingStateManager(
 
     fun getEnforcementState(): Map<String, Any> {
         val prefs = PrefsHelper.getPrefs(context)
-        val isBlocking = prefs.getBoolean("isBlocking", false)
-        val blocksJson = prefs.getString("activeProfileBlocks", "[]")
+        val isBlocking = prefs.getBoolean(Constants.PREF_IS_BLOCKING, false)
+        val blocksJson = prefs.getString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, "[]")
         val blocks = JSONArray(blocksJson)
         val activeProfileIds = mutableListOf<String>()
         for (i in 0 until blocks.length()) {
@@ -96,7 +96,7 @@ class BlockingStateManager(
         val triggerTime = System.currentTimeMillis() + failsafeMillis
 
         val prefs = PrefsHelper.getPrefs(context)
-        val alarmsJson = prefs.getString("failsafeAlarms", "[]")
+        val alarmsJson = prefs.getString(Constants.PREF_FAILSAFE_ALARMS, "[]")
         val alarms = JSONArray(alarmsJson)
         val updatedAlarms = JSONArray()
         for (i in 0 until alarms.length()) {
@@ -109,7 +109,7 @@ class BlockingStateManager(
         newAlarm.put("profileId", profileId)
         newAlarm.put("alarmTimeMillis", triggerTime)
         updatedAlarms.put(newAlarm)
-        prefs.edit().putString("failsafeAlarms", updatedAlarms.toString()).apply()
+        prefs.edit().putString(Constants.PREF_FAILSAFE_ALARMS, updatedAlarms.toString()).apply()
 
         try {
             alarmManager.setExactAndAllowWhileIdle(
@@ -132,7 +132,7 @@ class BlockingStateManager(
         alarmManager.cancel(pendingIntent)
 
         val prefs = PrefsHelper.getPrefs(context)
-        val alarmsJson = prefs.getString("failsafeAlarms", "[]")
+        val alarmsJson = prefs.getString(Constants.PREF_FAILSAFE_ALARMS, "[]")
         val alarms = JSONArray(alarmsJson)
         val updatedAlarms = JSONArray()
         for (i in 0 until alarms.length()) {
@@ -141,6 +141,6 @@ class BlockingStateManager(
                 updatedAlarms.put(obj)
             }
         }
-        prefs.edit().putString("failsafeAlarms", updatedAlarms.toString()).apply()
+        prefs.edit().putString(Constants.PREF_FAILSAFE_ALARMS, updatedAlarms.toString()).apply()
     }
 }
