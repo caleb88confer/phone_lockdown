@@ -21,6 +21,7 @@ abstract class PlatformChannelService {
   Future<void> startVpn();
   Future<void> stopVpn();
   Future<bool> isVpnActive();
+  Future<Map<String, dynamic>> getEnforcementState();
 }
 
 class MethodChannelPlatformService implements PlatformChannelService {
@@ -107,5 +108,12 @@ class MethodChannelPlatformService implements PlatformChannelService {
   Future<bool> isVpnActive() async {
     final result = await _channel.invokeMethod<bool>('isVpnActive');
     return result ?? false;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getEnforcementState() async {
+    final Map<dynamic, dynamic> result =
+        await _channel.invokeMethod('getEnforcementState');
+    return result.map((k, v) => MapEntry(k as String, v));
   }
 }

@@ -46,6 +46,10 @@ class FakePlatformService implements PlatformChannelService {
 
   @override
   Future<bool> isVpnActive() async => false;
+
+  @override
+  Future<Map<String, dynamic>> getEnforcementState() async =>
+      {'isBlocking': false, 'activeProfileIds': []};
 }
 
 void main() {

@@ -12,6 +12,7 @@ class FakePlatformService implements PlatformChannelService {
     'deviceAdmin': true,
     'vpn': true,
   };
+  List<String> enforcementActiveProfileIds = [];
 
   @override
   Future<Map<String, bool>> checkPermissions() async {
@@ -85,6 +86,15 @@ class FakePlatformService implements PlatformChannelService {
   Future<bool> isVpnActive() async {
     calls.add('isVpnActive');
     return false;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getEnforcementState() async {
+    calls.add('getEnforcementState');
+    return {
+      'isBlocking': enforcementActiveProfileIds.isNotEmpty,
+      'activeProfileIds': enforcementActiveProfileIds,
+    };
   }
 }
 
