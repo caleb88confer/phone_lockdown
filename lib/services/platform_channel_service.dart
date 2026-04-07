@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import '../constants.dart';
 
 abstract class PlatformChannelService {
   Future<List<Map<String, dynamic>>> getInstalledApps();
@@ -25,7 +26,7 @@ abstract class PlatformChannelService {
 }
 
 class MethodChannelPlatformService implements PlatformChannelService {
-  static const _channel = MethodChannel('com.example.phone_lockdown/blocker');
+  static const _channel = MethodChannel(kMethodChannel);
 
   @override
   Future<List<Map<String, dynamic>>> getInstalledApps() async {
