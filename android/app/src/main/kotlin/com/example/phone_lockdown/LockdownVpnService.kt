@@ -31,7 +31,7 @@ class LockdownVpnService : VpnService() {
         private const val MAX_PACKET_SIZE = 32767
 
         var instance: LockdownVpnService? = null
-        var blockedWebsites: Set<String> = emptySet()
+        @Volatile var blockedWebsites: Set<String> = emptySet()
     }
 
     private var vpnInterface: ParcelFileDescriptor? = null
