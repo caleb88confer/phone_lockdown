@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants.dart';
 import '../models/profile.dart';
 
 class ProfileManager extends ChangeNotifier {
@@ -32,7 +33,7 @@ class ProfileManager extends ChangeNotifier {
   }
 
   Future<void> loadProfiles() async {
-    final savedProfiles = _prefs.getString('savedProfiles');
+    final savedProfiles = _prefs.getString(kPrefSavedProfiles);
 
     if (savedProfiles != null) {
       _profiles = Profile.decodeList(savedProfiles);
@@ -42,7 +43,7 @@ class ProfileManager extends ChangeNotifier {
       _currentProfileId = defaultProfile.id;
     }
 
-    final savedId = _prefs.getString('currentProfileId');
+    final savedId = _prefs.getString(kPrefCurrentProfileId);
     if (savedId != null && _profiles.any((p) => p.id == savedId)) {
       _currentProfileId = savedId;
     } else {
@@ -53,9 +54,9 @@ class ProfileManager extends ChangeNotifier {
   }
 
   Future<void> saveProfiles() async {
-    await _prefs.setString('savedProfiles', Profile.encodeList(_profiles));
+    await _prefs.setString(kPrefSavedProfiles, Profile.encodeList(_profiles));
     if (_currentProfileId != null) {
-      await _prefs.setString('currentProfileId', _currentProfileId!);
+      await _prefs.setString(kPrefCurrentProfileId, _currentProfileId!);
     }
   }
 
