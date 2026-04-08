@@ -98,7 +98,40 @@ object DnsPacketParser {
         return response
     }
 
-    private const val TTL_FLOOR = 30
+    /**
+     * Builds a SERVFAIL response for the given DNS query packet.
+     * Copies the transaction ID and question section, sets response flags with SERVFAIL rcode.
+     * Tells the client "temporary failure, please retry" instead of a silent drop.
+     */
+    fun buildServfailResponse(originalQuery: ByteArray): ByteArray {
+        if (originalQuery.size < DNS_HEADER_SIZE) {
+            return originalQuery
+        }
+
+        var offset = DNS_HEADER_SIZE
+        while (offset < originalQuery.size) {
+            val labelLen = originalQuery[offset].toInt() and 0xFF
+            offset++
+            if (labelLen == 0) break
+            offset += labelLen
+        }
+        offset += 4 // QTYPE + QCLASS
+
+        val responseSize = offset.coerceAtMost(originalQuery.size)
+        val response = originalQuery.copyOf(responseSize)
+
+        response[2] = 0x81.toByte()  // QR=1, Opcode=0, AA=0, TC=0, RD=1
+        response[3] = 0x82.toByte()  // RA=1, Z=0, RCODE=2 (SERVFAIL)
+
+        response[4] = 0; response[5] = 1   // QDCOUNT = 1
+        response[6] = 0; response[7] = 0   // ANCOUNT = 0
+        response[8] = 0; response[9] = 0   // NSCOUNT = 0
+        response[10] = 0; response[11] = 0 // ARCOUNT = 0
+
+        return response
+    }
+
+    private const val TTL_FLOOR = 60
     private const val TTL_CAP = 300
     private const val TTL_DEFAULT = 60
 
