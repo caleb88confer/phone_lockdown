@@ -86,7 +86,8 @@ class VpnPacketHandlerTest {
     @Test
     fun `packet shorter than 20 bytes is ignored`() {
         val short = ByteArray(10)
-        handler.handlePacket(short, short.size, output)
+        val result = handler.handlePacket(short, short.size, output)
+        assertNull(result)
         assertEquals(0, output.size())
     }
 
@@ -94,7 +95,8 @@ class VpnPacketHandlerTest {
     fun `non-IPv4 packet is ignored`() {
         val packet = buildDnsQueryPacket("example.com")
         packet[0] = 0x65.toByte()
-        handler.handlePacket(packet, packet.size, output)
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNull(result)
         assertEquals(0, output.size())
     }
 
@@ -102,21 +104,24 @@ class VpnPacketHandlerTest {
     fun `non-UDP packet is ignored`() {
         val packet = buildDnsQueryPacket("example.com")
         packet[9] = 6.toByte()
-        handler.handlePacket(packet, packet.size, output)
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNull(result)
         assertEquals(0, output.size())
     }
 
     @Test
     fun `non-DNS port is ignored`() {
         val packet = buildDnsQueryPacket("example.com", dstPort = 80)
-        handler.handlePacket(packet, packet.size, output)
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNull(result)
         assertEquals(0, output.size())
     }
 
     @Test
     fun `blocked domain returns NXDOMAIN response`() {
         val packet = buildDnsQueryPacket("blocked.com")
-        handler.handlePacket(packet, packet.size, output)
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNull(result, "Blocked domain should be handled inline")
         assertTrue(output.size() > 0, "Expected NXDOMAIN response to be written")
         assertFalse(resolverCalled, "Resolver should not be called for blocked domains")
         val response = output.toByteArray()
@@ -125,27 +130,25 @@ class VpnPacketHandlerTest {
     }
 
     @Test
-    fun `allowed domain forwards via resolver`() {
-        val fakeDnsResponse = buildDnsPayload("allowed.com")
-        fakeDnsResponse[2] = (fakeDnsResponse[2].toInt() or 0x80).toByte()
-        resolverResponse = fakeDnsResponse
+    fun `allowed domain returns PendingDnsQuery for async dispatch`() {
         val packet = buildDnsQueryPacket("allowed.com")
-        handler.handlePacket(packet, packet.size, output)
-        assertTrue(resolverCalled, "Resolver should be called for allowed domains")
-        assertTrue(output.size() > 0, "Expected forwarded response to be written")
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNotNull(result, "Expected PendingDnsQuery for uncached allowed domain")
+        assertEquals("allowed.com", result!!.domain)
+        assertFalse(resolverCalled, "Resolver should NOT be called inline")
+        assertEquals(0, output.size(), "No response should be written inline")
     }
 
     @Test
-    fun `allowed domain with null resolver response writes nothing`() {
-        resolverResponse = null
-        val packet = buildDnsQueryPacket("allowed.com")
-        handler.handlePacket(packet, packet.size, output)
-        assertTrue(resolverCalled)
-        assertEquals(0, output.size(), "No response should be written when resolver returns null")
+    fun `blocked domain returns null (handled inline)`() {
+        val packet = buildDnsQueryPacket("blocked.com")
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNull(result, "Blocked domains are handled inline, no PendingDnsQuery")
+        assertTrue(output.size() > 0, "NXDOMAIN response should be written inline")
     }
 
     @Test
-    fun `cached domain returns cached response without calling resolver`() {
+    fun `cached domain returns null (handled inline)`() {
         val fakeDnsResponse = buildDnsPayload("cached.com")
         fakeDnsResponse[2] = (fakeDnsResponse[2].toInt() or 0x80).toByte()
         val cache = DnsCache()
@@ -156,9 +159,39 @@ class VpnPacketHandlerTest {
             dnsResolver = fakeResolver
         )
         val packet = buildDnsQueryPacket("cached.com")
-        handler.handlePacket(packet, packet.size, output)
-        assertFalse(resolverCalled, "Resolver should not be called for cached domains")
-        assertTrue(output.size() > 0, "Expected cached response to be written")
+        val result = handler.handlePacket(packet, packet.size, output)
+        assertNull(result, "Cached domains are handled inline, no PendingDnsQuery")
+        assertTrue(output.size() > 0, "Cached response should be written inline")
+    }
+
+    @Test
+    fun `completePendingQuery writes response and caches it`() {
+        val fakeDnsResponse = buildDnsPayload("example.com")
+        fakeDnsResponse[2] = (fakeDnsResponse[2].toInt() or 0x80).toByte()
+        resolverResponse = fakeDnsResponse
+
+        val packet = buildDnsQueryPacket("example.com")
+        val pending = handler.handlePacket(packet, packet.size, output)
+        assertNotNull(pending)
+
+        handler.completePendingQuery(pending!!, output)
+        assertTrue(resolverCalled, "Resolver should be called during completePendingQuery")
+        assertTrue(output.size() > 0, "Response should be written after completion")
+    }
+
+    @Test
+    fun `completePendingQuery sends SERVFAIL when resolver returns null`() {
+        resolverResponse = null
+        val packet = buildDnsQueryPacket("example.com")
+        val pending = handler.handlePacket(packet, packet.size, output)
+        assertNotNull(pending)
+
+        handler.completePendingQuery(pending!!, output)
+        assertTrue(resolverCalled)
+        assertTrue(output.size() > 0, "SERVFAIL response should be written")
+        val response = output.toByteArray()
+        val dnsOffset = 28
+        assertEquals(0x82.toByte(), response[dnsOffset + 3], "Expected SERVFAIL rcode")
     }
 
     @Test
@@ -220,7 +253,8 @@ class VpnPacketHandlerTest {
         val packet = buildDnsQueryPacket("blocked.com")
         val bigBuffer = ByteArray(32767)
         System.arraycopy(packet, 0, bigBuffer, 0, packet.size)
-        handler.handlePacket(bigBuffer, packet.size, output)
+        val result = handler.handlePacket(bigBuffer, packet.size, output)
+        assertNull(result, "Blocked domain handled inline")
         assertTrue(output.size() > 0, "Should handle packet using length param, not buffer size")
     }
 }

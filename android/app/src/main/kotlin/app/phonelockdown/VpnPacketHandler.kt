@@ -6,6 +6,13 @@ interface DnsResolver {
     fun forward(dnsPayload: ByteArray): ByteArray?
 }
 
+data class PendingDnsQuery(
+    val domain: String?,
+    val dnsPayload: ByteArray,
+    val originalPacket: ByteArray,
+    val ipHeaderLength: Int
+)
+
 class VpnPacketHandler(
     private val blockedWebsites: () -> Set<String>,
     private val dnsCache: DnsCache,
@@ -15,33 +22,40 @@ class VpnPacketHandler(
         private const val DNS_PORT = 53
     }
 
-    fun handlePacket(packet: ByteArray, length: Int, outputStream: OutputStream) {
-        if (length < 20) return
+    /**
+     * Processes a packet. Returns a PendingDnsQuery if the packet needs async DNS forwarding,
+     * or null if it was handled inline (blocked, cached, or not a DNS query).
+     */
+    fun handlePacket(packet: ByteArray, length: Int, outputStream: OutputStream): PendingDnsQuery? {
+        if (length < 20) return null
         val version = (packet[0].toInt() shr 4) and 0xF
-        if (version != 4) return
+        if (version != 4) return null
         val ipHeaderLength = (packet[0].toInt() and 0xF) * 4
         val protocol = packet[9].toInt() and 0xFF
-        if (protocol != 17) return
-        if (length < ipHeaderLength + 8) return
+        if (protocol != 17) return null
+        if (length < ipHeaderLength + 8) return null
         val destPort = ((packet[ipHeaderLength + 2].toInt() and 0xFF) shl 8) or
                 (packet[ipHeaderLength + 3].toInt() and 0xFF)
-        if (destPort != DNS_PORT) return
+        if (destPort != DNS_PORT) return null
         val udpHeaderLength = 8
         val dnsOffset = ipHeaderLength + udpHeaderLength
-        if (dnsOffset >= length) return
+        if (dnsOffset >= length) return null
         val dnsPayload = packet.copyOfRange(dnsOffset, length)
-        if (!DnsPacketParser.isQuery(dnsPayload)) return
+        if (!DnsPacketParser.isQuery(dnsPayload)) return null
 
         val domain = DnsPacketParser.extractDomainFromQuery(dnsPayload)
+
+        // Blocked domains — handle inline with NXDOMAIN
         if (domain != null && DomainMatcher.matches(domain, blockedWebsites())) {
             AppLogger.d("VPN", "Blocking DNS query for: $domain")
             val nxdomainDns = DnsPacketParser.buildNxdomainResponse(dnsPayload)
             val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, nxdomainDns)
             outputStream.write(responsePacket)
             outputStream.flush()
-            return
+            return null
         }
 
+        // Cached domains — handle inline with cached response
         if (domain != null) {
             val cachedResponse = dnsCache.get(domain)
             if (cachedResponse != null) {
@@ -50,18 +64,39 @@ class VpnPacketHandler(
                 val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, cachedResponse)
                 outputStream.write(responsePacket)
                 outputStream.flush()
-                return
+                return null
             }
         }
 
+        // Cache miss — return PendingDnsQuery for async dispatch
+        return PendingDnsQuery(
+            domain = domain,
+            dnsPayload = dnsPayload,
+            originalPacket = packet.copyOf(length),
+            ipHeaderLength = ipHeaderLength
+        )
+    }
+
+    /**
+     * Completes a pending DNS query by forwarding to upstream servers,
+     * caching the result, and writing the response. Called from worker threads.
+     * The caller must synchronize on outputStream.
+     */
+    fun completePendingQuery(pending: PendingDnsQuery, outputStream: OutputStream) {
         try {
-            val responseDns = dnsResolver.forward(dnsPayload)
+            val responseDns = dnsResolver.forward(pending.dnsPayload)
             if (responseDns != null) {
-                if (domain != null) {
+                if (pending.domain != null) {
                     val ttl = DnsPacketParser.extractTtl(responseDns)
-                    dnsCache.put(domain, responseDns, ttl)
+                    dnsCache.put(pending.domain, responseDns, ttl)
                 }
-                val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, responseDns)
+                val responsePacket = buildIpUdpResponse(pending.originalPacket, pending.ipHeaderLength, responseDns)
+                outputStream.write(responsePacket)
+                outputStream.flush()
+            } else {
+                // All servers failed — send SERVFAIL so client retries
+                val servfailDns = DnsPacketParser.buildServfailResponse(pending.dnsPayload)
+                val responsePacket = buildIpUdpResponse(pending.originalPacket, pending.ipHeaderLength, servfailDns)
                 outputStream.write(responsePacket)
                 outputStream.flush()
             }
