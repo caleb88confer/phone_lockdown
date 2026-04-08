@@ -11,6 +11,7 @@ object DnsPacketParser {
     private const val DNS_HEADER_SIZE = 12
     private const val QR_MASK = 0x80.toByte()  // bit 7 of flags byte
     private const val RCODE_NXDOMAIN = 3
+    private const val RCODE_SERVFAIL = 2
 
     /**
      * Returns true if the packet is a DNS query (QR bit = 0).
@@ -54,59 +55,17 @@ object DnsPacketParser {
      * Builds an NXDOMAIN response for the given DNS query packet.
      * Copies the transaction ID and question section, sets response flags with NXDOMAIN rcode.
      */
-    fun buildNxdomainResponse(originalQuery: ByteArray): ByteArray {
-        // We need at least the header
-        if (originalQuery.size < DNS_HEADER_SIZE) {
-            return originalQuery
-        }
-
-        // Find the end of the question section
-        var offset = DNS_HEADER_SIZE
-        // Skip QNAME
-        while (offset < originalQuery.size) {
-            val labelLen = originalQuery[offset].toInt() and 0xFF
-            offset++
-            if (labelLen == 0) break
-            offset += labelLen
-        }
-        // Skip QTYPE (2 bytes) + QCLASS (2 bytes)
-        offset += 4
-
-        val responseSize = offset.coerceAtMost(originalQuery.size)
-        val response = originalQuery.copyOf(responseSize)
-
-        // Set flags: QR=1 (response), Opcode=0 (standard), AA=1, TC=0, RD=1, RA=1, RCODE=NXDOMAIN(3)
-        response[2] = 0x81.toByte()  // QR=1, Opcode=0, AA=0, TC=0, RD=1
-        response[3] = 0x83.toByte()  // RA=1, Z=0, RCODE=3 (NXDOMAIN)
-
-        // QDCOUNT = 1
-        response[4] = 0
-        response[5] = 1
-
-        // ANCOUNT = 0
-        response[6] = 0
-        response[7] = 0
-
-        // NSCOUNT = 0
-        response[8] = 0
-        response[9] = 0
-
-        // ARCOUNT = 0
-        response[10] = 0
-        response[11] = 0
-
-        return response
-    }
+    fun buildNxdomainResponse(originalQuery: ByteArray): ByteArray = buildErrorResponse(originalQuery, RCODE_NXDOMAIN)
 
     /**
      * Builds a SERVFAIL response for the given DNS query packet.
      * Copies the transaction ID and question section, sets response flags with SERVFAIL rcode.
      * Tells the client "temporary failure, please retry" instead of a silent drop.
      */
-    fun buildServfailResponse(originalQuery: ByteArray): ByteArray {
-        if (originalQuery.size < DNS_HEADER_SIZE) {
-            return originalQuery
-        }
+    fun buildServfailResponse(originalQuery: ByteArray): ByteArray = buildErrorResponse(originalQuery, RCODE_SERVFAIL)
+
+    private fun buildErrorResponse(originalQuery: ByteArray, rcode: Int): ByteArray {
+        if (originalQuery.size < DNS_HEADER_SIZE) return originalQuery
 
         var offset = DNS_HEADER_SIZE
         while (offset < originalQuery.size) {
@@ -115,18 +74,18 @@ object DnsPacketParser {
             if (labelLen == 0) break
             offset += labelLen
         }
-        offset += 4 // QTYPE + QCLASS
+        offset += 4
 
         val responseSize = offset.coerceAtMost(originalQuery.size)
         val response = originalQuery.copyOf(responseSize)
 
-        response[2] = 0x81.toByte()  // QR=1, Opcode=0, AA=0, TC=0, RD=1
-        response[3] = 0x82.toByte()  // RA=1, Z=0, RCODE=2 (SERVFAIL)
+        response[2] = 0x81.toByte()
+        response[3] = (0x80 or (rcode and 0x0F)).toByte()
 
-        response[4] = 0; response[5] = 1   // QDCOUNT = 1
-        response[6] = 0; response[7] = 0   // ANCOUNT = 0
-        response[8] = 0; response[9] = 0   // NSCOUNT = 0
-        response[10] = 0; response[11] = 0 // ARCOUNT = 0
+        response[4] = 0; response[5] = 1
+        response[6] = 0; response[7] = 0
+        response[8] = 0; response[9] = 0
+        response[10] = 0; response[11] = 0
 
         return response
     }
