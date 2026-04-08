@@ -187,7 +187,7 @@ void main() {
         allProfiles: profiles,
       );
 
-      expect(result, isTrue);
+      expect(result, isNull);
       expect(service.isBlocking, isTrue);
       expect(service.activeProfileIds, contains('profile-1'));
     });

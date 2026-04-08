@@ -86,16 +86,16 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final success = await appBlocker.activateProfile(
+    final error = await appBlocker.activateProfile(
       matchedProfile,
       allProfiles: profileManager.profiles,
     );
     if (!context.mounted) return;
-    if (!success) {
+    if (error != null) {
       _showAlert(
         context,
-        title: 'Accessibility Service Required',
-        message: 'Please enable the Phone Lockdown accessibility service in Settings to block apps.',
+        title: 'Cannot Activate Blocking',
+        message: error,
       );
       return;
     }

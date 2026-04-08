@@ -51,7 +51,7 @@ class BlockingStateManager(
             editor.putString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, jsonArray.toString())
         }
 
-        editor.apply()
+        editor.commit()
 
         LockdownAccessibilityService.isBlockingActive = isBlocking
         LockdownAccessibilityService.blockedPackages = packages.toSet()

@@ -66,7 +66,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
                 .putStringSet(Constants.PREF_BLOCKED_WEBSITES, if (hasRemainingProfiles) mergedWebsites else emptySet())
                 .putString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, updatedBlocks.toString())
                 .putString(Constants.PREF_FAILSAFE_ALARMS, updatedAlarms.toString())
-                .apply()
+                .commit()
 
             // Update accessibility service
             LockdownAccessibilityService.isBlockingActive = hasRemainingProfiles

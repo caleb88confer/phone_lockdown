@@ -80,10 +80,19 @@ class AppBlockerService extends ChangeNotifier {
     }
   }
 
-  Future<bool> activateProfile(Profile profile, {required List<Profile> allProfiles}) async {
+  /// Activates blocking for a profile. Returns null on success, or an error
+  /// message string describing what went wrong.
+  Future<String?> activateProfile(Profile profile, {required List<Profile> allProfiles}) async {
     if (!_isAccessibilityEnabled) {
-      debugPrint('Accessibility service not enabled');
-      return false;
+      return 'The accessibility service is not enabled. Please enable it in Settings to block apps.';
+    }
+
+    if (profile.blockedWebsites.isNotEmpty && !_isVpnPrepared) {
+      // Try to prepare VPN on the fly
+      final prepared = await prepareVpn();
+      if (!prepared) {
+        return 'VPN permission is required to block websites. Please grant VPN permission and try again.';
+      }
     }
 
     final lock = ActiveLock(
@@ -93,13 +102,9 @@ class AppBlockerService extends ChangeNotifier {
     );
 
     _activeLocks[profile.id] = lock;
-    _startFailsafeTimer(lock, allProfiles);
 
-    // Send intent to Android first, then persist Flutter state
-    await _recomputeAndApply(allProfiles);
-    await _saveActiveLocks();
-
-    // Schedule Android-side alarm
+    // Schedule Android-side alarm FIRST — if the app crashes after this point,
+    // Android will still auto-deactivate when the alarm fires.
     try {
       await _platform.scheduleFailsafeAlarm(
         profileId: profile.id,
@@ -109,8 +114,22 @@ class AppBlockerService extends ChangeNotifier {
       debugPrint('Failed to schedule failsafe alarm: $e');
     }
 
+    // Sync blocking state to Android, then persist Flutter state
+    await _recomputeAndApply(allProfiles);
+    await _saveActiveLocks();
+
+    // Start Flutter-side timer last — if we crash before here, reconcileWithAndroid
+    // will pick up the lock from Android on next startup.
+    _startFailsafeTimer(lock, allProfiles);
+
     notifyListeners();
-    return true;
+    return null;
+  }
+
+  /// Clean up active locks and Android-side enforcement when a profile is deleted.
+  Future<void> onProfileDeleted(String profileId, {required List<Profile> allProfiles}) async {
+    if (!_activeLocks.containsKey(profileId)) return;
+    await deactivateProfile(profileId, allProfiles: allProfiles);
   }
 
   Future<bool> deactivateProfile(String profileId, {required List<Profile> allProfiles}) async {
@@ -141,8 +160,15 @@ class AppBlockerService extends ChangeNotifier {
 
     lock.timer = Timer(remaining, () async {
       _activeLocks.remove(lock.profileId);
-      await _saveActiveLocks();
-      await _recomputeAndApply(allProfiles);
+      try {
+        await _recomputeAndApply(allProfiles);
+        await _saveActiveLocks();
+      } catch (e) {
+        // Restore the lock so Flutter state stays consistent with Android.
+        // Android still enforces blocking — don't let Flutter think it's unlocked.
+        _activeLocks[lock.profileId] = lock;
+        debugPrint('Failsafe timer deactivation failed, lock restored: $e');
+      }
       notifyListeners();
     });
   }

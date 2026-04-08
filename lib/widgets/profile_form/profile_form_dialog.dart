@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../constants.dart';
 import '../../models/profile.dart';
 import '../../screens/scan_screen.dart';
+import '../../services/app_blocker_service.dart';
 import '../../services/profile_manager.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
@@ -132,10 +134,15 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              final appBlocker = context.read<AppBlockerService>();
+              await appBlocker.onProfileDeleted(
+                widget.profile!.id,
+                allProfiles: widget.profileManager.profiles,
+              );
               widget.profileManager.deleteProfile(widget.profile!.id);
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
+              if (ctx.mounted) Navigator.of(ctx).pop();
+              if (context.mounted) Navigator.of(context).pop();
             },
             child: const Text('Delete', style: TextStyle(color: AppColors.secondary)),
           ),
