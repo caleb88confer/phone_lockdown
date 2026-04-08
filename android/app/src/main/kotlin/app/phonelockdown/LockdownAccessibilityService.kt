@@ -42,12 +42,9 @@ class LockdownAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || !isBlockingActive) return
+        if (event == null) return
 
         val packageName = event.packageName?.toString() ?: return
-
-        // Don't block our own app, system UI, or the launcher
-        if (isSystemPackage(packageName)) return
 
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
@@ -57,15 +54,11 @@ class LockdownAccessibilityService : AccessibilityService() {
     }
 
     private fun isSystemPackage(packageName: String): Boolean {
-        return packageName == this.packageName ||
-            packageName == "com.android.systemui" ||
-            packageName == "com.android.launcher" ||
-            packageName == "com.android.launcher3" ||
-            packageName == "com.google.android.apps.nexuslauncher"
+        return AppBlockingDecider.isSystemPackage(packageName, this.packageName)
     }
 
     private fun handleAppBlocking(packageName: String) {
-        if (blockedPackages.contains(packageName)) {
+        if (AppBlockingDecider.shouldBlock(packageName, isBlockingActive, blockedPackages, this.packageName)) {
             performGlobalAction(GLOBAL_ACTION_HOME)
             Toast.makeText(
                 this,
