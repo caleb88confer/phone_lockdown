@@ -63,9 +63,9 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
           'SELECT APPS TO BLOCK',
           style: TextStyle(letterSpacing: 1.0, fontWeight: FontWeight.w700, fontSize: 16),
         ),
-        leading: TextButton(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
         actions: [
           Padding(

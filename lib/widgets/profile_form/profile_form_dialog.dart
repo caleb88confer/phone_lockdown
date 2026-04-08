@@ -150,9 +150,9 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(isEditing ? 'EDIT PROFILE' : 'NEW PROFILE'),
-        leading: TextButton(
+        leading: IconButton(
+          icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
         actions: [
           Padding(

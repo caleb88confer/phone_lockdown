@@ -21,7 +21,7 @@ class BlockButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            isBlocking ? 'TAP TO UNBLOCK' : 'TAP TO BLOCK',
+            isBlocking ? 'TAP TO UNLOCK' : 'TAP TO LOCK',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.75),
               letterSpacing: 1.5,

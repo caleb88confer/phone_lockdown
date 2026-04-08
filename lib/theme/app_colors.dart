@@ -27,5 +27,5 @@ class AppColors {
 
   // App-specific backgrounds
   static const blockingBackground = Color(0xFF3D1111);
-  static const nonBlockingBackground = Color(0xFF113D17);
+  static const nonBlockingBackground = Color(0xFF1A1E2C);
 }
