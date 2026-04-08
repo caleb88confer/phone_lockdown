@@ -11,9 +11,14 @@ import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.util.concurrent.ExecutorCompletionService
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class LockdownVpnService : VpnService() {
 
@@ -25,7 +30,7 @@ class LockdownVpnService : VpnService() {
         private const val DNS_SERVER = "8.8.8.8"
         private const val DNS_SERVER_SECONDARY = "8.8.4.4"
         private val DNS_SERVERS = listOf("8.8.8.8", "8.8.4.4", "1.1.1.1")
-        private const val DNS_TIMEOUT_MS = 3000
+        private const val DNS_TIMEOUT_MS = 1500
         private const val DNS_PORT = 53
         private const val MAX_PACKET_SIZE = 32767
 
@@ -37,6 +42,7 @@ class LockdownVpnService : VpnService() {
     @Volatile
     private var isRunning = false
     private var processingThread: Thread? = null
+    private var dnsExecutor: ExecutorService? = null
     private val dnsCache = DnsCache()
     private val packetHandler = VpnPacketHandler(
         blockedWebsites = { blockedWebsites },
@@ -90,7 +96,6 @@ class LockdownVpnService : VpnService() {
                 .addDnsServer(DNS_SERVER_SECONDARY)
                 .setBlocking(true)
 
-            // Allow our own app to bypass the VPN
             builder.addDisallowedApplication(packageName)
 
             vpnInterface = builder.establish()
@@ -102,6 +107,9 @@ class LockdownVpnService : VpnService() {
             }
 
             isRunning = true
+            dnsExecutor = Executors.newFixedThreadPool(4) { r ->
+                Thread(r, "VPN-DnsWorker").also { it.isDaemon = true }
+            }
             processingThread = Thread(::processPackets, "VPN-PacketProcessor").also { it.start() }
             AppLogger.i("VPN", "VPN started, blocking ${blockedWebsites.size} websites")
         } catch (e: Exception) {
@@ -112,6 +120,19 @@ class LockdownVpnService : VpnService() {
 
     private fun stopVpn() {
         isRunning = false
+
+        dnsExecutor?.let { executor ->
+            executor.shutdown()
+            try {
+                if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                    executor.shutdownNow()
+                }
+            } catch (_: InterruptedException) {
+                executor.shutdownNow()
+            }
+        }
+        dnsExecutor = null
+
         dnsCache.clear()
         processingThread?.interrupt()
         processingThread = null
@@ -132,16 +153,24 @@ class LockdownVpnService : VpnService() {
         val inputStream = FileInputStream(vpnFd.fileDescriptor)
         val outputStream = FileOutputStream(vpnFd.fileDescriptor)
         val packet = ByteArray(MAX_PACKET_SIZE)
+        val executor = dnsExecutor ?: return
 
         while (isRunning) {
             try {
                 val length = inputStream.read(packet)
-                if (length <= 0) {
-                    Thread.sleep(10)
-                    continue
-                }
+                if (length <= 0) continue
 
-                packetHandler.handlePacket(packet, length, outputStream)
+                val pending: PendingDnsQuery?
+                synchronized(outputStream) {
+                    pending = packetHandler.handlePacket(packet, length, outputStream)
+                }
+                if (pending != null) {
+                    executor.submit {
+                        synchronized(outputStream) {
+                            packetHandler.completePendingQuery(pending, outputStream)
+                        }
+                    }
+                }
             } catch (e: InterruptedException) {
                 break
             } catch (e: Exception) {
@@ -158,34 +187,55 @@ class LockdownVpnService : VpnService() {
     }
 
     /**
-     * Forwards a DNS query to real DNS servers with failover.
-     * Tries each server in DNS_SERVERS sequentially; moves to the next on timeout or error.
+     * Forwards a DNS query to all DNS servers in parallel, returning the first successful response.
      */
     private fun forwardDnsQuery(dnsPayload: ByteArray): ByteArray? {
-        for (server in DNS_SERVERS) {
-            var socket: DatagramSocket? = null
-            try {
-                socket = DatagramSocket()
-                protect(socket)
+        val raceExecutor = Executors.newFixedThreadPool(DNS_SERVERS.size)
+        val completionService = ExecutorCompletionService<ByteArray?>(raceExecutor)
 
-                val dnsServer = InetAddress.getByName(server)
-                val sendPacket = DatagramPacket(dnsPayload, dnsPayload.size, dnsServer, DNS_PORT)
-                socket.soTimeout = DNS_TIMEOUT_MS
-                socket.send(sendPacket)
+        try {
+            for (server in DNS_SERVERS) {
+                completionService.submit {
+                    var socket: DatagramSocket? = null
+                    try {
+                        socket = DatagramSocket()
+                        protect(socket)
+                        val dnsServer = InetAddress.getByName(server)
+                        val sendPacket = DatagramPacket(dnsPayload, dnsPayload.size, dnsServer, DNS_PORT)
+                        socket.soTimeout = DNS_TIMEOUT_MS
+                        socket.send(sendPacket)
 
-                val responseBuffer = ByteArray(MAX_PACKET_SIZE)
-                val receivePacket = DatagramPacket(responseBuffer, responseBuffer.size)
-                socket.receive(receivePacket)
+                        val responseBuffer = ByteArray(MAX_PACKET_SIZE)
+                        val receivePacket = DatagramPacket(responseBuffer, responseBuffer.size)
+                        socket.receive(receivePacket)
 
-                return responseBuffer.copyOf(receivePacket.length)
-            } catch (e: Exception) {
-                AppLogger.w("VPN", "DNS forwarding to $server failed: ${e.message}")
-            } finally {
-                socket?.close()
+                        responseBuffer.copyOf(receivePacket.length)
+                    } catch (e: Exception) {
+                        AppLogger.w("VPN", "DNS racing to $server failed: ${e.message}")
+                        null
+                    } finally {
+                        socket?.close()
+                    }
+                }
             }
+
+            // Take results as they complete, return the first non-null
+            for (i in DNS_SERVERS.indices) {
+                try {
+                    val future = completionService.poll(DNS_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+                        ?: break // Timed out waiting for any result
+                    val result = future.get()
+                    if (result != null) return result
+                } catch (e: Exception) {
+                    // This server's result failed, try next
+                }
+            }
+
+            AppLogger.e("VPN", "All DNS servers failed (parallel race)")
+            return null
+        } finally {
+            raceExecutor.shutdownNow()
         }
-        AppLogger.e("VPN", "All DNS servers failed")
-        return null
     }
 
     private fun loadStateFromPrefs() {
