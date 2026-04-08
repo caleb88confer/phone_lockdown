@@ -8,7 +8,6 @@ import android.content.Intent
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -20,7 +19,6 @@ import java.nio.ByteBuffer
 class LockdownVpnService : VpnService() {
 
     companion object {
-        private const val TAG = "LockdownVpn"
         private const val CHANNEL_ID = "lockdown_vpn"
         private const val NOTIFICATION_ID = 1002
         private const val VPN_ADDRESS = "10.0.0.2"
@@ -68,7 +66,7 @@ class LockdownVpnService : VpnService() {
     }
 
     override fun onRevoke() {
-        Log.w(TAG, "VPN revoked by system (another VPN may have taken over)")
+        AppLogger.w("VPN", "VPN revoked by system (another VPN may have taken over)")
         stopVpn()
         super.onRevoke()
     }
@@ -92,16 +90,16 @@ class LockdownVpnService : VpnService() {
             vpnInterface = builder.establish()
 
             if (vpnInterface == null) {
-                Log.e(TAG, "Failed to establish VPN interface")
+                AppLogger.e("VPN", "Failed to establish VPN interface")
                 stopSelf()
                 return
             }
 
             isRunning = true
             processingThread = Thread(::processPackets, "VPN-PacketProcessor").also { it.start() }
-            Log.i(TAG, "VPN started, blocking ${blockedWebsites.size} websites")
+            AppLogger.i("VPN", "VPN started, blocking ${blockedWebsites.size} websites")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start VPN", e)
+            AppLogger.e("VPN", "Failed to start VPN", e)
             stopSelf()
         }
     }
@@ -115,7 +113,7 @@ class LockdownVpnService : VpnService() {
         try {
             vpnInterface?.close()
         } catch (e: Exception) {
-            Log.e(TAG, "Error closing VPN interface", e)
+            AppLogger.e("VPN", "Error closing VPN interface", e)
         }
         vpnInterface = null
 
@@ -143,7 +141,7 @@ class LockdownVpnService : VpnService() {
                 break
             } catch (e: Exception) {
                 if (isRunning) {
-                    Log.e(TAG, "Error processing packet", e)
+                    AppLogger.e("VPN", "Error processing packet", e)
                 }
             }
         }
@@ -189,7 +187,7 @@ class LockdownVpnService : VpnService() {
 
         val domain = DnsPacketParser.extractDomainFromQuery(dnsPayload)
         if (domain != null && DomainMatcher.matches(domain, blockedWebsites)) {
-            Log.d(TAG, "Blocking DNS query for: $domain")
+            AppLogger.d("VPN", "Blocking DNS query for: $domain")
             val nxdomainDns = DnsPacketParser.buildNxdomainResponse(dnsPayload)
             val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, nxdomainDns)
             outputStream.write(responsePacket)
@@ -225,7 +223,7 @@ class LockdownVpnService : VpnService() {
                 outputStream.flush()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error forwarding DNS query", e)
+            AppLogger.e("VPN", "Error forwarding DNS query", e)
         }
     }
 
@@ -251,12 +249,12 @@ class LockdownVpnService : VpnService() {
 
                 return responseBuffer.copyOf(receivePacket.length)
             } catch (e: Exception) {
-                Log.w(TAG, "DNS forwarding to $server failed: ${e.message}")
+                AppLogger.w("VPN", "DNS forwarding to $server failed: ${e.message}")
             } finally {
                 socket?.close()
             }
         }
-        Log.e(TAG, "All DNS servers failed")
+        AppLogger.e("VPN", "All DNS servers failed")
         return null
     }
 

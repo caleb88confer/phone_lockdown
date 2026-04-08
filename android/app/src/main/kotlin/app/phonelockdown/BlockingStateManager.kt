@@ -5,7 +5,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
-import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -13,10 +12,6 @@ class BlockingStateManager(
     private val context: Context,
     private val vpnController: VpnController,
 ) {
-    companion object {
-        private const val TAG = "BlockingStateManager"
-    }
-
     fun updateBlockingState(
         isBlocking: Boolean,
         packages: List<String>,
@@ -116,7 +111,7 @@ class BlockingStateManager(
                 AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
             )
         } catch (e: SecurityException) {
-            Log.w(TAG, "Exact alarm not allowed, using inexact alarm", e)
+            AppLogger.w("BlockingState", "Exact alarm not allowed, using inexact alarm", e)
             alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
         }
     }

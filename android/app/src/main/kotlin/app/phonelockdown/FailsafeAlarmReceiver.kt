@@ -6,14 +6,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import org.json.JSONArray
 
 class FailsafeAlarmReceiver : BroadcastReceiver() {
 
     companion object {
-        private const val TAG = "FailsafeAlarmReceiver"
         private const val CHANNEL_ID = "failsafe_timer"
         private const val NOTIFICATION_ID = 3001
 
@@ -81,7 +79,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
                     }
                     context.startService(vpnIntent)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to stop VPN service", e)
+                    AppLogger.e("Failsafe", "Failed to stop VPN service", e)
                 }
             } else {
                 LockdownVpnService.blockedWebsites = mergedWebsites
@@ -93,7 +91,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val profileId = intent.getStringExtra("profileId") ?: return
-        Log.d(TAG, "Failsafe alarm fired for profile: $profileId")
+        AppLogger.d("Failsafe", "Failsafe alarm fired for profile: $profileId")
 
         deactivateProfile(context, profileId)
 

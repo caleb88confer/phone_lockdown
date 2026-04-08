@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
@@ -74,12 +73,12 @@ class ServiceMonitorWorker(
                 val alarmTime = obj.getLong("alarmTimeMillis")
                 if (now >= alarmTime) {
                     val profileId = obj.getString("profileId")
-                    Log.d("ServiceMonitorWorker", "Failsafe expired (backup) for profile: $profileId")
+                    AppLogger.d("Monitor", "Failsafe expired (backup) for profile: $profileId")
                     FailsafeAlarmReceiver.deactivateProfile(applicationContext, profileId)
                 }
             }
         } catch (e: Exception) {
-            Log.e("ServiceMonitorWorker", "Error checking failsafe alarms", e)
+            AppLogger.e("Monitor", "Error checking failsafe alarms", e)
         }
     }
 

@@ -5,14 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
-import android.util.Log
 import io.flutter.plugin.common.MethodChannel
 
 class VpnController(private val context: Context) {
 
     companion object {
         const val VPN_REQUEST_CODE = 1001
-        private const val TAG = "VpnController"
     }
 
     var pendingVpnResult: MethodChannel.Result? = null
@@ -46,7 +44,7 @@ class VpnController(private val context: Context) {
                 context.startService(intent)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start VPN service", e)
+            AppLogger.e("VpnCtrl", "Failed to start VPN service", e)
         }
     }
 
@@ -57,7 +55,7 @@ class VpnController(private val context: Context) {
             }
             context.startService(intent)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop VPN service", e)
+            AppLogger.e("VpnCtrl", "Failed to stop VPN service", e)
         }
     }
 

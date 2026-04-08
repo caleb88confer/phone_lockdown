@@ -2,7 +2,6 @@ package app.phonelockdown
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
@@ -12,7 +11,6 @@ import androidx.security.crypto.MasterKey
  */
 object PrefsHelper {
 
-    private const val TAG = "PrefsHelper"
     private const val PLAIN_PREFS_NAME = "lockdown_prefs"
     private const val ENCRYPTED_PREFS_NAME = "lockdown_prefs_encrypted"
     private const val MIGRATION_KEY = "prefsMigrated"
@@ -57,7 +55,7 @@ object PrefsHelper {
             return
         }
 
-        Log.i(TAG, "Migrating ${allEntries.size} entries from plain to encrypted prefs")
+        AppLogger.i("Prefs", "Migrating ${allEntries.size} entries from plain to encrypted prefs")
 
         val editor = encryptedPrefs.edit()
         for ((key, value) in allEntries) {
@@ -78,6 +76,6 @@ object PrefsHelper {
 
         // Delete plain-text prefs file
         plainPrefs.edit().clear().apply()
-        Log.i(TAG, "Migration complete, plain prefs cleared")
+        AppLogger.i("Prefs", "Migration complete, plain prefs cleared")
     }
 }
