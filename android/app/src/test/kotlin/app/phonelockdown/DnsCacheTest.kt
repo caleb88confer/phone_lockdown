@@ -3,6 +3,9 @@ package app.phonelockdown
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class DnsCacheTest {
 
@@ -90,6 +93,34 @@ class DnsCacheTest {
         val cached = cache.get("example.com")
         assertNotNull(cached)
         assertArrayEquals(byteArrayOf(2), cached)
+    }
+
+    @Test
+    fun `concurrent get and put do not throw`() {
+        val cache = DnsCache(maxSize = 64)
+        val executor = Executors.newFixedThreadPool(8)
+        val latch = CountDownLatch(800)
+
+        for (i in 0 until 400) {
+            executor.submit {
+                try {
+                    cache.put("domain$i.com", byteArrayOf(i.toByte()), 60)
+                } finally {
+                    latch.countDown()
+                }
+            }
+            executor.submit {
+                try {
+                    cache.get("domain$i.com")
+                } finally {
+                    latch.countDown()
+                }
+            }
+        }
+
+        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        executor.shutdown()
+        // If we get here without ConcurrentModificationException, the test passes
     }
 
     @Test
