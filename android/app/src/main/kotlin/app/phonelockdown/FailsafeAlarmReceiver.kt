@@ -7,8 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import org.json.JSONArray
-
 class FailsafeAlarmReceiver : BroadcastReceiver() {
 
     companion object {
@@ -23,56 +21,24 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
         fun deactivateProfile(context: Context, profileId: String): Boolean {
             val prefs = PrefsHelper.getPrefs(context)
 
-            // Remove this profile from failsafe alarms
-            val alarmsJson = prefs.getString(Constants.PREF_FAILSAFE_ALARMS, "[]")
-            val alarms = JSONArray(alarmsJson)
-            val updatedAlarms = JSONArray()
-            for (i in 0 until alarms.length()) {
-                val obj = alarms.getJSONObject(i)
-                if (obj.getString("profileId") != profileId) {
-                    updatedAlarms.put(obj)
-                }
-            }
+            val alarmsJson = prefs.getString(Constants.PREF_FAILSAFE_ALARMS, "[]") ?: "[]"
+            val blocksJson = prefs.getString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, "[]") ?: "[]"
 
-            // Remove this profile from active profile blocks and recompute merged lists
-            val blocksJson = prefs.getString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, "[]")
-            val blocks = JSONArray(blocksJson)
-            val updatedBlocks = JSONArray()
-            val mergedPackages = mutableSetOf<String>()
-            val mergedWebsites = mutableSetOf<String>()
-
-            for (i in 0 until blocks.length()) {
-                val obj = blocks.getJSONObject(i)
-                if (obj.getString("profileId") != profileId) {
-                    updatedBlocks.put(obj)
-                    val pkgs = obj.getJSONArray("blockedPackages")
-                    for (j in 0 until pkgs.length()) {
-                        mergedPackages.add(pkgs.getString(j))
-                    }
-                    val webs = obj.getJSONArray("blockedWebsites")
-                    for (j in 0 until webs.length()) {
-                        mergedWebsites.add(webs.getString(j))
-                    }
-                }
-            }
-
-            val hasRemainingProfiles = updatedBlocks.length() > 0
+            val result = ProfileDeactivator.computeDeactivation(alarmsJson, blocksJson, profileId)
 
             prefs.edit()
-                .putBoolean(Constants.PREF_IS_BLOCKING, hasRemainingProfiles)
-                .putStringSet(Constants.PREF_BLOCKED_PACKAGES, if (hasRemainingProfiles) mergedPackages else emptySet())
-                .putStringSet(Constants.PREF_BLOCKED_WEBSITES, if (hasRemainingProfiles) mergedWebsites else emptySet())
-                .putString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, updatedBlocks.toString())
-                .putString(Constants.PREF_FAILSAFE_ALARMS, updatedAlarms.toString())
+                .putBoolean(Constants.PREF_IS_BLOCKING, result.hasRemainingProfiles)
+                .putStringSet(Constants.PREF_BLOCKED_PACKAGES, if (result.hasRemainingProfiles) result.mergedPackages else emptySet())
+                .putStringSet(Constants.PREF_BLOCKED_WEBSITES, if (result.hasRemainingProfiles) result.mergedWebsites else emptySet())
+                .putString(Constants.PREF_ACTIVE_PROFILE_BLOCKS, result.updatedBlocksJson)
+                .putString(Constants.PREF_FAILSAFE_ALARMS, result.updatedAlarmsJson)
                 .commit()
 
-            // Update accessibility service
-            LockdownAccessibilityService.isBlockingActive = hasRemainingProfiles
-            LockdownAccessibilityService.blockedPackages = if (hasRemainingProfiles) mergedPackages else emptySet()
-            LockdownAccessibilityService.blockedWebsites = if (hasRemainingProfiles) mergedWebsites else emptySet()
+            LockdownAccessibilityService.isBlockingActive = result.hasRemainingProfiles
+            LockdownAccessibilityService.blockedPackages = if (result.hasRemainingProfiles) result.mergedPackages else emptySet()
+            LockdownAccessibilityService.blockedWebsites = if (result.hasRemainingProfiles) result.mergedWebsites else emptySet()
 
-            // Update VPN
-            if (!hasRemainingProfiles || mergedWebsites.isEmpty()) {
+            if (!result.hasRemainingProfiles || result.mergedWebsites.isEmpty()) {
                 try {
                     val vpnIntent = Intent(context, LockdownVpnService::class.java).apply {
                         action = "STOP"
@@ -82,10 +48,10 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
                     AppLogger.e("Failsafe", "Failed to stop VPN service", e)
                 }
             } else {
-                LockdownVpnService.blockedWebsites = mergedWebsites
+                LockdownVpnService.blockedWebsites = result.mergedWebsites
             }
 
-            return hasRemainingProfiles
+            return result.hasRemainingProfiles
         }
     }
 
