@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../models/profile.dart';
+import '../utils/app_logger.dart';
 import 'platform_channel_service.dart';
 
 class ActiveLock {
@@ -76,7 +77,7 @@ class AppBlockerService extends ChangeNotifier {
       _isVpnPrepared = permissions['vpn'] ?? false;
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to check permissions: $e');
+      AppLogger.e('Blocker', 'Failed to check permissions', e);
     }
   }
 
@@ -111,7 +112,7 @@ class AppBlockerService extends ChangeNotifier {
         failsafeMillis: lock.remaining.inMilliseconds,
       );
     } catch (e) {
-      debugPrint('Failed to schedule failsafe alarm: $e');
+      AppLogger.e('Blocker', 'Failed to schedule failsafe alarm', e);
     }
 
     // Sync blocking state to Android, then persist Flutter state
@@ -146,7 +147,7 @@ class AppBlockerService extends ChangeNotifier {
     try {
       await _platform.cancelFailsafeAlarm(profileId: profileId);
     } catch (e) {
-      debugPrint('Failed to cancel failsafe alarm: $e');
+      AppLogger.e('Blocker', 'Failed to cancel failsafe alarm', e);
     }
 
     notifyListeners();
@@ -167,7 +168,7 @@ class AppBlockerService extends ChangeNotifier {
         // Restore the lock so Flutter state stays consistent with Android.
         // Android still enforces blocking — don't let Flutter think it's unlocked.
         _activeLocks[lock.profileId] = lock;
-        debugPrint('Failsafe timer deactivation failed, lock restored: $e');
+        AppLogger.e('Blocker', 'Failsafe timer deactivation failed, lock restored', e);
       }
       notifyListeners();
     });
@@ -183,7 +184,7 @@ class AppBlockerService extends ChangeNotifier {
           activeProfileBlocks: [],
         );
       } catch (e) {
-        debugPrint('Failed to update blocking state: $e');
+        AppLogger.e('Blocker', 'Failed to update blocking state', e);
       }
       return;
     }
@@ -216,7 +217,7 @@ class AppBlockerService extends ChangeNotifier {
         activeProfileBlocks: profileBlocks,
       );
     } catch (e) {
-      debugPrint('Failed to update blocking state: $e');
+      AppLogger.e('Blocker', 'Failed to update blocking state', e);
     }
   }
 
@@ -233,7 +234,7 @@ class AppBlockerService extends ChangeNotifier {
           }
         }
       } catch (e) {
-        debugPrint('Failed to load active locks: $e');
+        AppLogger.e('Blocker', 'Failed to load active locks', e);
       }
     }
 
@@ -317,7 +318,7 @@ class AppBlockerService extends ChangeNotifier {
       notifyListeners();
       return result;
     } catch (e) {
-      debugPrint('Failed to prepare VPN: $e');
+      AppLogger.e('Blocker', 'Failed to prepare VPN', e);
       return false;
     }
   }
