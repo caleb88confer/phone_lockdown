@@ -14,7 +14,6 @@ import java.io.FileOutputStream
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
-import java.nio.ByteBuffer
 
 class LockdownVpnService : VpnService() {
 
@@ -39,6 +38,13 @@ class LockdownVpnService : VpnService() {
     private var isRunning = false
     private var processingThread: Thread? = null
     private val dnsCache = DnsCache()
+    private val packetHandler = VpnPacketHandler(
+        blockedWebsites = { blockedWebsites },
+        dnsCache = dnsCache,
+        dnsResolver = object : DnsResolver {
+            override fun forward(dnsPayload: ByteArray): ByteArray? = forwardDnsQuery(dnsPayload)
+        }
+    )
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == "STOP") {
@@ -135,8 +141,7 @@ class LockdownVpnService : VpnService() {
                     continue
                 }
 
-                val packetData = packet.copyOf(length)
-                handlePacket(packetData, outputStream)
+                packetHandler.handlePacket(packet, length, outputStream)
             } catch (e: InterruptedException) {
                 break
             } catch (e: Exception) {
@@ -150,81 +155,6 @@ class LockdownVpnService : VpnService() {
             inputStream.close()
             outputStream.close()
         } catch (_: Exception) {}
-    }
-
-    private fun handlePacket(packet: ByteArray, outputStream: FileOutputStream) {
-        // Minimum IP header is 20 bytes
-        if (packet.size < 20) return
-
-        // Check IP version (should be 4)
-        val version = (packet[0].toInt() shr 4) and 0xF
-        if (version != 4) return
-
-        val ipHeaderLength = (packet[0].toInt() and 0xF) * 4
-        val protocol = packet[9].toInt() and 0xFF
-
-        // Only handle UDP (protocol 17)
-        if (protocol != 17) return
-
-        // Check we have enough data for UDP header (8 bytes)
-        if (packet.size < ipHeaderLength + 8) return
-
-        // Extract destination port from UDP header
-        val destPort = ((packet[ipHeaderLength + 2].toInt() and 0xFF) shl 8) or
-                (packet[ipHeaderLength + 3].toInt() and 0xFF)
-
-        // Only handle DNS (port 53)
-        if (destPort != DNS_PORT) return
-
-        // Extract DNS payload
-        val udpHeaderLength = 8
-        val dnsOffset = ipHeaderLength + udpHeaderLength
-        if (dnsOffset >= packet.size) return
-
-        val dnsPayload = packet.copyOfRange(dnsOffset, packet.size)
-
-        if (!DnsPacketParser.isQuery(dnsPayload)) return
-
-        val domain = DnsPacketParser.extractDomainFromQuery(dnsPayload)
-        if (domain != null && DomainMatcher.matches(domain, blockedWebsites)) {
-            AppLogger.d("VPN", "Blocking DNS query for: $domain")
-            val nxdomainDns = DnsPacketParser.buildNxdomainResponse(dnsPayload)
-            val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, nxdomainDns)
-            outputStream.write(responsePacket)
-            outputStream.flush()
-            return
-        }
-
-        // Check DNS cache before forwarding
-        if (domain != null) {
-            val cachedResponse = dnsCache.get(domain)
-            if (cachedResponse != null) {
-                // Rewrite transaction ID (first 2 bytes) to match the current query
-                cachedResponse[0] = dnsPayload[0]
-                cachedResponse[1] = dnsPayload[1]
-                val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, cachedResponse)
-                outputStream.write(responsePacket)
-                outputStream.flush()
-                return
-            }
-        }
-
-        // Forward non-blocked DNS queries to real DNS server
-        try {
-            val responseDns = forwardDnsQuery(dnsPayload)
-            if (responseDns != null) {
-                // Cache the response before sending it back
-                if (domain != null) {
-                    val ttl = DnsPacketParser.extractTtl(responseDns)
-                    dnsCache.put(domain, responseDns, ttl)
-                }
-                val responsePacket = buildIpUdpResponse(packet, ipHeaderLength, responseDns)
-                outputStream.write(responsePacket)
-                outputStream.flush()
-            }
-        } catch (e: Exception) {
-            AppLogger.e("VPN", "Error forwarding DNS query", e)
-        }
     }
 
     /**
@@ -256,87 +186,6 @@ class LockdownVpnService : VpnService() {
         }
         AppLogger.e("VPN", "All DNS servers failed")
         return null
-    }
-
-    /**
-     * Builds an IP+UDP response packet by swapping source/dest addresses and ports,
-     * and replacing the DNS payload.
-     */
-    private fun buildIpUdpResponse(
-        originalPacket: ByteArray,
-        ipHeaderLength: Int,
-        dnsResponse: ByteArray
-    ): ByteArray {
-        val udpHeaderLength = 8
-        val totalLength = ipHeaderLength + udpHeaderLength + dnsResponse.size
-        val response = ByteArray(totalLength)
-
-        // Copy original IP header
-        System.arraycopy(originalPacket, 0, response, 0, ipHeaderLength)
-
-        // Update total length in IP header (bytes 2-3)
-        response[2] = ((totalLength shr 8) and 0xFF).toByte()
-        response[3] = (totalLength and 0xFF).toByte()
-
-        // Swap source and destination IP addresses
-        // Source IP: bytes 12-15, Dest IP: bytes 16-19
-        for (i in 0 until 4) {
-            val temp = response[12 + i]
-            response[12 + i] = response[16 + i]
-            response[16 + i] = temp
-        }
-
-        // Zero IP checksum before recalculating
-        response[10] = 0
-        response[11] = 0
-        val ipChecksum = calculateChecksum(response, 0, ipHeaderLength)
-        response[10] = ((ipChecksum shr 8) and 0xFF).toByte()
-        response[11] = (ipChecksum and 0xFF).toByte()
-
-        // Build UDP header
-        val udpOffset = ipHeaderLength
-        // Swap source and destination ports
-        response[udpOffset] = originalPacket[udpOffset + 2]
-        response[udpOffset + 1] = originalPacket[udpOffset + 3]
-        response[udpOffset + 2] = originalPacket[udpOffset]
-        response[udpOffset + 3] = originalPacket[udpOffset + 1]
-
-        // UDP length
-        val udpLength = udpHeaderLength + dnsResponse.size
-        response[udpOffset + 4] = ((udpLength shr 8) and 0xFF).toByte()
-        response[udpOffset + 5] = (udpLength and 0xFF).toByte()
-
-        // Zero UDP checksum (optional for IPv4)
-        response[udpOffset + 6] = 0
-        response[udpOffset + 7] = 0
-
-        // Copy DNS response payload
-        System.arraycopy(dnsResponse, 0, response, udpOffset + udpHeaderLength, dnsResponse.size)
-
-        return response
-    }
-
-    private fun calculateChecksum(data: ByteArray, offset: Int, length: Int): Int {
-        var sum = 0
-        var i = offset
-        val end = offset + length
-
-        while (i < end - 1) {
-            sum += ((data[i].toInt() and 0xFF) shl 8) or (data[i + 1].toInt() and 0xFF)
-            i += 2
-        }
-
-        // Handle odd byte
-        if (i < end) {
-            sum += (data[i].toInt() and 0xFF) shl 8
-        }
-
-        // Fold 32-bit sum to 16 bits
-        while (sum shr 16 != 0) {
-            sum = (sum and 0xFFFF) + (sum shr 16)
-        }
-
-        return sum.inv() and 0xFFFF
     }
 
     private fun loadStateFromPrefs() {
