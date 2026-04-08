@@ -60,10 +60,10 @@ class ProfileManager extends ChangeNotifier {
     }
   }
 
-  void addProfile({required String name, int? iconCodePoint}) {
+  void addProfile({required String name, int? colorValue}) {
     final newProfile = Profile(
       name: name,
-      iconCodePoint: iconCodePoint ?? 0xe7f5,
+      colorValue: colorValue ?? 0xFFFFB800,
     );
     _profiles.add(newProfile);
     _currentProfileId = newProfile.id;
@@ -115,7 +115,7 @@ class ProfileManager extends ChangeNotifier {
   void updateProfile({
     required String id,
     String? name,
-    int? iconCodePoint,
+    int? colorValue,
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
     String? unlockCode,
@@ -126,7 +126,7 @@ class ProfileManager extends ChangeNotifier {
     if (index == -1) return;
 
     if (name != null) _profiles[index].name = name;
-    if (iconCodePoint != null) _profiles[index].iconCodePoint = iconCodePoint;
+    if (colorValue != null) _profiles[index].colorValue = colorValue;
     if (blockedAppPackages != null) {
       _profiles[index].blockedAppPackages = blockedAppPackages;
     }

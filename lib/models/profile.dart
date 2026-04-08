@@ -5,7 +5,7 @@ import '../constants.dart';
 class Profile {
   final String id;
   String name;
-  int iconCodePoint;
+  int colorValue;
   List<String> blockedAppPackages;
   List<String> blockedWebsites;
   String? unlockCode;
@@ -16,7 +16,7 @@ class Profile {
   Profile({
     String? id,
     required this.name,
-    this.iconCodePoint = 0xe7f5, // Icons.notifications_off
+    this.colorValue = 0xFFFFB800, // Signature Gold
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
     this.unlockCode,
@@ -32,7 +32,7 @@ class Profile {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'iconCodePoint': iconCodePoint,
+        'colorValue': colorValue,
         'blockedAppPackages': blockedAppPackages,
         'blockedWebsites': blockedWebsites,
         'unlockCode': unlockCode,
@@ -43,7 +43,8 @@ class Profile {
     return Profile(
       id: json['id'] as String,
       name: json['name'] as String,
-      iconCodePoint: json['iconCodePoint'] as int,
+      colorValue: (json['colorValue'] as int?) ??
+          (json.containsKey('iconCodePoint') ? 0xFFFFB800 : 0xFFFFB800),
       blockedAppPackages: List<String>.from(json['blockedAppPackages'] ?? []),
       blockedWebsites: List<String>.from(json['blockedWebsites'] ?? []),
       unlockCode: json['unlockCode'] as String?,

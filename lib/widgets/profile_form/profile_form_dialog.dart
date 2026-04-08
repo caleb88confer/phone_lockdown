@@ -3,9 +3,11 @@ import '../../constants.dart';
 import '../../models/profile.dart';
 import '../../screens/scan_screen.dart';
 import '../../services/profile_manager.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/bevel.dart';
 import 'app_selector.dart';
+import 'color_picker.dart';
 import 'failsafe_selector.dart';
-import 'icon_picker.dart';
 import 'unlock_code_section.dart';
 import 'website_editor.dart';
 
@@ -25,7 +27,7 @@ class ProfileFormDialog extends StatefulWidget {
 
 class _ProfileFormDialogState extends State<ProfileFormDialog> {
   late TextEditingController _nameController;
-  late int _selectedIconCodePoint;
+  late int _selectedColorValue;
   late List<String> _blockedAppPackages;
   late List<String> _blockedWebsites;
   late String? _unlockCode;
@@ -37,8 +39,8 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile?.name ?? '');
-    _selectedIconCodePoint =
-        widget.profile?.iconCodePoint ?? Icons.notifications_off.codePoint;
+    _selectedColorValue =
+        widget.profile?.colorValue ?? 0xFFFFB800;
     _blockedAppPackages =
         List<String>.from(widget.profile?.blockedAppPackages ?? []);
     _blockedWebsites = List<String>.from(widget.profile?.blockedWebsites ?? []);
@@ -60,7 +62,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
       widget.profileManager.updateProfile(
         id: widget.profile!.id,
         name: name,
-        iconCodePoint: _selectedIconCodePoint,
+        colorValue: _selectedColorValue,
         blockedAppPackages: _blockedAppPackages,
         blockedWebsites: _blockedWebsites,
         unlockCode: _unlockCode,
@@ -70,7 +72,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
     } else {
       final profile = Profile(
         name: name,
-        iconCodePoint: _selectedIconCodePoint,
+        colorValue: _selectedColorValue,
         blockedAppPackages: _blockedAppPackages,
         blockedWebsites: _blockedWebsites,
         unlockCode: _unlockCode,
@@ -135,7 +137,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text('Delete', style: TextStyle(color: AppColors.secondary)),
           ),
         ],
       ),
@@ -145,83 +147,177 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Profile' : 'Add Profile'),
+        title: Text(isEditing ? 'EDIT PROFILE' : 'NEW PROFILE'),
         leading: TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         actions: [
-          TextButton(
-            onPressed: _nameController.text.trim().isEmpty ? null : _handleSave,
-            child: const Text('Save'),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Container(
+              decoration: _nameController.text.trim().isEmpty
+                  ? null
+                  : Bevel.raised(fill: AppColors.primaryContainer),
+              child: TextButton(
+                onPressed: _nameController.text.trim().isEmpty ? null : _handleSave,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.onPrimaryContainer,
+                  disabledForegroundColor: AppColors.outline,
+                ),
+                child: Text(
+                  'SAVE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: _nameController.text.trim().isEmpty
+                        ? AppColors.outline
+                        : AppColors.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Profile Name',
-              style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 4),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              hintText: 'Enter profile name',
-              border: OutlineInputBorder(),
+          // Profile Name section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
             ),
-            onChanged: (_) => setState(() {}),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PROFILE NAME',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: Bevel.sunken(),
+                  child: TextField(
+                    controller: _nameController,
+                    style: const TextStyle(color: AppColors.onSurface),
+                    decoration: const InputDecoration(
+                      hintText: 'Enter profile name',
+                      border: InputBorder.none,
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          IconPicker(
-            selectedIconCodePoint: _selectedIconCodePoint,
-            onIconSelected: (codePoint) => setState(() {
-              _selectedIconCodePoint = codePoint;
-            }),
+          // Color Picker section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: ProfileColorPicker(
+              selectedColorValue: _selectedColorValue,
+              onColorSelected: (colorValue) => setState(() {
+                _selectedColorValue = colorValue;
+              }),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          UnlockCodeSection(
-            unlockCode: _unlockCode,
-            onScan: _scanUnlockCode,
-            onClear: () => setState(() => _unlockCode = null),
+          // Unlock Code section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: UnlockCodeSection(
+              unlockCode: _unlockCode,
+              onScan: _scanUnlockCode,
+              onClear: () => setState(() => _unlockCode = null),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          AppSelector(
-            blockedAppPackages: _blockedAppPackages,
-            onChanged: (selected) => setState(() {
-              _blockedAppPackages = selected;
-            }),
+          // Blocked Apps section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: AppSelector(
+              blockedAppPackages: _blockedAppPackages,
+              onChanged: (selected) => setState(() {
+                _blockedAppPackages = selected;
+              }),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          WebsiteEditor(
-            blockedWebsites: _blockedWebsites,
-            onChanged: (websites) => setState(() {
-              _blockedWebsites = websites;
-            }),
+          // Blocked Websites section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: WebsiteEditor(
+              blockedWebsites: _blockedWebsites,
+              onChanged: (websites) => setState(() {
+                _blockedWebsites = websites;
+              }),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          FailsafeSelector(
-            failsafeMinutes: _failsafeMinutes,
-            onChanged: (minutes) => setState(() {
-              _failsafeMinutes = minutes;
-            }),
+          // Failsafe section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: FailsafeSelector(
+              failsafeMinutes: _failsafeMinutes,
+              onChanged: (minutes) => setState(() {
+                _failsafeMinutes = minutes;
+              }),
+            ),
           ),
 
           if (isEditing) ...[
             const SizedBox(height: 32),
-            TextButton(
-              onPressed: _handleDelete,
-              child: const Text(
-                'Delete Profile',
-                style: TextStyle(color: Colors.red),
+            Container(
+              decoration: Bevel.raised(fill: AppColors.surfaceContainerHigh),
+              child: TextButton(
+                onPressed: _handleDelete,
+                child: Text(
+                  'DELETE PROFILE',
+                  style: TextStyle(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
               ),
             ),
           ],
+          const SizedBox(height: 32),
         ],
       ),
     );

@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/platform_channel_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/bevel.dart';
 
 class AppPickerScreen extends StatefulWidget {
   final List<String> initialSelected;
@@ -57,15 +59,33 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Apps to Block'),
+        title: const Text(
+          'SELECT APPS TO BLOCK',
+          style: TextStyle(letterSpacing: 1.0, fontWeight: FontWeight.w700, fontSize: 16),
+        ),
         leading: TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(_selected.toList()),
-            child: Text('Done (${_selected.length})'),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Container(
+              decoration: Bevel.raised(fill: AppColors.primaryContainer),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(_selected.toList()),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.onPrimaryContainer,
+                ),
+                child: Text(
+                  'DONE (${_selected.length})',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -73,13 +93,18 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search apps...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+            child: Container(
+              decoration: Bevel.sunken(),
+              child: TextField(
+                style: const TextStyle(color: AppColors.onSurface),
+                decoration: const InputDecoration(
+                  hintText: 'Search apps...',
+                  prefixIcon: Icon(Icons.search, color: AppColors.outline),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                onChanged: (value) => setState(() => _searchQuery = value),
               ),
-              onChanged: (value) => setState(() => _searchQuery = value),
             ),
           ),
           Expanded(child: _buildBody()),
@@ -90,7 +115,9 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primaryContainer),
+      );
     }
     if (_error != null) {
       return Center(child: Text(_error!));
@@ -110,37 +137,50 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
         final iconPath = app['iconPath'] as String?;
         final isSelected = _selected.contains(packageName);
 
-        return ListTile(
-          leading: iconPath != null && File(iconPath).existsSync()
-              ? Image.file(File(iconPath), width: 40, height: 40)
-              : const Icon(Icons.android, size: 40),
-          title: Text(appName),
-          subtitle: Text(
-            packageName,
-            style: Theme.of(context).textTheme.bodySmall,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Checkbox(
-            value: isSelected,
-            onChanged: (value) {
+        return Container(
+          color: isSelected
+              ? AppColors.primaryFixed.withValues(alpha: 0.3)
+              : (index.isEven
+                  ? AppColors.surfaceContainerLow
+                  : AppColors.surface),
+          child: ListTile(
+            leading: iconPath != null && File(iconPath).existsSync()
+                ? Image.file(File(iconPath), width: 40, height: 40)
+                : const Icon(Icons.android, size: 40, color: AppColors.outline),
+            title: Text(
+              appName,
+              style: TextStyle(
+                color: AppColors.onSurface,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            subtitle: Text(
+              packageName,
+              style: Theme.of(context).textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: Checkbox(
+              value: isSelected,
+              onChanged: (value) {
+                setState(() {
+                  if (value == true) {
+                    _selected.add(packageName);
+                  } else {
+                    _selected.remove(packageName);
+                  }
+                });
+              },
+            ),
+            onTap: () {
               setState(() {
-                if (value == true) {
-                  _selected.add(packageName);
-                } else {
+                if (isSelected) {
                   _selected.remove(packageName);
+                } else {
+                  _selected.add(packageName);
                 }
               });
             },
           ),
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                _selected.remove(packageName);
-              } else {
-                _selected.add(packageName);
-              }
-            });
-          },
         );
       },
     );

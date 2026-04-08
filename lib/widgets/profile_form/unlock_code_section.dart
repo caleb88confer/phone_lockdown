@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/bevel.dart';
 
 class UnlockCodeSection extends StatelessWidget {
   final String? unlockCode;
@@ -17,21 +19,25 @@ class UnlockCodeSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Unlock Code', style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          'UNLOCK CODE',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
+          decoration: Bevel.sunken(fill: AppColors.surfaceContainerLowest),
           child: Row(
             children: [
               Icon(
                 unlockCode != null ? Icons.vpn_key : Icons.vpn_key_off,
                 size: 20,
-                color: unlockCode != null ? Colors.green : Colors.grey,
+                color: unlockCode != null
+                    ? const Color(0xFF2E7D32)
+                    : AppColors.outline,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -41,20 +47,29 @@ class UnlockCodeSection extends StatelessWidget {
                       : 'No code set',
                   style: TextStyle(
                     fontFamily: 'monospace',
-                    color: unlockCode != null ? Colors.white : Colors.grey,
+                    color: unlockCode != null
+                        ? AppColors.onSurface
+                        : AppColors.outline,
                   ),
                 ),
               ),
               if (unlockCode != null)
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20),
+                  icon: const Icon(Icons.close, size: 20, color: AppColors.outline),
                   onPressed: onClear,
                   tooltip: 'Clear code',
                 ),
-              IconButton(
-                icon: const Icon(Icons.qr_code_scanner, size: 20),
-                onPressed: onScan,
-                tooltip: 'Scan code',
+              Container(
+                decoration: Bevel.raised(fill: AppColors.primaryContainer),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.qr_code_scanner,
+                    size: 20,
+                    color: AppColors.onPrimaryContainer,
+                  ),
+                  onPressed: onScan,
+                  tooltip: 'Scan code',
+                ),
               ),
             ],
           ),

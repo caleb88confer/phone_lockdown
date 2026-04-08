@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../theme/app_colors.dart';
 
 class ScanScreen extends StatefulWidget {
   final String title;
@@ -39,7 +40,13 @@ class _ScanScreenState extends State<ScanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(
+          widget.title.toUpperCase(),
+          style: const TextStyle(
+            letterSpacing: 1.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -57,15 +64,13 @@ class _ScanScreenState extends State<ScanScreen> {
                   horizontal: 24,
                   vertical: 12,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                color: AppColors.onSurface.withValues(alpha: 0.85),
                 child: Text(
                   widget.instruction,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 14,
+                    letterSpacing: 0.3,
                   ),
                   textAlign: TextAlign.center,
                 ),

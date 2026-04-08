@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/bevel.dart';
 
 class WebsiteEditor extends StatefulWidget {
   final List<String> blockedWebsites;
@@ -49,37 +51,70 @@ class _WebsiteEditorState extends State<WebsiteEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Blocked Websites',
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          'BLOCKED WEBSITES',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  hintText: 'e.g. youtube.com',
-                  border: OutlineInputBorder(),
+              child: Container(
+                decoration: Bevel.sunken(),
+                child: TextField(
+                  controller: _controller,
+                  style: const TextStyle(color: AppColors.onSurface),
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. youtube.com',
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  onSubmitted: (_) => _addWebsite(),
                 ),
-                onSubmitted: (_) => _addWebsite(),
               ),
             ),
             const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.add_circle),
-              onPressed: _addWebsite,
+            Container(
+              decoration: Bevel.raised(fill: AppColors.primaryContainer),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.add,
+                  color: AppColors.onPrimaryContainer,
+                ),
+                onPressed: _addWebsite,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        ...widget.blockedWebsites.map((website) => ListTile(
+        ...widget.blockedWebsites.asMap().entries.map((entry) {
+          final index = entry.key;
+          final website = entry.value;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 2),
+            color: index.isEven
+                ? AppColors.surfaceContainerHigh
+                : AppColors.surfaceContainerLow,
+            child: ListTile(
               dense: true,
-              title: Text(website),
+              title: Text(
+                website,
+                style: const TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 13,
+                ),
+              ),
               trailing: IconButton(
-                icon: const Icon(Icons.close, size: 20),
+                icon: const Icon(Icons.close, size: 18, color: AppColors.outline),
                 onPressed: () => _removeWebsite(website),
               ),
-            )),
+            ),
+          );
+        }),
       ],
     );
   }

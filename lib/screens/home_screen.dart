@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/app_blocker_service.dart';
 import '../services/profile_manager.dart';
 import '../theme/app_colors.dart';
+import '../theme/bevel.dart';
 import '../widgets/block_button.dart';
 import '../widgets/profile_picker.dart';
 import 'permissions_screen.dart';
@@ -22,7 +23,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Restore timers once profiles are loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final appBlocker = context.read<AppBlockerService>();
       final profileManager = context.read<ProfileManager>();
@@ -72,7 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // If this profile is currently active, deactivate it
     if (appBlocker.activeProfileIds.contains(matchedProfile.id)) {
       final success = await appBlocker.deactivateProfile(
         matchedProfile.id,
@@ -87,7 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Activate this profile
     final success = await appBlocker.activateProfile(
       matchedProfile,
       allProfiles: profileManager.profiles,
@@ -143,18 +141,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Phone Lockdown'),
+            title: Text(
+              'PHONE LOCKDOWN',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.security),
-                tooltip: 'Permissions',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const PermissionsScreen(),
-                    ),
-                  );
-                },
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: Bevel.raised(fill: AppColors.surfaceContainerHigh),
+                child: IconButton(
+                  icon: const Icon(Icons.security, size: 20),
+                  tooltip: 'Permissions',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PermissionsScreen(),
+                      ),
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -174,7 +182,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 if (isBlocking) ...[
-                  // Show active profiles with countdown timers
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -182,9 +189,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Active Profiles',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          'ACTIVE PROFILES',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                 color: Colors.white.withValues(alpha: 0.7),
+                                letterSpacing: 1.5,
+                                fontWeight: FontWeight.w700,
                               ),
                         ),
                         const SizedBox(height: 8),
@@ -199,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (lock == null || profile == null) {
                             return const SizedBox.shrink();
                           }
+                          final profileColor = Color(profile.colorValue);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Container(
@@ -206,37 +216,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                   horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 children: [
-                                  Icon(
-                                    IconData(profile.iconCodePoint,
-                                        fontFamily: 'MaterialIcons'),
-                                    size: 20,
-                                    color: Colors.red.shade300,
+                                  Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: profileColor,
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       profile.name,
                                       style: const TextStyle(
                                           color: Colors.white,
-                                          fontWeight: FontWeight.w500),
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.3),
                                     ),
                                   ),
                                   Icon(
                                     Icons.timer_outlined,
                                     size: 16,
-                                    color: Colors.white.withValues(alpha: 0.5),
+                                    color: AppColors.primaryContainer,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     _formatDuration(lock.remaining),
                                     style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.7),
+                                      color: AppColors.primaryContainer,
                                       fontFamily: 'monospace',
                                       fontSize: 13,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -258,7 +271,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
                 if (!isBlocking) ...[
-                  const Divider(height: 1),
+                  Container(
+                    height: 2,
+                    color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
                   const Expanded(
                     flex: 1,
                     child: ProfilePicker(),

@@ -25,14 +25,18 @@ class ProfilePicker extends StatelessWidget {
     return Consumer<ProfileManager>(
       builder: (context, profileManager, _) {
         return Container(
-          color: AppColors.profileSectionBackground,
+          color: AppColors.surfaceContainerLow,
           child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Text(
-                  'Profiles',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  'PROFILES',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
                 ),
               ),
               Expanded(
@@ -51,11 +55,7 @@ class ProfilePicker extends StatelessWidget {
                         final profile = profileManager.profiles[index];
                         return ProfileCell(
                           profile: profile,
-                          isSelected:
-                              profile.id == profileManager.currentProfileId,
                           onTap: () =>
-                              profileManager.setCurrentProfile(profile.id),
-                          onLongPress: () =>
                               _openProfileForm(context, profile: profile),
                         );
                       }
@@ -64,15 +64,6 @@ class ProfilePicker extends StatelessWidget {
                       );
                     },
                   ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'Long press on a profile to edit...',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.4),
-                      ),
                 ),
               ),
             ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 
 class FailsafeSelector extends StatelessWidget {
   final int failsafeMinutes;
@@ -34,15 +35,17 @@ class FailsafeSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Failsafe Auto-Unlock',
-            style: Theme.of(context).textTheme.bodySmall),
+        Text(
+          'FAILSAFE AUTO-UNLOCK',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
         const SizedBox(height: 4),
         Text(
           'Automatically unlocks after this duration, even without scanning the code.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -50,17 +53,32 @@ class FailsafeSelector extends StatelessWidget {
           runSpacing: 8,
           children: presets.map((preset) {
             final isSelected = failsafeMinutes == preset.minutes;
-            return ChoiceChip(
-              label: Text(preset.label),
-              selected: isSelected,
-              onSelected: (_) => onChanged(preset.minutes),
+            return GestureDetector(
+              onTap: () => onChanged(preset.minutes),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                color: isSelected
+                    ? AppColors.primaryContainer
+                    : AppColors.surfaceContainerHigh,
+                child: Text(
+                  preset.label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    color: isSelected
+                        ? AppColors.onPrimaryContainer
+                        : AppColors.onSurface,
+                  ),
+                ),
+              ),
             );
           }).toList(),
         ),
         const SizedBox(height: 8),
         Text(
           'Current: ${formatFailsafe(failsafeMinutes)}',
-          style: const TextStyle(color: Colors.grey),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );
