@@ -73,16 +73,6 @@ class _PermissionsScreenState extends State<PermissionsScreen>
                 ),
               const SizedBox(height: 8),
               _PermissionTile(
-                title: 'VPN Service (Website Blocking)',
-                description:
-                    'Required to block websites across all apps and browsers.',
-                isGranted: blocker.isVpnPrepared,
-                onGrant: () async {
-                  await blocker.prepareVpn();
-                },
-              ),
-              const SizedBox(height: 8),
-              _PermissionTile(
                 title: 'Device Admin',
                 description:
                     'Optional. Prevents the app from being uninstalled while blocking is active.',

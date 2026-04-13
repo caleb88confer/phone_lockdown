@@ -1,13 +1,10 @@
 package app.phonelockdown
 
-import android.app.Activity
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
 class MethodChannelHandler(
-    private val activity: Activity,
     private val permissionManager: PermissionManager,
-    private val vpnController: VpnController,
     private val blockingStateManager: BlockingStateManager,
     private val appListHelper: AppListHelper,
 ) : MethodChannel.MethodCallHandler {
@@ -42,20 +39,6 @@ class MethodChannelHandler(
             "requestDeviceAdmin" -> {
                 permissionManager.requestDeviceAdmin()
                 result.success(null)
-            }
-            "prepareVpn" -> {
-                vpnController.prepareVpn(activity, result)
-            }
-            "startVpn" -> {
-                vpnController.startVpnService()
-                result.success(null)
-            }
-            "stopVpn" -> {
-                vpnController.stopVpnService()
-                result.success(null)
-            }
-            "isVpnActive" -> {
-                result.success(vpnController.isVpnActive())
             }
             "scheduleFailsafeAlarm" -> {
                 val profileId = call.argument<String>("profileId") ?: ""

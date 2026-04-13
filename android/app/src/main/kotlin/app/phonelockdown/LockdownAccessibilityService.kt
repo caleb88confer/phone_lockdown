@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 
@@ -27,11 +28,17 @@ class LockdownAccessibilityService : AccessibilityService() {
         private const val CHANNEL_ID = "lockdown_active"
         private const val NOTIFICATION_ID = 1001
 
+        private const val EDIT_TEXT_CLASS = "android.widget.EditText"
+        private const val FALLBACK_NODE_VISIT_LIMIT = 500
+        private const val FALLBACK_CANDIDATE_LIMIT = 20
+
         /** Set blocking state without triggering notification update */
         fun setBlockingActiveSilently(value: Boolean) {
             _isBlockingActive = value
         }
     }
+
+    private val lastCheckedUrl = mutableMapOf<String, String>()
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -49,12 +56,12 @@ class LockdownAccessibilityService : AccessibilityService() {
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 handleAppBlocking(packageName)
+                handleUrlBlocking(packageName)
+            }
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
+                handleUrlBlocking(packageName)
             }
         }
-    }
-
-    private fun isSystemPackage(packageName: String): Boolean {
-        return AppBlockingDecider.isSystemPackage(packageName, this.packageName)
     }
 
     private fun handleAppBlocking(packageName: String) {
@@ -68,12 +75,62 @@ class LockdownAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun handleUrlBlocking(packageName: String) {
+        if (!isBlockingActive) return
+        if (blockedWebsites.isEmpty()) return
+        if (packageName !in BrowserPackages.ALL) return
+
+        val root = rootInActiveWindow ?: return
+
+        val knownIdTexts: List<CharSequence?> = BrowserPackages.URL_BAR_VIEW_IDS[packageName]
+            ?.let { id -> root.findAccessibilityNodeInfosByViewId(id)?.map { it.text } }
+            ?: emptyList()
+
+        val fallbackTexts: List<CharSequence?> =
+            if (knownIdTexts.any { !it.isNullOrBlank() }) emptyList()
+            else collectEditTextText(root)
+
+        val url = BrowserUrlExtractor.pickUrl(knownIdTexts, fallbackTexts) ?: return
+
+        if (lastCheckedUrl[packageName] == url) return
+        lastCheckedUrl[packageName] = url
+
+        if (DomainMatcher.matches(url, blockedWebsites)) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            Toast.makeText(
+                this,
+                "Website blocked by Phone Lockdown",
+                Toast.LENGTH_SHORT
+            ).show()
+            lastCheckedUrl.remove(packageName)
+        }
+    }
+
+    private fun collectEditTextText(root: AccessibilityNodeInfo): List<CharSequence?> {
+        val out = mutableListOf<CharSequence?>()
+        val stack = ArrayDeque<AccessibilityNodeInfo>()
+        stack.addLast(root)
+        var visited = 0
+        while (stack.isNotEmpty() && visited < FALLBACK_NODE_VISIT_LIMIT && out.size < FALLBACK_CANDIDATE_LIMIT) {
+            val node = stack.removeLast()
+            visited++
+            if (node.className == EDIT_TEXT_CLASS) {
+                out.add(node.text)
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { stack.addLast(it) }
+            }
+        }
+        return out
+    }
+
     override fun onInterrupt() {
         // Required override
     }
 
     override fun onDestroy() {
         instance = null
+        lastCheckedUrl.clear()
         super.onDestroy()
     }
 

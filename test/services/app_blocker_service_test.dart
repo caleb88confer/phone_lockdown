@@ -10,7 +10,6 @@ class FakePlatformService implements PlatformChannelService {
   Map<String, bool> permissionsResult = {
     'accessibility': true,
     'deviceAdmin': true,
-    'vpn': true,
   };
   List<String> enforcementActiveProfileIds = [];
 
@@ -64,28 +63,6 @@ class FakePlatformService implements PlatformChannelService {
   @override
   Future<void> requestDeviceAdmin() async {
     calls.add('requestDeviceAdmin');
-  }
-
-  @override
-  Future<bool> prepareVpn() async {
-    calls.add('prepareVpn');
-    return true;
-  }
-
-  @override
-  Future<void> startVpn() async {
-    calls.add('startVpn');
-  }
-
-  @override
-  Future<void> stopVpn() async {
-    calls.add('stopVpn');
-  }
-
-  @override
-  Future<bool> isVpnActive() async {
-    calls.add('isVpnActive');
-    return false;
   }
 
   @override

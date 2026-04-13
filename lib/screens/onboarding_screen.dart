@@ -150,15 +150,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
         const SizedBox(height: 32),
         _PermissionRow(
-          label: 'Accessibility Service (App Blocking)',
+          label: 'Accessibility Service (App & Website Blocking)',
           isGranted: blocker.isAccessibilityEnabled,
           onGrant: () => context.read<PlatformChannelService>().openAccessibilitySettings(),
-        ),
-        const SizedBox(height: 12),
-        _PermissionRow(
-          label: 'VPN Service (Website Blocking)',
-          isGranted: blocker.isVpnPrepared,
-          onGrant: () => blocker.prepareVpn(),
         ),
       ],
     );

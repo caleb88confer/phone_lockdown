@@ -4,7 +4,6 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.VpnService
 import android.provider.Settings
 
 class PermissionManager(private val context: Context) {
@@ -13,7 +12,6 @@ class PermissionManager(private val context: Context) {
         return mapOf(
             "accessibility" to isAccessibilityServiceEnabled(),
             "deviceAdmin" to isDeviceAdminEnabled(),
-            "vpn" to (VpnService.prepare(context) == null),
         )
     }
 

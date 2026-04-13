@@ -41,15 +41,6 @@ class ServiceMonitorWorker(
             )
         }
 
-        // Check if VPN should be running for website blocking
-        val blockedWebsites = prefs.getStringSet(Constants.PREF_BLOCKED_WEBSITES, emptySet()) ?: emptySet()
-        if (blockedWebsites.isNotEmpty() && LockdownVpnService.instance == null) {
-            showNotification(
-                "VPN Service Stopped",
-                "The VPN service was stopped. Website blocking is not active. Please re-enable it."
-            )
-        }
-
         return Result.success()
     }
 

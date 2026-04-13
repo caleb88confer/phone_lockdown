@@ -18,10 +18,6 @@ abstract class PlatformChannelService {
   Future<void> openAccessibilitySettings();
   Future<void> openUsageStatsSettings();
   Future<void> requestDeviceAdmin();
-  Future<bool> prepareVpn();
-  Future<void> startVpn();
-  Future<void> stopVpn();
-  Future<bool> isVpnActive();
   Future<Map<String, dynamic>> getEnforcementState();
 }
 
@@ -87,28 +83,6 @@ class MethodChannelPlatformService implements PlatformChannelService {
   @override
   Future<void> requestDeviceAdmin() async {
     await _channel.invokeMethod('requestDeviceAdmin');
-  }
-
-  @override
-  Future<bool> prepareVpn() async {
-    final result = await _channel.invokeMethod<bool>('prepareVpn');
-    return result ?? false;
-  }
-
-  @override
-  Future<void> startVpn() async {
-    await _channel.invokeMethod('startVpn');
-  }
-
-  @override
-  Future<void> stopVpn() async {
-    await _channel.invokeMethod('stopVpn');
-  }
-
-  @override
-  Future<bool> isVpnActive() async {
-    final result = await _channel.invokeMethod<bool>('isVpnActive');
-    return result ?? false;
   }
 
   @override

@@ -4,13 +4,11 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.VpnService
 import org.json.JSONArray
 import org.json.JSONObject
 
 class BlockingStateManager(
     private val context: Context,
-    private val vpnController: VpnController,
 ) {
     fun updateBlockingState(
         isBlocking: Boolean,
@@ -51,15 +49,6 @@ class BlockingStateManager(
         LockdownAccessibilityService.isBlockingActive = isBlocking
         LockdownAccessibilityService.blockedPackages = packages.toSet()
         LockdownAccessibilityService.blockedWebsites = websites.toSet()
-
-        if (isBlocking && websites.isNotEmpty()) {
-            LockdownVpnService.blockedWebsites = websites.toSet()
-            if (LockdownVpnService.instance == null && VpnService.prepare(context) == null) {
-                vpnController.startVpnService()
-            }
-        } else {
-            vpnController.stopVpnService()
-        }
     }
 
     fun getEnforcementState(): Map<String, Any> {

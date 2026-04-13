@@ -6,7 +6,7 @@ import 'package:phone_lockdown/services/platform_channel_service.dart';
 class FakePlatformService implements PlatformChannelService {
   @override
   Future<Map<String, bool>> checkPermissions() async =>
-      {'accessibility': false, 'deviceAdmin': false, 'vpn': false};
+      {'accessibility': false, 'deviceAdmin': false};
 
   @override
   Future<void> updateBlockingState({
@@ -34,18 +34,6 @@ class FakePlatformService implements PlatformChannelService {
 
   @override
   Future<void> requestDeviceAdmin() async {}
-
-  @override
-  Future<bool> prepareVpn() async => false;
-
-  @override
-  Future<void> startVpn() async {}
-
-  @override
-  Future<void> stopVpn() async {}
-
-  @override
-  Future<bool> isVpnActive() async => false;
 
   @override
   Future<Map<String, dynamic>> getEnforcementState() async =>

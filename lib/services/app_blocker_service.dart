@@ -50,13 +50,11 @@ class AppBlockerService extends ChangeNotifier {
   final Map<String, ActiveLock> _activeLocks = {};
   bool _isAccessibilityEnabled = false;
   bool _isDeviceAdminEnabled = false;
-  bool _isVpnPrepared = false;
 
   bool get isBlocking => _activeLocks.isNotEmpty;
   Set<String> get activeProfileIds => _activeLocks.keys.toSet();
   bool get isAccessibilityEnabled => _isAccessibilityEnabled;
   bool get isDeviceAdminEnabled => _isDeviceAdminEnabled;
-  bool get isVpnPrepared => _isVpnPrepared;
 
   ActiveLock? getLock(String profileId) => _activeLocks[profileId];
 
@@ -74,7 +72,6 @@ class AppBlockerService extends ChangeNotifier {
       final permissions = await _platform.checkPermissions();
       _isAccessibilityEnabled = permissions['accessibility'] ?? false;
       _isDeviceAdminEnabled = permissions['deviceAdmin'] ?? false;
-      _isVpnPrepared = permissions['vpn'] ?? false;
       notifyListeners();
     } catch (e) {
       AppLogger.e('Blocker', 'Failed to check permissions', e);
@@ -85,15 +82,7 @@ class AppBlockerService extends ChangeNotifier {
   /// message string describing what went wrong.
   Future<String?> activateProfile(Profile profile, {required List<Profile> allProfiles}) async {
     if (!_isAccessibilityEnabled) {
-      return 'The accessibility service is not enabled. Please enable it in Settings to block apps.';
-    }
-
-    if (profile.blockedWebsites.isNotEmpty && !_isVpnPrepared) {
-      // Try to prepare VPN on the fly
-      final prepared = await prepareVpn();
-      if (!prepared) {
-        return 'VPN permission is required to block websites. Please grant VPN permission and try again.';
-      }
+      return 'The accessibility service is not enabled. Please enable it in Settings to block apps and websites.';
     }
 
     final lock = ActiveLock(
@@ -311,15 +300,4 @@ class AppBlockerService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> prepareVpn() async {
-    try {
-      final result = await _platform.prepareVpn();
-      _isVpnPrepared = result;
-      notifyListeners();
-      return result;
-    } catch (e) {
-      AppLogger.e('Blocker', 'Failed to prepare VPN', e);
-      return false;
-    }
-  }
 }

@@ -15,7 +15,7 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
 
         /**
          * Recompute merged block lists from remaining active profile blocks,
-         * excluding the specified profile ID. Updates accessibility service and VPN.
+         * excluding the specified profile ID. Updates accessibility service state.
          * Returns true if there are still active profiles remaining.
          */
         fun deactivateProfile(context: Context, profileId: String): Boolean {
@@ -37,19 +37,6 @@ class FailsafeAlarmReceiver : BroadcastReceiver() {
             LockdownAccessibilityService.isBlockingActive = result.hasRemainingProfiles
             LockdownAccessibilityService.blockedPackages = if (result.hasRemainingProfiles) result.mergedPackages else emptySet()
             LockdownAccessibilityService.blockedWebsites = if (result.hasRemainingProfiles) result.mergedWebsites else emptySet()
-
-            if (!result.hasRemainingProfiles || result.mergedWebsites.isEmpty()) {
-                try {
-                    val vpnIntent = Intent(context, LockdownVpnService::class.java).apply {
-                        action = "STOP"
-                    }
-                    context.startService(vpnIntent)
-                } catch (e: Exception) {
-                    AppLogger.e("Failsafe", "Failed to stop VPN service", e)
-                }
-            } else {
-                LockdownVpnService.blockedWebsites = result.mergedWebsites
-            }
 
             return result.hasRemainingProfiles
         }

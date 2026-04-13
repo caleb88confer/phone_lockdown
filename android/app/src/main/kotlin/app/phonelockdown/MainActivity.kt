@@ -1,6 +1,5 @@
 package app.phonelockdown
 
-import android.content.Intent
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -11,7 +10,6 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : FlutterActivity() {
     private val channelName = Constants.METHOD_CHANNEL
-    private lateinit var vpnController: VpnController
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -19,26 +17,17 @@ class MainActivity : FlutterActivity() {
         scheduleServiceMonitor()
 
         val permissionManager = PermissionManager(this)
-        vpnController = VpnController(this)
-        val blockingStateManager = BlockingStateManager(this, vpnController)
+        val blockingStateManager = BlockingStateManager(this)
         val appListHelper = AppListHelper(applicationContext)
 
         val handler = MethodChannelHandler(
-            activity = this,
             permissionManager = permissionManager,
-            vpnController = vpnController,
             blockingStateManager = blockingStateManager,
             appListHelper = appListHelper,
         )
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
             .setMethodCallHandler(handler)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (!vpnController.handleActivityResult(requestCode, resultCode)) {
-            super.onActivityResult(requestCode, resultCode, data)
-        }
     }
 
     private fun scheduleServiceMonitor() {
