@@ -6,6 +6,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
@@ -78,7 +80,7 @@ class LockdownAccessibilityService : AccessibilityService() {
     private fun handleUrlBlocking(packageName: String) {
         if (!isBlockingActive) return
         if (blockedWebsites.isEmpty()) return
-        if (packageName !in BrowserPackages.ALL) return
+        if (packageName !in BrowserPackages.all(this)) return
 
         val root = rootInActiveWindow ?: return
 
@@ -96,7 +98,10 @@ class LockdownAccessibilityService : AccessibilityService() {
         lastCheckedUrl[packageName] = url
 
         if (DomainMatcher.matches(url, blockedWebsites)) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
+            performGlobalAction(GLOBAL_ACTION_BACK)
+            Handler(Looper.getMainLooper()).postDelayed({
+                performGlobalAction(GLOBAL_ACTION_HOME)
+            }, 150L)
             Toast.makeText(
                 this,
                 "Website blocked by Phone Lockdown",

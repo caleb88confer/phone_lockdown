@@ -3,6 +3,9 @@ import '../constants.dart';
 
 abstract class PlatformChannelService {
   Future<List<Map<String, dynamic>>> getInstalledApps();
+  Future<List<Map<String, dynamic>>> getInstalledBrowsers();
+  Future<List<String>> getCustomBrowsers();
+  Future<void> updateCustomBrowsers(List<String> packages);
   Future<Map<String, bool>> checkPermissions();
   Future<void> updateBlockingState({
     required bool isBlocking,
@@ -28,6 +31,25 @@ class MethodChannelPlatformService implements PlatformChannelService {
   Future<List<Map<String, dynamic>>> getInstalledApps() async {
     final List<dynamic> result = await _channel.invokeMethod('getInstalledApps');
     return result.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getInstalledBrowsers() async {
+    final List<dynamic> result = await _channel.invokeMethod('getInstalledBrowsers');
+    return result.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  @override
+  Future<List<String>> getCustomBrowsers() async {
+    final List<dynamic> result = await _channel.invokeMethod('getCustomBrowsers');
+    return result.map((e) => e as String).toList();
+  }
+
+  @override
+  Future<void> updateCustomBrowsers(List<String> packages) async {
+    await _channel.invokeMethod('updateCustomBrowsers', {
+      'packages': packages,
+    });
   }
 
   @override

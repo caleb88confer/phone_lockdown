@@ -9,6 +9,7 @@ import '../widgets/block_button.dart';
 import '../widgets/profile_picker.dart';
 import 'permissions_screen.dart';
 import 'scan_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -150,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             actions: [
               Container(
-                margin: const EdgeInsets.only(right: 8),
+                margin: const EdgeInsets.only(right: 4),
                 decoration: Bevel.raised(fill: AppColors.surfaceContainerHigh),
                 child: IconButton(
                   icon: const Icon(Icons.security, size: 20),
@@ -159,6 +160,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const PermissionsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: Bevel.raised(fill: AppColors.surfaceContainerHigh),
+                child: IconButton(
+                  icon: const Icon(Icons.settings, size: 20),
+                  tooltip: 'Settings',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SettingsScreen(),
                       ),
                     );
                   },

@@ -51,6 +51,14 @@ class BlockingStateManager(
         LockdownAccessibilityService.blockedWebsites = websites.toSet()
     }
 
+    fun getCustomBrowsers(): List<String> {
+        return BrowserPackages.getCustom(context).sorted()
+    }
+
+    fun updateCustomBrowsers(packages: List<String>) {
+        BrowserPackages.setCustom(context, packages.toSet())
+    }
+
     fun getEnforcementState(): Map<String, Any> {
         val prefs = PrefsHelper.getPrefs(context)
         val isBlocking = prefs.getBoolean(Constants.PREF_IS_BLOCKING, false)

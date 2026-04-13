@@ -19,11 +19,13 @@ class MainActivity : FlutterActivity() {
         val permissionManager = PermissionManager(this)
         val blockingStateManager = BlockingStateManager(this)
         val appListHelper = AppListHelper(applicationContext)
+        val browserListHelper = BrowserListHelper(applicationContext)
 
         val handler = MethodChannelHandler(
             permissionManager = permissionManager,
             blockingStateManager = blockingStateManager,
             appListHelper = appListHelper,
+            browserListHelper = browserListHelper,
         )
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
