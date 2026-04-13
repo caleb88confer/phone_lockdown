@@ -101,7 +101,7 @@ class LockdownAccessibilityService : AccessibilityService() {
             performGlobalAction(GLOBAL_ACTION_BACK)
             Handler(Looper.getMainLooper()).postDelayed({
                 performGlobalAction(GLOBAL_ACTION_HOME)
-            }, 150L)
+            }, 400L)
             Toast.makeText(
                 this,
                 "Website blocked by Phone Lockdown",

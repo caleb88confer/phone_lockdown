@@ -106,7 +106,7 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
         const SizedBox(height: 4),
         Text(
           'Add browsers that aren\'t in the default list (e.g. Vivaldi, Kiwi). '
-          'Built-in browsers (Chrome, Firefox, Brave, Opera, Edge, Samsung, DuckDuckGo) are always monitored.',
+          'Built-in browsers (Chrome, Firefox, Opera, Edge, Samsung) are always monitored.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
