@@ -27,7 +27,7 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
   Future<void> _load() async {
     final platform = context.read<PlatformChannelService>();
     final packages = await platform.getCustomBrowsers();
-    final installed = await platform.getInstalledBrowsers();
+    final installed = await platform.getInstalledApps();
     final installedByPkg = {
       for (final b in installed) b['packageName'] as String: b,
     };
@@ -105,8 +105,8 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Add browsers that aren\'t in the default list (e.g. Vivaldi, Kiwi). '
-          'Built-in browsers (Chrome, Firefox, Opera, Edge, Samsung) are always monitored.',
+          'Add any app that opens URLs (e.g. Vivaldi, Kiwi, in-app browsers). '
+          'Built-in Chrome, Firefox, Opera, Edge, Samsung are always monitored.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),

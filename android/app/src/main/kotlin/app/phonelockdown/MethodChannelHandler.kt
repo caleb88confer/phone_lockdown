@@ -7,16 +7,12 @@ class MethodChannelHandler(
     private val permissionManager: PermissionManager,
     private val blockingStateManager: BlockingStateManager,
     private val appListHelper: AppListHelper,
-    private val browserListHelper: BrowserListHelper,
 ) : MethodChannel.MethodCallHandler {
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "getInstalledApps" -> {
                 result.success(appListHelper.getInstalledApps())
-            }
-            "getInstalledBrowsers" -> {
-                result.success(browserListHelper.getInstalledBrowsers())
             }
             "getCustomBrowsers" -> {
                 result.success(blockingStateManager.getCustomBrowsers())

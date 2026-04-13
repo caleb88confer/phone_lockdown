@@ -51,12 +51,6 @@ class FakePlatformService implements PlatformChannelService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getInstalledBrowsers() async {
-    calls.add('getInstalledBrowsers');
-    return [];
-  }
-
-  @override
   Future<List<String>> getCustomBrowsers() async {
     calls.add('getCustomBrowsers');
     return [];
