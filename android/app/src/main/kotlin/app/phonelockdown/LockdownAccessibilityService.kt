@@ -5,6 +5,8 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -98,7 +100,7 @@ class LockdownAccessibilityService : AccessibilityService() {
         lastCheckedUrl[packageName] = url
 
         if (DomainMatcher.matches(url, blockedWebsites)) {
-            performGlobalAction(GLOBAL_ACTION_BACK)
+            overlayBlankTab(packageName)
             Handler(Looper.getMainLooper()).postDelayed({
                 performGlobalAction(GLOBAL_ACTION_HOME)
             }, 400L)
@@ -108,6 +110,18 @@ class LockdownAccessibilityService : AccessibilityService() {
                 Toast.LENGTH_SHORT
             ).show()
             lastCheckedUrl.remove(packageName)
+        }
+    }
+
+    private fun overlayBlankTab(packageName: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("about:blank")).apply {
+                setPackage(packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            AppLogger.w("Accessibility", "Failed to overlay blank tab for $packageName", e)
         }
     }
 
