@@ -87,7 +87,11 @@ class LockdownAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
 
         val knownIdTexts: List<CharSequence?> = BrowserPackages.URL_BAR_VIEW_IDS[packageName]
-            ?.let { id -> root.findAccessibilityNodeInfosByViewId(id)?.map { it.text } }
+            ?.let { id ->
+                root.findAccessibilityNodeInfosByViewId(id)
+                    ?.filter { !it.isFocused }
+                    ?.map { it.text }
+            }
             ?: emptyList()
 
         val fallbackTexts: List<CharSequence?> =
@@ -133,7 +137,7 @@ class LockdownAccessibilityService : AccessibilityService() {
         while (stack.isNotEmpty() && visited < FALLBACK_NODE_VISIT_LIMIT && out.size < FALLBACK_CANDIDATE_LIMIT) {
             val node = stack.removeLast()
             visited++
-            if (node.className == EDIT_TEXT_CLASS) {
+            if (node.className == EDIT_TEXT_CLASS && !node.isFocused) {
                 out.add(node.text)
             }
             for (i in 0 until node.childCount) {
