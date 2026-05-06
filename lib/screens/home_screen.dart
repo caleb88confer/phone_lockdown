@@ -45,50 +45,57 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _scanCode(BuildContext context) async {
+  void _onLockButtonTap(BuildContext context) {
+    final appBlocker = context.read<AppBlockerService>();
+    if (appBlocker.isBlocking) {
+      _scanToUnlock(context);
+    } else {
+      _manualLock(context);
+    }
+  }
+
+  Future<void> _manualLock(BuildContext context) async {
     final appBlocker = context.read<AppBlockerService>();
     final profileManager = context.read<ProfileManager>();
+    final profile = profileManager.currentProfile;
 
-    final scannedValue = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => ScanScreen(
-          title: appBlocker.isBlocking ? 'Scan to Unlock' : 'Scan to Lock',
-          instruction: appBlocker.isBlocking
-              ? 'Scan a profile\'s code to unlock it'
-              : 'Scan a profile\'s code to activate blocking',
+    final code = profile.unlockCode;
+    if (code == null || code.isEmpty) {
+      _showAlert(
+        context,
+        title: 'No Unlock Code',
+        message:
+            'Cannot lock — the current profile (${profile.name}) has no unlock code. Set one in profile settings before locking.',
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Lock Now?'),
+        content: Text(
+          'Profile: ${profile.name}\n'
+          'Failsafe: ${_formatDuration(Duration(minutes: profile.failsafeMinutes))}\n\n'
+          'Scan your key to unlock early.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Lock'),
+          ),
+        ],
       ),
     );
 
-    if (!context.mounted || scannedValue == null) return;
-
-    final matchedProfile = profileManager.findProfileByCode(scannedValue);
-
-    if (matchedProfile == null) {
-      _showAlert(
-        context,
-        title: 'Code Not Recognized',
-        message: 'No profile is linked to this code. Assign it to a profile in the profile settings.',
-      );
-      return;
-    }
-
-    if (appBlocker.activeProfileIds.contains(matchedProfile.id)) {
-      final success = await appBlocker.deactivateProfile(
-        matchedProfile.id,
-        allProfiles: profileManager.profiles,
-      );
-      if (!context.mounted) return;
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unlocked: ${matchedProfile.name}')),
-        );
-      }
-      return;
-    }
+    if (!context.mounted || confirmed != true) return;
 
     final error = await appBlocker.activateProfile(
-      matchedProfile,
+      profile,
       allProfiles: profileManager.profiles,
     );
     if (!context.mounted) return;
@@ -101,8 +108,56 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Locked: ${matchedProfile.name}')),
+      SnackBar(content: Text('Locked: ${profile.name}')),
     );
+  }
+
+  Future<void> _scanToUnlock(BuildContext context) async {
+    final appBlocker = context.read<AppBlockerService>();
+    final profileManager = context.read<ProfileManager>();
+
+    final scannedValue = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const ScanScreen(
+          title: 'Scan to Unlock',
+          instruction: 'Scan a profile\'s code to unlock it',
+        ),
+      ),
+    );
+
+    if (!context.mounted || scannedValue == null) return;
+
+    final matchedProfile = profileManager.findProfileByCode(scannedValue);
+
+    if (matchedProfile == null) {
+      _showAlert(
+        context,
+        title: 'Code Not Recognized',
+        message: 'No profile is linked to this code.',
+      );
+      return;
+    }
+
+    if (!appBlocker.activeProfileIds.contains(matchedProfile.id)) {
+      _showAlert(
+        context,
+        title: 'Profile Not Active',
+        message:
+            '${matchedProfile.name} is not currently locked, so this key has nothing to unlock.',
+      );
+      return;
+    }
+
+    final success = await appBlocker.deactivateProfile(
+      matchedProfile.id,
+      allProfiles: profileManager.profiles,
+    );
+    if (!context.mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unlocked: ${matchedProfile.name}')),
+      );
+    }
   }
 
   void _showAlert(BuildContext context,
@@ -194,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   flex: 1,
                   child: BlockButton(
                     isBlocking: isBlocking,
-                    onTap: () => _scanCode(context),
+                    onTap: () => _onLockButtonTap(context),
                   ),
                 ),
                 if (isBlocking) ...[

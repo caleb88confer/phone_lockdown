@@ -32,13 +32,22 @@ class UnlockCodeSection extends StatelessWidget {
           decoration: Bevel.sunken(fill: AppColors.surfaceContainerLowest),
           child: Row(
             children: [
-              Icon(
-                unlockCode != null ? Icons.vpn_key : Icons.vpn_key_off,
-                size: 20,
-                color: unlockCode != null
-                    ? const Color(0xFF2E7D32)
-                    : AppColors.outline,
-              ),
+              if (unlockCode != null)
+                SizedBox(
+                  height: 32,
+                  width: 12,
+                  child: Image.asset(
+                    'assets/sprites/key_gold.png',
+                    filterQuality: FilterQuality.none,
+                    fit: BoxFit.contain,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.vpn_key_off,
+                  size: 20,
+                  color: AppColors.outline,
+                ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

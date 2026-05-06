@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class BlockButton extends StatelessWidget {
   final bool isBlocking;
@@ -14,6 +13,7 @@ class BlockButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final spriteSize = screenHeight / 5;
 
     return GestureDetector(
       onTap: onTap,
@@ -30,12 +30,14 @@ class BlockButton extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Icon(
-            isBlocking ? Icons.lock : Icons.lock_open,
-            size: screenHeight / 5,
-            color: isBlocking
-                ? AppColors.secondary
-                : AppColors.primaryContainer,
+          SizedBox(
+            height: spriteSize,
+            width: spriteSize,
+            child: Image.asset(
+              'assets/sprites/padlock_bronze.png',
+              filterQuality: FilterQuality.none,
+              fit: BoxFit.contain,
+            ),
           ),
         ],
       ),

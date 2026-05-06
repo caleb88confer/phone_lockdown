@@ -55,6 +55,42 @@ class _ScanScreenState extends State<ScanScreen> {
             onDetect: _onDetect,
           ),
           Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              color: AppColors.onSurface.withValues(alpha: 0.85),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 64,
+                    width: 24,
+                    child: Image.asset(
+                      'assets/sprites/key_gold.png',
+                      filterQuality: FilterQuality.none,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'SCAN YOUR KEY',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
             left: 0,
             right: 0,
             bottom: 80,
