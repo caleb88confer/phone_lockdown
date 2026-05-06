@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../customization/key_catalog.dart';
 import '../theme/app_colors.dart';
+import '../widgets/key_display.dart';
 
 class ScanScreen extends StatefulWidget {
   final String title;
   final String instruction;
+  final KeyStyle? keyStyle;
+  final KeyColorOption? keyColor;
 
   const ScanScreen({
     super.key,
     this.title = 'Scan Code',
     this.instruction = 'Point your camera at a QR code or barcode',
+    this.keyStyle,
+    this.keyColor,
   });
 
   @override
@@ -67,15 +73,22 @@ class _ScanScreenState extends State<ScanScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    height: 64,
-                    width: 24,
-                    child: Image.asset(
-                      'assets/sprites/key_gold.png',
-                      filterQuality: FilterQuality.none,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+                  Builder(builder: (_) {
+                    final style = widget.keyStyle ?? keyStyleById(kDefaultKeyStyleId);
+                    final color = widget.keyColor ??
+                        keyColorById(style, kDefaultKeyColorId);
+                    return SizedBox(
+                      height: 64,
+                      width: 64,
+                      child: Center(
+                        child: KeyDisplay(
+                          style: style,
+                          color: color,
+                          size: 56,
+                        ),
+                      ),
+                    );
+                  }),
                   const SizedBox(width: 16),
                   const Text(
                     'SCAN YOUR KEY',

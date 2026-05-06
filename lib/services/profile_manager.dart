@@ -60,11 +60,8 @@ class ProfileManager extends ChangeNotifier {
     }
   }
 
-  void addProfile({required String name, int? colorValue}) {
-    final newProfile = Profile(
-      name: name,
-      colorValue: colorValue ?? 0xFFFFB800,
-    );
+  void addProfile({required String name}) {
+    final newProfile = Profile(name: name);
     _profiles.add(newProfile);
     _currentProfileId = newProfile.id;
     saveProfiles();
@@ -115,7 +112,10 @@ class ProfileManager extends ChangeNotifier {
   void updateProfile({
     required String id,
     String? name,
-    int? colorValue,
+    String? lockStyleId,
+    String? lockColorId,
+    String? keyStyleId,
+    String? keyColorId,
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
     String? unlockCode,
@@ -126,7 +126,10 @@ class ProfileManager extends ChangeNotifier {
     if (index == -1) return;
 
     if (name != null) _profiles[index].name = name;
-    if (colorValue != null) _profiles[index].colorValue = colorValue;
+    if (lockStyleId != null) _profiles[index].lockStyleId = lockStyleId;
+    if (lockColorId != null) _profiles[index].lockColorId = lockColorId;
+    if (keyStyleId != null) _profiles[index].keyStyleId = keyStyleId;
+    if (keyColorId != null) _profiles[index].keyColorId = keyColorId;
     if (blockedAppPackages != null) {
       _profiles[index].blockedAppPackages = blockedAppPackages;
     }

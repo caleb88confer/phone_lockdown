@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants.dart';
+import '../../customization/key_catalog.dart';
+import '../../customization/lock_catalog.dart';
 import '../../models/profile.dart';
 import '../../screens/scan_screen.dart';
 import '../../services/app_blocker_service.dart';
@@ -8,8 +10,9 @@ import '../../services/profile_manager.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
 import 'app_selector.dart';
-import 'color_picker.dart';
 import 'failsafe_selector.dart';
+import 'key_picker.dart';
+import 'lock_picker.dart';
 import 'unlock_code_section.dart';
 import 'website_editor.dart';
 
@@ -29,7 +32,10 @@ class ProfileFormDialog extends StatefulWidget {
 
 class _ProfileFormDialogState extends State<ProfileFormDialog> {
   late TextEditingController _nameController;
-  late int _selectedColorValue;
+  late String _lockStyleId;
+  late String _lockColorId;
+  late String _keyStyleId;
+  late String _keyColorId;
   late List<String> _blockedAppPackages;
   late List<String> _blockedWebsites;
   late String? _unlockCode;
@@ -41,13 +47,35 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile?.name ?? '');
-    _selectedColorValue =
-        widget.profile?.colorValue ?? 0xFFFFB800;
+    _lockStyleId = widget.profile?.lockStyleId ?? kDefaultLockStyleId;
+    _lockColorId = widget.profile?.lockColorId ?? kDefaultLockColorId;
+    _keyStyleId = widget.profile?.keyStyleId ?? kDefaultKeyStyleId;
+    _keyColorId = widget.profile?.keyColorId ?? kDefaultKeyColorId;
     _blockedAppPackages =
         List<String>.from(widget.profile?.blockedAppPackages ?? []);
     _blockedWebsites = List<String>.from(widget.profile?.blockedWebsites ?? []);
     _unlockCode = widget.profile?.unlockCode;
     _failsafeMinutes = widget.profile?.failsafeMinutes ?? kDefaultFailsafeMinutes;
+  }
+
+  void _onLockStyleChanged(String id) {
+    setState(() {
+      _lockStyleId = id;
+      final available = lockStyleById(id).colors;
+      if (!available.any((c) => c.id == _lockColorId)) {
+        _lockColorId = available.first.id;
+      }
+    });
+  }
+
+  void _onKeyStyleChanged(String id) {
+    setState(() {
+      _keyStyleId = id;
+      final available = keyStyleById(id).colors;
+      if (!available.any((c) => c.id == _keyColorId)) {
+        _keyColorId = available.first.id;
+      }
+    });
   }
 
   @override
@@ -64,7 +92,10 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
       widget.profileManager.updateProfile(
         id: widget.profile!.id,
         name: name,
-        colorValue: _selectedColorValue,
+        lockStyleId: _lockStyleId,
+        lockColorId: _lockColorId,
+        keyStyleId: _keyStyleId,
+        keyColorId: _keyColorId,
         blockedAppPackages: _blockedAppPackages,
         blockedWebsites: _blockedWebsites,
         unlockCode: _unlockCode,
@@ -74,7 +105,10 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
     } else {
       final profile = Profile(
         name: name,
-        colorValue: _selectedColorValue,
+        lockStyleId: _lockStyleId,
+        lockColorId: _lockColorId,
+        keyStyleId: _keyStyleId,
+        keyColorId: _keyColorId,
         blockedAppPackages: _blockedAppPackages,
         blockedWebsites: _blockedWebsites,
         unlockCode: _unlockCode,
@@ -87,11 +121,15 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   }
 
   void _scanUnlockCode() async {
+    final keyStyle = keyStyleById(_keyStyleId);
+    final keyColor = keyColorById(keyStyle, _keyColorId);
     final scannedValue = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => const ScanScreen(
+        builder: (_) => ScanScreen(
           title: 'Register Code',
           instruction: 'Scan the QR code or barcode to use as this profile\'s key',
+          keyStyle: keyStyle,
+          keyColor: keyColor,
         ),
       ),
     );
@@ -229,18 +267,34 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
           ),
           const SizedBox(height: 16),
 
-          // Color Picker section
+          // Lock picker section
           Container(
             padding: const EdgeInsets.all(16),
             decoration: Bevel.ghost(
               fill: AppColors.surfaceContainerLow,
               opacity: 0.2,
             ),
-            child: ProfileColorPicker(
-              selectedColorValue: _selectedColorValue,
-              onColorSelected: (colorValue) => setState(() {
-                _selectedColorValue = colorValue;
-              }),
+            child: LockStyleColorPicker(
+              selectedStyleId: _lockStyleId,
+              selectedColorId: _lockColorId,
+              onStyleChanged: _onLockStyleChanged,
+              onColorChanged: (id) => setState(() => _lockColorId = id),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Key picker section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: KeyStyleColorPicker(
+              selectedStyleId: _keyStyleId,
+              selectedColorId: _keyColorId,
+              onStyleChanged: _onKeyStyleChanged,
+              onColorChanged: (id) => setState(() => _keyColorId = id),
             ),
           ),
           const SizedBox(height: 16),
@@ -252,11 +306,17 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
               fill: AppColors.surfaceContainerLow,
               opacity: 0.2,
             ),
-            child: UnlockCodeSection(
-              unlockCode: _unlockCode,
-              onScan: _scanUnlockCode,
-              onClear: () => setState(() => _unlockCode = null),
-            ),
+            child: Builder(builder: (_) {
+              final ks = keyStyleById(_keyStyleId);
+              final kc = keyColorById(ks, _keyColorId);
+              return UnlockCodeSection(
+                unlockCode: _unlockCode,
+                onScan: _scanUnlockCode,
+                onClear: () => setState(() => _unlockCode = null),
+                keyStyle: ks,
+                keyColor: kc,
+              );
+            }),
           ),
           const SizedBox(height: 16),
 

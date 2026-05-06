@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import '../customization/lock_catalog.dart';
+import 'lock_display.dart';
 
 class BlockButton extends StatelessWidget {
   final bool isBlocking;
   final VoidCallback onTap;
+  final LockStyle lockStyle;
+  final LockColorOption lockColor;
 
   const BlockButton({
     super.key,
     required this.isBlocking,
     required this.onTap,
+    required this.lockStyle,
+    required this.lockColor,
   });
 
   @override
@@ -33,10 +39,13 @@ class BlockButton extends StatelessWidget {
           SizedBox(
             height: spriteSize,
             width: spriteSize,
-            child: Image.asset(
-              'assets/sprites/padlock_bronze.png',
-              filterQuality: FilterQuality.none,
-              fit: BoxFit.contain,
+            child: Center(
+              child: LockDisplay(
+                style: lockStyle,
+                color: lockColor,
+                isBlocking: isBlocking,
+                size: spriteSize,
+              ),
             ),
           ),
         ],

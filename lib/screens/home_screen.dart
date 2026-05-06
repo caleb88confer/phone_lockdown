@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../customization/key_catalog.dart';
+import '../customization/lock_catalog.dart';
 import '../services/app_blocker_service.dart';
 import '../services/profile_manager.dart';
 import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
 import '../widgets/block_button.dart';
 import '../widgets/profile_picker.dart';
+import '../widgets/sprite_sheet.dart';
 import 'permissions_screen.dart';
 import 'scan_screen.dart';
 import 'settings_screen.dart';
@@ -115,12 +118,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _scanToUnlock(BuildContext context) async {
     final appBlocker = context.read<AppBlockerService>();
     final profileManager = context.read<ProfileManager>();
+    final p = profileManager.currentProfile;
+    final keyStyle = keyStyleById(p.keyStyleId);
+    final keyColor = keyColorById(keyStyle, p.keyColorId);
 
     final scannedValue = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => const ScanScreen(
+        builder: (_) => ScanScreen(
           title: 'Scan to Unlock',
           instruction: 'Scan a profile\'s code to unlock it',
+          keyStyle: keyStyle,
+          keyColor: keyColor,
         ),
       ),
     );
@@ -247,10 +255,17 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   flex: 1,
-                  child: BlockButton(
-                    isBlocking: isBlocking,
-                    onTap: () => _onLockButtonTap(context),
-                  ),
+                  child: Builder(builder: (_) {
+                    final p = profileManager.currentProfile;
+                    final style = lockStyleById(p.lockStyleId);
+                    final color = lockColorById(style, p.lockColorId);
+                    return BlockButton(
+                      isBlocking: isBlocking,
+                      onTap: () => _onLockButtonTap(context),
+                      lockStyle: style,
+                      lockColor: color,
+                    );
+                  }),
                 ),
                 if (isBlocking) ...[
                   Container(
@@ -279,7 +294,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (lock == null || profile == null) {
                             return const SizedBox.shrink();
                           }
-                          final profileColor = Color(profile.colorValue);
+                          final lockStyle = lockStyleById(profile.lockStyleId);
+                          final lockColor = lockColorById(lockStyle, profile.lockColorId);
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Container(
@@ -290,13 +306,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: profileColor,
-                                      shape: BoxShape.circle,
-                                    ),
+                                  SpriteFrame(
+                                    assetPath: lockStyle.spritesheetPath(lockColor.id),
+                                    frameWidth: lockStyle.frameWidth,
+                                    frameHeight: lockStyle.frameHeight,
+                                    frameIndex: lockStyle.lockedFrame,
+                                    size: 20,
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(

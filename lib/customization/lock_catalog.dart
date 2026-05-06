@@ -1,0 +1,143 @@
+class LockColorOption {
+  final String id;
+  final String displayName;
+  final int swatchColor;
+
+  const LockColorOption({
+    required this.id,
+    required this.displayName,
+    required this.swatchColor,
+  });
+}
+
+class LockStyle {
+  final String id;
+  final String displayName;
+  final int frameCount;
+  final int frameWidth;
+  final int frameHeight;
+  final int unlockedFrame;
+  final int lockedFrame;
+  final List<LockColorOption> colors;
+
+  const LockStyle({
+    required this.id,
+    required this.displayName,
+    required this.frameCount,
+    required this.frameWidth,
+    required this.frameHeight,
+    required this.unlockedFrame,
+    required this.lockedFrame,
+    required this.colors,
+  });
+
+  String spritesheetPath(String colorId) =>
+      'assets/sprites/locks/${id}_$colorId.png';
+
+  bool get hasDistinctStates => unlockedFrame != lockedFrame;
+}
+
+const _grey = LockColorOption(id: 'grey', displayName: 'Grey', swatchColor: 0xFF888888);
+const _gold = LockColorOption(id: 'gold', displayName: 'Gold', swatchColor: 0xFFD4A437);
+const _bronze = LockColorOption(id: 'bronze', displayName: 'Bronze', swatchColor: 0xFFB07849);
+const _black = LockColorOption(id: 'black', displayName: 'Black', swatchColor: 0xFF1F1F1F);
+const _red = LockColorOption(id: 'red', displayName: 'Red', swatchColor: 0xFFB02D28);
+const _beige = LockColorOption(id: 'beige', displayName: 'Beige', swatchColor: 0xFFD9C9A8);
+const _copper = LockColorOption(id: 'copper', displayName: 'Copper', swatchColor: 0xFFB87333);
+const _mossy = LockColorOption(id: 'mossy', displayName: 'Mossy', swatchColor: 0xFF6B7A3A);
+
+const kLockCatalog = <LockStyle>[
+  LockStyle(
+    id: 'small_sturdy',
+    displayName: 'Small Sturdy',
+    frameCount: 10, frameWidth: 16, frameHeight: 22,
+    unlockedFrame: 0, lockedFrame: 9,
+    colors: [_grey, _gold, _bronze, _black],
+  ),
+  LockStyle(
+    id: 'small_round',
+    displayName: 'Small Round',
+    frameCount: 13, frameWidth: 16, frameHeight: 23,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black],
+  ),
+  LockStyle(
+    id: 'small_oval',
+    displayName: 'Small Oval',
+    frameCount: 11, frameWidth: 16, frameHeight: 23,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black],
+  ),
+  LockStyle(
+    id: 'small_square',
+    displayName: 'Small Square',
+    frameCount: 12, frameWidth: 14, frameHeight: 20,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black],
+  ),
+  LockStyle(
+    id: 'shield_like',
+    displayName: 'Shield',
+    frameCount: 13, frameWidth: 14, frameHeight: 27,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black],
+  ),
+  LockStyle(
+    id: 'sturdy',
+    displayName: 'Sturdy',
+    frameCount: 17, frameWidth: 20, frameHeight: 30,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black, _red],
+  ),
+  LockStyle(
+    id: 'robust',
+    displayName: 'Robust',
+    frameCount: 17, frameWidth: 20, frameHeight: 31,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _black, _red],
+  ),
+  LockStyle(
+    id: 'round',
+    displayName: 'Round',
+    frameCount: 17, frameWidth: 20, frameHeight: 36,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _beige],
+  ),
+  LockStyle(
+    id: 'triangle',
+    displayName: 'Triangle',
+    frameCount: 16, frameWidth: 20, frameHeight: 33,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _beige],
+  ),
+  LockStyle(
+    id: 'old',
+    displayName: 'Old',
+    frameCount: 17, frameWidth: 24, frameHeight: 32,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black],
+  ),
+  LockStyle(
+    id: 'hefty',
+    displayName: 'Hefty',
+    frameCount: 18, frameWidth: 24, frameHeight: 33,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _black, _red],
+  ),
+  LockStyle(
+    id: 'extending',
+    displayName: 'Extending',
+    frameCount: 31, frameWidth: 33, frameHeight: 25,
+    unlockedFrame: 0, lockedFrame: 0,
+    colors: [_grey, _gold, _bronze, _copper, _mossy],
+  ),
+];
+
+const kDefaultLockStyleId = 'small_sturdy';
+const kDefaultLockColorId = 'grey';
+
+LockStyle lockStyleById(String id) =>
+    kLockCatalog.firstWhere((s) => s.id == id, orElse: () => kLockCatalog.first);
+
+LockColorOption lockColorById(LockStyle style, String colorId) =>
+    style.colors.firstWhere((c) => c.id == colorId, orElse: () => style.colors.first);

@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import '../../customization/key_catalog.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
+import '../key_display.dart';
 
 class UnlockCodeSection extends StatelessWidget {
   final String? unlockCode;
   final VoidCallback onScan;
   final VoidCallback onClear;
+  final KeyStyle keyStyle;
+  final KeyColorOption keyColor;
 
   const UnlockCodeSection({
     super.key,
     required this.unlockCode,
     required this.onScan,
     required this.onClear,
+    required this.keyStyle,
+    required this.keyColor,
   });
 
   @override
@@ -35,11 +41,13 @@ class UnlockCodeSection extends StatelessWidget {
               if (unlockCode != null)
                 SizedBox(
                   height: 32,
-                  width: 12,
-                  child: Image.asset(
-                    'assets/sprites/key_gold.png',
-                    filterQuality: FilterQuality.none,
-                    fit: BoxFit.contain,
+                  width: 32,
+                  child: Center(
+                    child: KeyDisplay(
+                      style: keyStyle,
+                      color: keyColor,
+                      size: 28,
+                    ),
                   ),
                 )
               else

@@ -1,11 +1,16 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../constants.dart';
+import '../customization/lock_catalog.dart';
+import '../customization/key_catalog.dart';
 
 class Profile {
   final String id;
   String name;
-  int colorValue;
+  String lockStyleId;
+  String lockColorId;
+  String keyStyleId;
+  String keyColorId;
   List<String> blockedAppPackages;
   List<String> blockedWebsites;
   String? unlockCode;
@@ -16,7 +21,10 @@ class Profile {
   Profile({
     String? id,
     required this.name,
-    this.colorValue = 0xFFFFB800, // Signature Gold
+    this.lockStyleId = kDefaultLockStyleId,
+    this.lockColorId = kDefaultLockColorId,
+    this.keyStyleId = kDefaultKeyStyleId,
+    this.keyColorId = kDefaultKeyColorId,
     List<String>? blockedAppPackages,
     List<String>? blockedWebsites,
     this.unlockCode,
@@ -32,7 +40,10 @@ class Profile {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'colorValue': colorValue,
+        'lockStyleId': lockStyleId,
+        'lockColorId': lockColorId,
+        'keyStyleId': keyStyleId,
+        'keyColorId': keyColorId,
         'blockedAppPackages': blockedAppPackages,
         'blockedWebsites': blockedWebsites,
         'unlockCode': unlockCode,
@@ -43,12 +54,15 @@ class Profile {
     return Profile(
       id: json['id'] as String,
       name: json['name'] as String,
-      colorValue: (json['colorValue'] as int?) ??
-          (json.containsKey('iconCodePoint') ? 0xFFFFB800 : 0xFFFFB800),
+      lockStyleId: (json['lockStyleId'] as String?) ?? kDefaultLockStyleId,
+      lockColorId: (json['lockColorId'] as String?) ?? kDefaultLockColorId,
+      keyStyleId: (json['keyStyleId'] as String?) ?? kDefaultKeyStyleId,
+      keyColorId: (json['keyColorId'] as String?) ?? kDefaultKeyColorId,
       blockedAppPackages: List<String>.from(json['blockedAppPackages'] ?? []),
       blockedWebsites: List<String>.from(json['blockedWebsites'] ?? []),
       unlockCode: json['unlockCode'] as String?,
-      failsafeMinutes: (json['failsafeMinutes'] as int?) ?? kDefaultFailsafeMinutes,
+      failsafeMinutes:
+          (json['failsafeMinutes'] as int?) ?? kDefaultFailsafeMinutes,
     );
   }
 
