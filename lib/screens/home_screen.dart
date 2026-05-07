@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final profileManager = context.read<ProfileManager>();
     final p = profileManager.currentProfile;
     final keyStyle = keyStyleById(p.keyStyleId);
-    final keyColor = keyColorById(keyStyle, p.keyColorId);
+    final keyColor = keyColorForRender(keyStyle, p.keyColorId);
 
     final scannedValue = await Navigator.of(context).push<String>(
       MaterialPageRoute(

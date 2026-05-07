@@ -122,7 +122,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
 
   void _scanUnlockCode() async {
     final keyStyle = keyStyleById(_keyStyleId);
-    final keyColor = keyColorById(keyStyle, _keyColorId);
+    final keyColor = keyColorForRender(keyStyle, _keyColorId);
     final scannedValue = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => ScanScreen(
@@ -276,7 +276,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
             ),
             child: Builder(builder: (_) {
               final ks = keyStyleById(_keyStyleId);
-              final kc = keyColorById(ks, _keyColorId);
+              final kc = keyColorForRender(ks, _keyColorId);
               return UnlockCodeSection(
                 unlockCode: _unlockCode,
                 onScan: _scanUnlockCode,
