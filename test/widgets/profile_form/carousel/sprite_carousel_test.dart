@@ -102,4 +102,40 @@ void main() {
     // Cannot advance past index 1.
     expect(lastSelected, anyOf(isNull, 1));
   });
+
+  testWidgets('with infiniteLoop:true, scrolling backward from index 0 wraps',
+      (tester) async {
+    int? lastSelected;
+    await tester.pumpWidget(_harness(
+      items: const ['a', 'b', 'c'],
+      selectedIndex: 0,
+      onSelectedChanged: (i) => lastSelected = i,
+      infiniteLoop: true,
+    ));
+    await tester.pumpAndSettle();
+
+    // Drag right to go backward.
+    await tester.drag(find.byType(SpriteCarousel<String>), const Offset(80, 0));
+    await tester.pumpAndSettle();
+
+    // Should wrap to index 2 (last).
+    expect(lastSelected, 2);
+  });
+
+  testWidgets('with infiniteLoop:true, scrolling past the last index wraps',
+      (tester) async {
+    int? lastSelected;
+    await tester.pumpWidget(_harness(
+      items: const ['a', 'b', 'c'],
+      selectedIndex: 2,
+      onSelectedChanged: (i) => lastSelected = i,
+      infiniteLoop: true,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(SpriteCarousel<String>), const Offset(-80, 0));
+    await tester.pumpAndSettle();
+
+    expect(lastSelected, 0);
+  });
 }
