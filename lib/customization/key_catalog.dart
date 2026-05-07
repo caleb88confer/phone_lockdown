@@ -83,3 +83,19 @@ KeyStyle keyStyleById(String id) =>
 
 KeyColorOption keyColorById(KeyStyle style, String colorId) =>
     style.colors.firstWhere((c) => c.id == colorId, orElse: () => style.colors.first);
+
+String renderColorIdFor(KeyStyle style, String savedColorId) {
+  if (style.colors.any((c) => c.id == savedColorId)) return savedColorId;
+  if (style.colors.any((c) => c.id == 'grey')) return 'grey';
+  return style.colors.first.id;
+}
+
+int colorCenterIndex(KeyStyle style, String savedColorId) {
+  final i = style.colors.indexWhere((c) => c.id == savedColorId);
+  if (i != -1) return i;
+  final greyI = style.colors.indexWhere((c) => c.id == 'grey');
+  return greyI != -1 ? greyI : 0;
+}
+
+KeyColorOption keyColorForRender(KeyStyle style, String savedColorId) =>
+    keyColorById(style, renderColorIdFor(style, savedColorId));
