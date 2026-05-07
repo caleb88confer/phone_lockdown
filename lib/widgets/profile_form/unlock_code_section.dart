@@ -26,7 +26,7 @@ class UnlockCodeSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'UNLOCK CODE',
+          'SET KEY',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.w600,

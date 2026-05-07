@@ -267,6 +267,27 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
           ),
           const SizedBox(height: 16),
 
+          // Set Key section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: Bevel.ghost(
+              fill: AppColors.surfaceContainerLow,
+              opacity: 0.2,
+            ),
+            child: Builder(builder: (_) {
+              final ks = keyStyleById(_keyStyleId);
+              final kc = keyColorById(ks, _keyColorId);
+              return UnlockCodeSection(
+                unlockCode: _unlockCode,
+                onScan: _scanUnlockCode,
+                onClear: () => setState(() => _unlockCode = null),
+                keyStyle: ks,
+                keyColor: kc,
+              );
+            }),
+          ),
+          const SizedBox(height: 16),
+
           // Lock picker section
           Container(
             padding: const EdgeInsets.all(16),
@@ -296,27 +317,6 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
               onStyleChanged: _onKeyStyleChanged,
               onColorChanged: (id) => setState(() => _keyColorId = id),
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Unlock Code section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: Bevel.ghost(
-              fill: AppColors.surfaceContainerLow,
-              opacity: 0.2,
-            ),
-            child: Builder(builder: (_) {
-              final ks = keyStyleById(_keyStyleId);
-              final kc = keyColorById(ks, _keyColorId);
-              return UnlockCodeSection(
-                unlockCode: _unlockCode,
-                onScan: _scanUnlockCode,
-                onClear: () => setState(() => _unlockCode = null),
-                keyStyle: ks,
-                keyColor: kc,
-              );
-            }),
           ),
           const SizedBox(height: 16),
 
