@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class SpriteCarousel<T> extends StatefulWidget {
@@ -47,11 +49,13 @@ class SpriteCarousel<T> extends StatefulWidget {
   State<SpriteCarousel<T>> createState() => _SpriteCarouselState<T>();
 }
 
-class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
+class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
+    with SingleTickerProviderStateMixin {
   static const int _loopOffset = 1000;
 
   late PageController _controller;
   int _currentPage = 0;
+  late AnimationController _bobController;
 
   @override
   void initState() {
@@ -64,6 +68,14 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
       initialPage: _currentPage,
     );
     _controller.addListener(_onScroll);
+
+    _bobController = AnimationController(
+      vsync: this,
+      duration: widget.bobPeriod,
+    );
+    if (widget.centerBob && widget.bobAmplitude > 0) {
+      _bobController.repeat();
+    }
   }
 
   @override
@@ -92,6 +104,7 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
   void dispose() {
     _controller.removeListener(_onScroll);
     _controller.dispose();
+    _bobController.dispose();
     super.dispose();
   }
 
@@ -141,6 +154,8 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
             pageIndex: pageIndex,
             initialPage: _currentPage,
             controller: _controller,
+            bobController: _bobController,
+            bobAmplitude: widget.centerBob ? widget.bobAmplitude : 0,
             onTap: () => _animateToPage(pageIndex),
             centerSize: widget.centerSize,
             sideSize: widget.sideSize,
@@ -160,6 +175,8 @@ class _CarouselCell extends StatelessWidget {
   final int pageIndex;
   final int initialPage;
   final PageController controller;
+  final AnimationController bobController;
+  final double bobAmplitude;
   final VoidCallback onTap;
   final double centerSize;
   final double sideSize;
@@ -172,6 +189,8 @@ class _CarouselCell extends StatelessWidget {
     required this.pageIndex,
     required this.initialPage,
     required this.controller,
+    required this.bobController,
+    required this.bobAmplitude,
     required this.onTap,
     required this.centerSize,
     required this.sideSize,
@@ -184,7 +203,7 @@ class _CarouselCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: Listenable.merge([controller, bobController]),
       builder: (context, _) {
         final page = controller.hasClients && controller.position.haveDimensions
             ? (controller.page ?? initialPage.toDouble())
@@ -216,16 +235,27 @@ class _CarouselCell extends StatelessWidget {
           xScale = 1.0 - 0.15 * d.clamp(0.0, 1.0) - 0.15 * (d - 1.0).clamp(0.0, 1.0);
         }
 
+        // Bob: only the center-most cell actually moves; weight by centerness.
+        final bobDy = bobAmplitude > 0
+            ? (-bobAmplitude *
+                    math.sin(bobController.value * 2 * math.pi) *
+                    centerness)
+                .roundToDouble()
+            : 0.0;
+
         return GestureDetector(
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
           child: Center(
-            child: Opacity(
-              opacity: opacity,
-              child: SizedBox(
-                width: targetSize * xScale,
-                height: targetSize,
-                child: builder(centerness),
+            child: Transform.translate(
+              offset: Offset(0, bobDy),
+              child: Opacity(
+                opacity: opacity,
+                child: SizedBox(
+                  width: targetSize * xScale,
+                  height: targetSize,
+                  child: builder(centerness),
+                ),
               ),
             ),
           ),

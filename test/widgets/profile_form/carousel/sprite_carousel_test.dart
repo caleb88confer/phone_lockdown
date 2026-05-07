@@ -139,6 +139,51 @@ void main() {
     expect(lastSelected, 0);
   });
 
+  testWidgets('centerBob applies a vertical translation to the center cell',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 360,
+          height: 120,
+          child: SpriteCarousel<String>(
+            items: const ['a', 'b', 'c'],
+            selectedIndex: 1,
+            onSelectedChanged: (_) {},
+            centerSize: 64,
+            sideSize: 44,
+            edgeSize: 28,
+            cellGap: 8,
+            peekCount: 3,
+            infiniteLoop: false,
+            centerBob: true,
+            bobAmplitude: 4,
+            bobPeriod: const Duration(milliseconds: 400),
+            sideSquish: false,
+            sideFade: false,
+            centerBevel: false,
+            itemBuilder: (_, item, __) => SizedBox(
+              key: ValueKey('cell-$item'),
+              width: 32,
+              height: 32,
+              child: Text(item),
+            ),
+          ),
+        ),
+      ),
+    ));
+    // Pump partway through the bob period to a moment where sin(t) is non-zero.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100)); // ~quarter period
+
+    final centerY1 = tester.getTopLeft(find.byKey(const ValueKey('cell-b'))).dy;
+    await tester.pump(const Duration(milliseconds: 150));
+    final centerY2 = tester.getTopLeft(find.byKey(const ValueKey('cell-b'))).dy;
+
+    // The center cell's dy must change between two animation frames if bob is on.
+    expect(centerY1, isNot(centerY2));
+  });
+
   testWidgets('center cell scales larger than side cells', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
