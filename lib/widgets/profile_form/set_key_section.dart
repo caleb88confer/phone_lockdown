@@ -3,25 +3,34 @@ import '../../customization/key_catalog.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
 import '../key_display.dart';
+import 'carousel/key_color_carousel.dart';
+import 'carousel/key_style_carousel.dart';
 
-class UnlockCodeSection extends StatelessWidget {
+class SetKeySection extends StatelessWidget {
   final String? unlockCode;
   final VoidCallback onScan;
   final VoidCallback onClear;
-  final KeyStyle keyStyle;
-  final KeyColorOption keyColor;
+  final String selectedStyleId;
+  final String selectedColorId;
+  final ValueChanged<String> onStyleChanged;
+  final ValueChanged<String> onColorChanged;
 
-  const UnlockCodeSection({
+  const SetKeySection({
     super.key,
     required this.unlockCode,
     required this.onScan,
     required this.onClear,
-    required this.keyStyle,
-    required this.keyColor,
+    required this.selectedStyleId,
+    required this.selectedColorId,
+    required this.onStyleChanged,
+    required this.onColorChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final style = keyStyleById(selectedStyleId);
+    final color = keyColorForRender(style, selectedColorId);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -44,8 +53,8 @@ class UnlockCodeSection extends StatelessWidget {
                   width: 32,
                   child: Center(
                     child: KeyDisplay(
-                      style: keyStyle,
-                      color: keyColor,
+                      style: style,
+                      color: color,
                       size: 28,
                     ),
                   ),
@@ -90,6 +99,18 @@ class UnlockCodeSection extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 16),
+        KeyStyleCarousel(
+          selectedStyleId: selectedStyleId,
+          selectedColorId: selectedColorId,
+          onStyleChanged: onStyleChanged,
+        ),
+        const SizedBox(height: 12),
+        KeyColorCarousel(
+          selectedStyleId: selectedStyleId,
+          selectedColorId: selectedColorId,
+          onColorChanged: onColorChanged,
         ),
       ],
     );
