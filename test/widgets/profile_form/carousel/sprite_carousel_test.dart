@@ -138,4 +138,43 @@ void main() {
 
     expect(lastSelected, 0);
   });
+
+  testWidgets('center cell scales larger than side cells', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 360,
+          height: 100,
+          child: SpriteCarousel<String>(
+            items: const ['a', 'b', 'c', 'd', 'e'],
+            selectedIndex: 2,
+            onSelectedChanged: (_) {},
+            centerSize: 64,
+            sideSize: 44,
+            edgeSize: 28,
+            cellGap: 8,
+            peekCount: 5,
+            infiniteLoop: false,
+            centerBob: false,
+            bobAmplitude: 0,
+            bobPeriod: const Duration(milliseconds: 1400),
+            sideSquish: true,
+            sideFade: true,
+            centerBevel: false,
+            itemBuilder: (_, item, centerness) => SizedBox(
+              key: ValueKey('cell-$item'),
+              width: 64,
+              height: 64,
+              child: Center(child: Text(item)),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final centerSize = tester.getSize(find.byKey(const ValueKey('cell-c')));
+    final sideSize = tester.getSize(find.byKey(const ValueKey('cell-b')));
+    expect(centerSize.height, greaterThan(sideSize.height));
+  });
 }

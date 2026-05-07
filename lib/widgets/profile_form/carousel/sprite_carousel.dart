@@ -139,9 +139,16 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
           final item = widget.items[itemIndex];
           return _CarouselCell(
             pageIndex: pageIndex,
+            initialPage: _currentPage,
+            controller: _controller,
             onTap: () => _animateToPage(pageIndex),
-            // TODO(Task 5): replace 1.0 with computed centerness from AnimatedBuilder.
-            child: widget.itemBuilder(context, item, 1.0),
+            centerSize: widget.centerSize,
+            sideSize: widget.sideSize,
+            edgeSize: widget.edgeSize,
+            sideSquish: widget.sideSquish,
+            sideFade: widget.sideFade,
+            builder: (centerness) =>
+                widget.itemBuilder(context, item, centerness),
           );
         },
       ),
@@ -151,20 +158,79 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
 
 class _CarouselCell extends StatelessWidget {
   final int pageIndex;
+  final int initialPage;
+  final PageController controller;
   final VoidCallback onTap;
-  final Widget child;
+  final double centerSize;
+  final double sideSize;
+  final double edgeSize;
+  final bool sideSquish;
+  final bool sideFade;
+  final Widget Function(double centerness) builder;
 
   const _CarouselCell({
     required this.pageIndex,
+    required this.initialPage,
+    required this.controller,
     required this.onTap,
-    required this.child,
+    required this.centerSize,
+    required this.sideSize,
+    required this.edgeSize,
+    required this.sideSquish,
+    required this.sideFade,
+    required this.builder,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Center(child: child),
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final page = controller.hasClients && controller.position.haveDimensions
+            ? (controller.page ?? initialPage.toDouble())
+            : initialPage.toDouble();
+        final dRaw = (page - pageIndex).abs();
+        final d = dRaw.clamp(0.0, 2.0);
+        final centerness = (1.0 - d).clamp(0.0, 1.0);
+
+        // Scale: lerp center→side over [0,1], side→edge over [1,2].
+        final double targetSize;
+        if (d <= 1.0) {
+          targetSize = centerSize + (sideSize - centerSize) * d;
+        } else {
+          targetSize = sideSize + (edgeSize - sideSize) * (d - 1.0);
+        }
+        // Opacity.
+        double opacity = 1.0;
+        if (sideFade) {
+          if (d <= 1.0) {
+            opacity = 1.0 - 0.3 * d; // 1.0 → 0.7
+          } else {
+            opacity = 0.7 - 0.3 * (d - 1.0); // 0.7 → 0.4
+          }
+        }
+
+        // Horizontal squish.
+        double xScale = 1.0;
+        if (sideSquish) {
+          xScale = 1.0 - 0.15 * d.clamp(0.0, 1.0) - 0.15 * (d - 1.0).clamp(0.0, 1.0);
+        }
+
+        return GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Center(
+            child: Opacity(
+              opacity: opacity,
+              child: SizedBox(
+                width: targetSize * xScale,
+                height: targetSize,
+                child: builder(centerness),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
