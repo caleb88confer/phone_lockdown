@@ -11,9 +11,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
 import 'app_selector.dart';
 import 'failsafe_selector.dart';
-import 'key_picker.dart';
 import 'lock_picker.dart';
-import 'unlock_code_section.dart';
+import 'set_key_section.dart';
 import 'website_editor.dart';
 
 class ProfileFormDialog extends StatefulWidget {
@@ -69,13 +68,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   }
 
   void _onKeyStyleChanged(String id) {
-    setState(() {
-      _keyStyleId = id;
-      final available = keyStyleById(id).colors;
-      if (!available.any((c) => c.id == _keyColorId)) {
-        _keyColorId = available.first.id;
-      }
-    });
+    setState(() => _keyStyleId = id);
   }
 
   @override
@@ -274,17 +267,15 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
               fill: AppColors.surfaceContainerLow,
               opacity: 0.2,
             ),
-            child: Builder(builder: (_) {
-              final ks = keyStyleById(_keyStyleId);
-              final kc = keyColorForRender(ks, _keyColorId);
-              return UnlockCodeSection(
-                unlockCode: _unlockCode,
-                onScan: _scanUnlockCode,
-                onClear: () => setState(() => _unlockCode = null),
-                keyStyle: ks,
-                keyColor: kc,
-              );
-            }),
+            child: SetKeySection(
+              unlockCode: _unlockCode,
+              onScan: _scanUnlockCode,
+              onClear: () => setState(() => _unlockCode = null),
+              selectedStyleId: _keyStyleId,
+              selectedColorId: _keyColorId,
+              onStyleChanged: _onKeyStyleChanged,
+              onColorChanged: (id) => setState(() => _keyColorId = id),
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -300,22 +291,6 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
               selectedColorId: _lockColorId,
               onStyleChanged: _onLockStyleChanged,
               onColorChanged: (id) => setState(() => _lockColorId = id),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Key picker section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: Bevel.ghost(
-              fill: AppColors.surfaceContainerLow,
-              opacity: 0.2,
-            ),
-            child: KeyStyleColorPicker(
-              selectedStyleId: _keyStyleId,
-              selectedColorId: _keyColorId,
-              onStyleChanged: _onKeyStyleChanged,
-              onColorChanged: (id) => setState(() => _keyColorId = id),
             ),
           ),
           const SizedBox(height: 16),
