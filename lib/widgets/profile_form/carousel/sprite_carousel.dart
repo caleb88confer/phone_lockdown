@@ -69,11 +69,20 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
   @override
   void didUpdateWidget(covariant SpriteCarousel<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedIndex != widget.selectedIndex) {
-      final target = widget.infiniteLoop
-          ? widget.items.length * _loopOffset + widget.selectedIndex
-          : widget.selectedIndex;
-      if (_controller.hasClients) {
+
+    // If the items list itself changed (length or contents), reset the
+    // controller to the new selectedIndex. Compare lengths (cheap) and fall
+    // back to identity check for in-place mutations.
+    final itemsChanged = oldWidget.items.length != widget.items.length ||
+        !identical(oldWidget.items, widget.items);
+
+    if (oldWidget.selectedIndex != widget.selectedIndex || itemsChanged) {
+      if (_controller.hasClients &&
+          !_controller.position.isScrollingNotifier.value) {
+        final target = widget.infiniteLoop
+            ? widget.items.length * _loopOffset + widget.selectedIndex
+            : widget.selectedIndex;
+        _currentPage = target;
         _controller.jumpToPage(target);
       }
     }
@@ -131,6 +140,7 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>> {
           return _CarouselCell(
             pageIndex: pageIndex,
             onTap: () => _animateToPage(pageIndex),
+            // TODO(Task 5): replace 1.0 with computed centerness from AnimatedBuilder.
             child: widget.itemBuilder(context, item, 1.0),
           );
         },
