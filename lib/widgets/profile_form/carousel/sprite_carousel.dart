@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class SpriteCarousel<T> extends StatefulWidget {
   final List<T> items;
@@ -122,11 +123,17 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
     final rawIndex = roundedPage % widget.items.length;
     final positiveIndex = (rawIndex + widget.items.length) % widget.items.length;
     if (positiveIndex != widget.selectedIndex) {
+      HapticFeedback.selectionClick();
       widget.onSelectedChanged(positiveIndex);
     }
   }
 
   void _animateToPage(int pageIndex) {
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (reduce) {
+      _controller.jumpToPage(pageIndex);
+      return;
+    }
     _controller.animateToPage(
       pageIndex,
       duration: const Duration(milliseconds: 250),
@@ -141,6 +148,14 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
 
   @override
   Widget build(BuildContext context) {
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (reduce && _bobController.isAnimating) {
+      _bobController.stop();
+      _bobController.value = 0;
+    } else if (!reduce && widget.centerBob && widget.bobAmplitude > 0 && !_bobController.isAnimating) {
+      _bobController.repeat();
+    }
+
     return SizedBox(
       height: widget.centerSize + widget.bobAmplitude * 2 + 16,
       child: PageView.builder(

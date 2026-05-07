@@ -184,6 +184,50 @@ void main() {
     expect(centerY1, isNot(centerY2));
   });
 
+  testWidgets('reduced motion stops the bob and uses jumpToPage',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 120,
+            child: SpriteCarousel<String>(
+              items: const ['a', 'b', 'c'],
+              selectedIndex: 1,
+              onSelectedChanged: (_) {},
+              centerSize: 64,
+              sideSize: 44,
+              edgeSize: 28,
+              cellGap: 8,
+              peekCount: 3,
+              infiniteLoop: false,
+              centerBob: true,
+              bobAmplitude: 4,
+              bobPeriod: const Duration(milliseconds: 400),
+              sideSquish: false,
+              sideFade: false,
+              centerBevel: false,
+              itemBuilder: (_, item, __) => SizedBox(
+                key: ValueKey('cell-$item'),
+                width: 32,
+                height: 32,
+                child: Text(item),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    final y1 = tester.getTopLeft(find.byKey(const ValueKey('cell-b'))).dy;
+    await tester.pump(const Duration(milliseconds: 200));
+    final y2 = tester.getTopLeft(find.byKey(const ValueKey('cell-b'))).dy;
+    expect(y1, y2); // Bob frozen.
+  });
+
   testWidgets('center cell scales larger than side cells', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
