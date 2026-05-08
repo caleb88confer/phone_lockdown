@@ -3,8 +3,8 @@ import '../../customization/key_catalog.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
 import '../key_display.dart';
-import 'carousel/key_color_carousel.dart';
 import 'carousel/key_style_carousel.dart';
+import 'key_color_row.dart';
 
 class SetKeySection extends StatelessWidget {
   final String? unlockCode;
@@ -107,7 +107,7 @@ class SetKeySection extends StatelessWidget {
           onStyleChanged: onStyleChanged,
         ),
         const SizedBox(height: 12),
-        KeyColorCarousel(
+        KeyColorRow(
           selectedStyleId: selectedStyleId,
           selectedColorId: selectedColorId,
           onColorChanged: onColorChanged,
