@@ -29,6 +29,7 @@ class LockStyleCarousel extends StatelessWidget {
       edgeSize: 28,
       cellGap: 8,
       peekCount: 5,
+      sideOutwardOffset: 12,
       infiniteLoop: true,
       centerBob: true,
       bobAmplitude: 4,

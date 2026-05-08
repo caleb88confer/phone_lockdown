@@ -14,6 +14,9 @@ class SpriteCarousel<T> extends StatefulWidget {
   final double edgeSize;
   final double cellGap;
   final int peekCount;
+  // Pixels to push the immediate side cells (|d|≈1) outward, away from the
+  // center cell. Tapers to 0 at the center and at the edge cells (|d|=2).
+  final double sideOutwardOffset;
 
   // Behavior
   final bool infiniteLoop;
@@ -36,6 +39,7 @@ class SpriteCarousel<T> extends StatefulWidget {
     required this.edgeSize,
     required this.cellGap,
     required this.peekCount,
+    this.sideOutwardOffset = 0,
     required this.infiniteLoop,
     required this.centerBob,
     required this.bobAmplitude,
@@ -175,6 +179,7 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
             centerSize: widget.centerSize,
             sideSize: widget.sideSize,
             edgeSize: widget.edgeSize,
+            sideOutwardOffset: widget.sideOutwardOffset,
             sideSquish: widget.sideSquish,
             sideFade: widget.sideFade,
             builder: (centerness, targetSize) =>
@@ -196,6 +201,7 @@ class _CarouselCell extends StatelessWidget {
   final double centerSize;
   final double sideSize;
   final double edgeSize;
+  final double sideOutwardOffset;
   final bool sideSquish;
   final bool sideFade;
   final Widget Function(double centerness, double targetSize) builder;
@@ -210,6 +216,7 @@ class _CarouselCell extends StatelessWidget {
     required this.centerSize,
     required this.sideSize,
     required this.edgeSize,
+    required this.sideOutwardOffset,
     required this.sideSquish,
     required this.sideFade,
     required this.builder,
@@ -223,9 +230,15 @@ class _CarouselCell extends StatelessWidget {
         final page = controller.hasClients && controller.position.haveDimensions
             ? (controller.page ?? initialPage.toDouble())
             : initialPage.toDouble();
-        final dRaw = (page - pageIndex).abs();
+        final signedD = (pageIndex - page).clamp(-2.0, 2.0);
+        final dRaw = signedD.abs();
         final d = dRaw.clamp(0.0, 2.0);
         final centerness = (1.0 - d).clamp(0.0, 1.0);
+
+        // Triangular weight peaking at |d|=1 (the side cells), zero at center
+        // and at the edge cells.
+        final sideWeight = (1.0 - (d - 1.0).abs()).clamp(0.0, 1.0);
+        final outwardDx = signedD.sign * sideOutwardOffset * sideWeight;
 
         // Scale: lerp center→side over [0,1], side→edge over [1,2].
         final double targetSize;
@@ -263,7 +276,7 @@ class _CarouselCell extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           child: Center(
             child: Transform.translate(
-              offset: Offset(0, bobDy),
+              offset: Offset(outwardDx, bobDy),
               child: Opacity(
                 opacity: opacity,
                 child: SizedBox(
