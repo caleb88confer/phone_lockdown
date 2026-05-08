@@ -270,7 +270,9 @@ class _CarouselCell extends StatelessWidget {
                   width: targetSize * xScale,
                   height: targetSize,
                   child: OverflowBox(
+                    minWidth: 0,
                     maxWidth: double.infinity,
+                    minHeight: 0,
                     maxHeight: double.infinity,
                     alignment: Alignment.center,
                     child: builder(centerness, targetSize),
