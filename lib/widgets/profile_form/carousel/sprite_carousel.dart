@@ -24,7 +24,7 @@ class SpriteCarousel<T> extends StatefulWidget {
   final bool sideFade;
   final bool centerBevel;
 
-  final Widget Function(BuildContext, T item, double centerness) itemBuilder;
+  final Widget Function(BuildContext, T item, double centerness, double targetSize) itemBuilder;
 
   const SpriteCarousel({
     super.key,
@@ -177,8 +177,8 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
             edgeSize: widget.edgeSize,
             sideSquish: widget.sideSquish,
             sideFade: widget.sideFade,
-            builder: (centerness) =>
-                widget.itemBuilder(context, item, centerness),
+            builder: (centerness, targetSize) =>
+                widget.itemBuilder(context, item, centerness, targetSize),
           );
         },
       ),
@@ -198,7 +198,7 @@ class _CarouselCell extends StatelessWidget {
   final double edgeSize;
   final bool sideSquish;
   final bool sideFade;
-  final Widget Function(double centerness) builder;
+  final Widget Function(double centerness, double targetSize) builder;
 
   const _CarouselCell({
     required this.pageIndex,
@@ -269,7 +269,12 @@ class _CarouselCell extends StatelessWidget {
                 child: SizedBox(
                   width: targetSize * xScale,
                   height: targetSize,
-                  child: builder(centerness),
+                  child: OverflowBox(
+                    maxWidth: double.infinity,
+                    maxHeight: double.infinity,
+                    alignment: Alignment.center,
+                    child: builder(centerness, targetSize),
+                  ),
                 ),
               ),
             ),
