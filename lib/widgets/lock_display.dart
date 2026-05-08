@@ -7,7 +7,6 @@ class LockDisplay extends StatefulWidget {
   final LockColorOption color;
   final bool isBlocking;
   final double size;
-  final Duration transitionDuration;
 
   const LockDisplay({
     super.key,
@@ -15,7 +14,6 @@ class LockDisplay extends StatefulWidget {
     required this.color,
     required this.isBlocking,
     required this.size,
-    this.transitionDuration = const Duration(milliseconds: 350),
   });
 
   @override
@@ -53,8 +51,10 @@ class _LockDisplayState extends State<LockDisplay> {
   Widget build(BuildContext context) {
     final s = widget.style;
     final assetPath = s.spritesheetPath(widget.color.id);
+    final renderSize = widget.size * s.displayScale;
 
     if (_animating) {
+      final framesPlayed = (_endFrame - _startFrame).abs() + 1;
       return AnimatedSprite(
         assetPath: assetPath,
         frameWidth: s.frameWidth,
@@ -62,8 +62,8 @@ class _LockDisplayState extends State<LockDisplay> {
         frameCount: s.frameCount,
         startFrame: _startFrame,
         endFrame: _endFrame,
-        duration: widget.transitionDuration,
-        size: widget.size,
+        duration: s.durationFor(framesPlayed),
+        size: renderSize,
         onComplete: () {
           if (mounted) setState(() => _animating = false);
         },
@@ -77,7 +77,7 @@ class _LockDisplayState extends State<LockDisplay> {
       frameWidth: s.frameWidth,
       frameHeight: s.frameHeight,
       frameIndex: restingFrame,
-      size: widget.size,
+      size: renderSize,
     );
   }
 }

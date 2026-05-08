@@ -5,8 +5,6 @@ import '../../theme/bevel.dart';
 import '../sprite_sheet.dart';
 
 class LockStyleColorPicker extends StatelessWidget {
-  static const Duration _animationDuration = Duration(milliseconds: 1200);
-
   final String selectedStyleId;
   final String selectedColorId;
   final ValueChanged<String> onStyleChanged;
@@ -67,16 +65,16 @@ class LockStyleColorPicker extends StatelessWidget {
                           frameCount: style.frameCount,
                           startFrame: 0,
                           endFrame: style.frameCount - 1,
-                          duration: _animationDuration,
+                          duration: style.durationFor(style.frameCount),
                           loop: true,
-                          size: 44,
+                          size: 44 * style.displayScale,
                         )
                       : SpriteFrame(
                           assetPath: assetPath,
                           frameWidth: style.frameWidth,
                           frameHeight: style.frameHeight,
                           frameIndex: style.lockedFrame,
-                          size: 44,
+                          size: 44 * style.displayScale,
                         ),
                 ),
               );
@@ -106,7 +104,7 @@ class LockStyleColorPicker extends StatelessWidget {
                   frameWidth: selectedStyle.frameWidth,
                   frameHeight: selectedStyle.frameHeight,
                   frameIndex: selectedStyle.lockedFrame,
-                  size: 44,
+                  size: 44 * selectedStyle.displayScale,
                 ),
               ),
             );

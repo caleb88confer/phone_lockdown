@@ -1,3 +1,5 @@
+import 'sprite_defaults.dart';
+
 class LockColorOption {
   final String id;
   final String displayName;
@@ -19,6 +21,11 @@ class LockStyle {
   final int unlockedFrame;
   final int lockedFrame;
   final List<LockColorOption> colors;
+  // Multiplier applied to render size to compensate for sprites whose frame
+  // canvas includes padding around the visible glyph.
+  final double displayScale;
+  // Per-frame duration in ms. Null falls back to kDefaultLockFrameMs.
+  final int? frameMs;
 
   const LockStyle({
     required this.id,
@@ -29,12 +36,18 @@ class LockStyle {
     required this.unlockedFrame,
     required this.lockedFrame,
     required this.colors,
+    this.displayScale = 1.0,
+    this.frameMs,
   });
 
   String spritesheetPath(String colorId) =>
       'assets/sprites/locks/${id}_$colorId.png';
 
   bool get hasDistinctStates => unlockedFrame != lockedFrame;
+
+  Duration durationFor(int framesPlayed) => Duration(
+        milliseconds: (frameMs ?? kDefaultLockFrameMs) * framesPlayed,
+      );
 }
 
 const _grey = LockColorOption(id: 'grey', displayName: 'Grey', swatchColor: 0xFF888888);

@@ -39,7 +39,7 @@ class KeyColorCarousel extends StatelessWidget {
       sideSquish: false,
       sideFade: false,
       centerBevel: true,
-      itemBuilder: (context, color, centerness) {
+      itemBuilder: (context, color, centerness, targetSize) {
         final isCenter = centerness > 0.5;
         return Container(
           width: 56,
@@ -56,7 +56,7 @@ class KeyColorCarousel extends StatelessWidget {
             frameWidth: style.frameWidth,
             frameHeight: style.frameHeight,
             frameIndex: 0,
-            size: 36,
+            size: 36 * style.displayScale,
           ),
         );
       },

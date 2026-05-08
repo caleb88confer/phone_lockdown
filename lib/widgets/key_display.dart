@@ -6,19 +6,18 @@ class KeyDisplay extends StatelessWidget {
   final KeyStyle style;
   final KeyColorOption color;
   final double size;
-  final Duration loopDuration;
 
   const KeyDisplay({
     super.key,
     required this.style,
     required this.color,
     required this.size,
-    this.loopDuration = const Duration(milliseconds: 1200),
   });
 
   @override
   Widget build(BuildContext context) {
     final assetPath = style.spritesheetPath(color.id);
+    final renderSize = size * style.displayScale;
 
     if (!style.animated) {
       return SpriteFrame(
@@ -26,7 +25,7 @@ class KeyDisplay extends StatelessWidget {
         frameWidth: style.frameWidth,
         frameHeight: style.frameHeight,
         frameIndex: 0,
-        size: size,
+        size: renderSize,
       );
     }
 
@@ -37,9 +36,9 @@ class KeyDisplay extends StatelessWidget {
       frameCount: style.frameCount,
       startFrame: 0,
       endFrame: style.frameCount - 1,
-      duration: loopDuration,
+      duration: style.durationFor(style.frameCount),
       loop: true,
-      size: size,
+      size: renderSize,
     );
   }
 }

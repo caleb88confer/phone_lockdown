@@ -1,3 +1,5 @@
+import 'sprite_defaults.dart';
+
 class KeyColorOption {
   final String id;
   final String displayName;
@@ -18,6 +20,12 @@ class KeyStyle {
   final int frameWidth;
   final int frameHeight;
   final List<KeyColorOption> colors;
+  // Multiplier applied to render size to compensate for sprites whose frame
+  // canvas is bigger than the standard 10x28 (e.g., key_8's 21x47 canvas
+  // includes particle-effect padding around the visible key glyph).
+  final double displayScale;
+  // Per-frame duration in ms. Null falls back to kDefaultKeyFrameMs.
+  final int? frameMs;
 
   const KeyStyle({
     required this.id,
@@ -27,10 +35,16 @@ class KeyStyle {
     required this.frameWidth,
     required this.frameHeight,
     required this.colors,
+    this.displayScale = 1.0,
+    this.frameMs,
   });
 
   String spritesheetPath(String colorId) =>
       'assets/sprites/keys/${id}_$colorId.png';
+
+  Duration durationFor(int framesPlayed) => Duration(
+        milliseconds: (frameMs ?? kDefaultKeyFrameMs) * framesPlayed,
+      );
 }
 
 const _gold = KeyColorOption(id: 'gold', displayName: 'Gold', swatchColor: 0xFFD4A437);
@@ -58,7 +72,8 @@ const kKeyCatalog = <KeyStyle>[
   KeyStyle(id: 'key_7', displayName: 'Key 7', animated: true,
       frameCount: 28, frameWidth: 17, frameHeight: 29, colors: _standardColors),
   KeyStyle(id: 'key_8', displayName: 'Key 8', animated: true,
-      frameCount: 27, frameWidth: 21, frameHeight: 47, colors: _key8Colors),
+      frameCount: 27, frameWidth: 21, frameHeight: 47, colors: _key8Colors,
+      displayScale: 47 / 28),
   KeyStyle(id: 'key_9', displayName: 'Key 9', animated: false,
       frameCount: 1, frameWidth: 9, frameHeight: 30, colors: _standardColors),
   KeyStyle(id: 'key_10', displayName: 'Key 10', animated: false,

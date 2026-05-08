@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../customization/key_catalog.dart';
-import '../../sprite_sheet.dart';
+import '../../key_display.dart';
 import 'sprite_carousel.dart';
 
 class KeyStyleCarousel extends StatelessWidget {
-  static const Duration _spriteAnimationDuration = Duration(milliseconds: 1200);
-
   final String selectedStyleId;
   final String selectedColorId;
   final ValueChanged<String> onStyleChanged;
@@ -26,42 +24,25 @@ class KeyStyleCarousel extends StatelessWidget {
       items: kKeyCatalog,
       selectedIndex: selectedIndex,
       onSelectedChanged: (i) => onStyleChanged(kKeyCatalog[i].id),
-      centerSize: 64,
+      centerSize: 75,
       sideSize: 44,
-      edgeSize: 28,
+      edgeSize: 26,
       cellGap: 8,
       peekCount: 5,
       infiniteLoop: true,
       centerBob: true,
       bobAmplitude: 4,
       bobPeriod: const Duration(milliseconds: 1400),
-      sideSquish: true,
+      sideSquish: false,
       sideFade: true,
       centerBevel: false,
-      itemBuilder: (context, style, centerness) {
+      itemBuilder: (context, style, centerness, targetSize) {
         final renderColorId = renderColorIdFor(style, selectedColorId);
-        final assetPath = style.spritesheetPath(renderColorId);
-        if (style.animated) {
-          return AnimatedSprite(
-            key: ValueKey('keycar-${style.id}-$renderColorId'),
-            assetPath: assetPath,
-            frameWidth: style.frameWidth,
-            frameHeight: style.frameHeight,
-            frameCount: style.frameCount,
-            startFrame: 0,
-            endFrame: style.frameCount - 1,
-            duration: _spriteAnimationDuration,
-            loop: true,
-            size: 44,
-          );
-        }
-        return SpriteFrame(
-          key: ValueKey('keycar-${style.id}-$renderColorId-static'),
-          assetPath: assetPath,
-          frameWidth: style.frameWidth,
-          frameHeight: style.frameHeight,
-          frameIndex: 0,
-          size: 44,
+        return KeyDisplay(
+          key: ValueKey('keycar-${style.id}-$renderColorId'),
+          style: style,
+          color: keyColorById(style, renderColorId),
+          size: targetSize,
         );
       },
     );
