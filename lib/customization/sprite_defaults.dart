@@ -2,5 +2,5 @@
 // for a played range = framesPlayed * frameMs. Catalog entries can override
 // these defaults via their own `frameMs` field.
 
-const int kDefaultKeyFrameMs = 50;
-const int kDefaultLockFrameMs = 35;
+const int kDefaultKeyFrameMs = 100;
+const int kDefaultLockFrameMs = 100;
