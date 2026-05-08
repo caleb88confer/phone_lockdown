@@ -11,8 +11,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
 import 'app_selector.dart';
 import 'failsafe_selector.dart';
-import 'lock_picker.dart';
 import 'set_key_section.dart';
+import 'set_lock_section.dart';
 import 'website_editor.dart';
 
 class ProfileFormDialog extends StatefulWidget {
@@ -286,7 +286,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
               fill: AppColors.surfaceContainerLow,
               opacity: 0.2,
             ),
-            child: LockStyleColorPicker(
+            child: SetLockSection(
               selectedStyleId: _lockStyleId,
               selectedColorId: _lockColorId,
               onStyleChanged: _onLockStyleChanged,

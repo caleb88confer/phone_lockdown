@@ -158,3 +158,12 @@ LockStyle lockStyleById(String id) =>
 
 LockColorOption lockColorById(LockStyle style, String colorId) =>
     style.colors.firstWhere((c) => c.id == colorId, orElse: () => style.colors.first);
+
+String renderLockColorIdFor(LockStyle style, String savedColorId) {
+  if (style.colors.any((c) => c.id == savedColorId)) return savedColorId;
+  if (style.colors.any((c) => c.id == 'grey')) return 'grey';
+  return style.colors.first.id;
+}
+
+LockColorOption lockColorForRender(LockStyle style, String savedColorId) =>
+    lockColorById(style, renderLockColorIdFor(style, savedColorId));
