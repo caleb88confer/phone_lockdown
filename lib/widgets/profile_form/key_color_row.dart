@@ -59,7 +59,7 @@ class KeyColorRow extends StatelessWidget {
         }
 
         return Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: children,
         );
       },
