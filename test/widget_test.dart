@@ -1,12 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phone_lockdown/main.dart';
+import 'package:phone_lockdown/services/app_blocker_service.dart';
+import 'package:phone_lockdown/services/master_key_service.dart';
 import 'package:phone_lockdown/services/platform_channel_service.dart';
 
 class FakePlatformService implements PlatformChannelService {
   @override
-  Future<Map<String, bool>> checkPermissions() async =>
-      {'accessibility': false, 'deviceAdmin': false};
+  Future<Map<String, bool>> checkPermissions() async => {
+    'accessibility': false,
+    'deviceAdmin': false,
+  };
 
   @override
   Future<void> updateBlockingState({
@@ -17,8 +21,10 @@ class FakePlatformService implements PlatformChannelService {
   }) async {}
 
   @override
-  Future<void> scheduleFailsafeAlarm(
-      {required String profileId, required int failsafeMillis}) async {}
+  Future<void> scheduleFailsafeAlarm({
+    required String profileId,
+    required int failsafeMillis,
+  }) async {}
 
   @override
   Future<void> cancelFailsafeAlarm({required String profileId}) async {}
@@ -42,19 +48,29 @@ class FakePlatformService implements PlatformChannelService {
   Future<void> requestDeviceAdmin() async {}
 
   @override
-  Future<Map<String, dynamic>> getEnforcementState() async =>
-      {'isBlocking': false, 'activeProfileIds': []};
+  Future<Map<String, dynamic>> getEnforcementState() async => {
+    'isBlocking': false,
+    'activeProfileIds': [],
+  };
 }
 
 void main() {
   testWidgets('App renders home screen', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
-    await tester.pumpWidget(PhoneLockdownApp(
-      onboardingComplete: true,
-      prefs: prefs,
-      platform: FakePlatformService(),
-    ));
+    final platform = FakePlatformService();
+    final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
+    final masterKey = MasterKeyService(prefs: prefs, appBlocker: appBlocker);
+    await masterKey.init();
+    await tester.pumpWidget(
+      PhoneLockdownApp(
+        onboardingComplete: true,
+        prefs: prefs,
+        platform: platform,
+        appBlocker: appBlocker,
+        masterKey: masterKey,
+      ),
+    );
     expect(find.text('Phone Lockdown'), findsOneWidget);
   });
 }

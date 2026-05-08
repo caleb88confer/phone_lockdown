@@ -30,10 +30,10 @@ class ActiveLock {
   bool get isExpired => remaining == Duration.zero;
 
   Map<String, dynamic> toJson() => {
-        'profileId': profileId,
-        'lockStartTime': lockStartTime.toIso8601String(),
-        'failsafeMinutes': failsafeMinutes,
-      };
+    'profileId': profileId,
+    'lockStartTime': lockStartTime.toIso8601String(),
+    'failsafeMinutes': failsafeMinutes,
+  };
 
   factory ActiveLock.fromJson(Map<String, dynamic> json) {
     return ActiveLock(
@@ -50,20 +50,36 @@ class AppBlockerService extends ChangeNotifier {
   final Map<String, ActiveLock> _activeLocks = {};
   bool _isAccessibilityEnabled = false;
   bool _isDeviceAdminEnabled = false;
+  late final Future<void> _readyFuture;
 
   bool get isBlocking => _activeLocks.isNotEmpty;
   Set<String> get activeProfileIds => _activeLocks.keys.toSet();
   bool get isAccessibilityEnabled => _isAccessibilityEnabled;
   bool get isDeviceAdminEnabled => _isDeviceAdminEnabled;
 
+  /// Resolves once initial blocking state has been loaded from prefs.
+  /// Other services that depend on knowing whether locks are active at startup
+  /// should `await` this before reading [isBlocking].
+  Future<void> get ready => _readyFuture;
+
+  /// Earliest [ActiveLock.lockStartTime] across active locks, or null if none.
+  /// Used by other services for crash recovery — preserves time elapsed before
+  /// the app was killed mid-session.
+  DateTime? get earliestActiveLockStartTime {
+    if (_activeLocks.isEmpty) return null;
+    return _activeLocks.values
+        .map((l) => l.lockStartTime)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+  }
+
   ActiveLock? getLock(String profileId) => _activeLocks[profileId];
 
   AppBlockerService({
     required PlatformChannelService platform,
     required SharedPreferences prefs,
-  })  : _platform = platform,
-        _prefs = prefs {
-    _loadBlockingState();
+  }) : _platform = platform,
+       _prefs = prefs {
+    _readyFuture = _loadBlockingState();
     refreshPermissions();
   }
 
@@ -80,7 +96,10 @@ class AppBlockerService extends ChangeNotifier {
 
   /// Activates blocking for a profile. Returns null on success, or an error
   /// message string describing what went wrong.
-  Future<String?> activateProfile(Profile profile, {required List<Profile> allProfiles}) async {
+  Future<String?> activateProfile(
+    Profile profile, {
+    required List<Profile> allProfiles,
+  }) async {
     if (!_isAccessibilityEnabled) {
       return 'The accessibility service is not enabled. Please enable it in Settings to block apps and websites.';
     }
@@ -117,12 +136,18 @@ class AppBlockerService extends ChangeNotifier {
   }
 
   /// Clean up active locks and Android-side enforcement when a profile is deleted.
-  Future<void> onProfileDeleted(String profileId, {required List<Profile> allProfiles}) async {
+  Future<void> onProfileDeleted(
+    String profileId, {
+    required List<Profile> allProfiles,
+  }) async {
     if (!_activeLocks.containsKey(profileId)) return;
     await deactivateProfile(profileId, allProfiles: allProfiles);
   }
 
-  Future<bool> deactivateProfile(String profileId, {required List<Profile> allProfiles}) async {
+  Future<bool> deactivateProfile(
+    String profileId, {
+    required List<Profile> allProfiles,
+  }) async {
     final lock = _activeLocks.remove(profileId);
     if (lock == null) return false;
 
@@ -157,7 +182,11 @@ class AppBlockerService extends ChangeNotifier {
         // Restore the lock so Flutter state stays consistent with Android.
         // Android still enforces blocking — don't let Flutter think it's unlocked.
         _activeLocks[lock.profileId] = lock;
-        AppLogger.e('Blocker', 'Failsafe timer deactivation failed, lock restored', e);
+        AppLogger.e(
+          'Blocker',
+          'Failsafe timer deactivation failed, lock restored',
+          e,
+        );
       }
       notifyListeners();
     });
@@ -184,9 +213,9 @@ class AppBlockerService extends ChangeNotifier {
 
     for (final lockEntry in _activeLocks.values) {
       final profile = allProfiles.cast<Profile?>().firstWhere(
-            (p) => p!.id == lockEntry.profileId,
-            orElse: () => null,
-          );
+        (p) => p!.id == lockEntry.profileId,
+        orElse: () => null,
+      );
       if (profile != null) {
         mergedPackages.addAll(profile.blockedAppPackages);
         mergedWebsites.addAll(profile.blockedWebsites);
@@ -270,8 +299,9 @@ class AppBlockerService extends ChangeNotifier {
   /// Android is authoritative for enforcement; Flutter is authoritative for profiles.
   Future<void> reconcileWithAndroid(List<Profile> allProfiles) async {
     final enforcement = await _platform.getEnforcementState();
-    final androidActiveIds =
-        Set<String>.from((enforcement['activeProfileIds'] as List?) ?? []);
+    final androidActiveIds = Set<String>.from(
+      (enforcement['activeProfileIds'] as List?) ?? [],
+    );
     final flutterActiveIds = _activeLocks.keys.toSet();
 
     // Profiles that Android deactivated (failsafe fired while Flutter was dead)
@@ -299,5 +329,4 @@ class AppBlockerService extends ChangeNotifier {
     }
     notifyListeners();
   }
-
 }

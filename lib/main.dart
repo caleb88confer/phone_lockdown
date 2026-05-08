@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/app_blocker_service.dart';
+import 'services/master_key_service.dart';
 import 'services/platform_channel_service.dart';
 import 'services/profile_manager.dart';
 import 'screens/home_screen.dart';
@@ -13,23 +14,34 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
   final platform = MethodChannelPlatformService();
-  runApp(PhoneLockdownApp(
-    onboardingComplete: onboardingComplete,
-    prefs: prefs,
-    platform: platform,
-  ));
+  final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
+  final masterKey = MasterKeyService(prefs: prefs, appBlocker: appBlocker);
+  await masterKey.init();
+  runApp(
+    PhoneLockdownApp(
+      onboardingComplete: onboardingComplete,
+      prefs: prefs,
+      platform: platform,
+      appBlocker: appBlocker,
+      masterKey: masterKey,
+    ),
+  );
 }
 
 class PhoneLockdownApp extends StatelessWidget {
   final bool onboardingComplete;
   final SharedPreferences prefs;
   final PlatformChannelService platform;
+  final AppBlockerService appBlocker;
+  final MasterKeyService masterKey;
 
   const PhoneLockdownApp({
     super.key,
     required this.onboardingComplete,
     required this.prefs,
     required this.platform,
+    required this.appBlocker,
+    required this.masterKey,
   });
 
   @override
@@ -37,12 +49,9 @@ class PhoneLockdownApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<PlatformChannelService>.value(value: platform),
-        ChangeNotifierProvider(
-          create: (_) => ProfileManager(prefs: prefs),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AppBlockerService(platform: platform, prefs: prefs),
-        ),
+        ChangeNotifierProvider(create: (_) => ProfileManager(prefs: prefs)),
+        ChangeNotifierProvider<AppBlockerService>.value(value: appBlocker),
+        ChangeNotifierProvider<MasterKeyService>.value(value: masterKey),
       ],
       child: MaterialApp(
         title: 'Phone Lockdown',
