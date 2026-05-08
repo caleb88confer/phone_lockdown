@@ -79,7 +79,7 @@ const kKeyCatalog = <KeyStyle>[
       frameCount: 28, frameWidth: 17, frameHeight: 29, colors: _standardColors),
   KeyStyle(id: 'key_8', displayName: 'Key 8', animated: true,
       frameCount: 27, frameWidth: 21, frameHeight: 47, colors: _key8Colors,
-      displayScale: 1.6),
+      displayScale: 1.5, centerOffsetY: -0.15),
   KeyStyle(id: 'key_9', displayName: 'Key 9', animated: false,
       frameCount: 1, frameWidth: 9, frameHeight: 30, colors: _standardColors),
   KeyStyle(id: 'key_10', displayName: 'Key 10', animated: false,
