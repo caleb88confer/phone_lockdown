@@ -83,15 +83,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         const SizedBox(height: 32),
         Text(
           'Welcome to Phone Lockdown',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         Text(
           'Take control of your phone usage by blocking distracting apps and websites. '
-          'Use physical QR codes or barcodes as keys to lock and unlock different profiles.',
+          'Use a physical QR code or barcode as your key to lock and unlock.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
@@ -103,22 +103,25 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.qr_code_scanner, size: 80, color: AppColors.primaryContainer),
+        Icon(
+          Icons.qr_code_scanner,
+          size: 80,
+          color: AppColors.primaryContainer,
+        ),
         const SizedBox(height: 32),
         Text(
-          'Profiles & Unlock Codes',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          'Your Lock',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         Text(
-          'Create profiles for different situations — work, full day, study, etc. '
-          'Each profile has its own list of blocked apps/websites, its own QR code key, '
-          'and a failsafe timer that auto-unlocks after a set period.\n\n'
-          'Multiple profiles can be active at the same time. '
-          'Tap a profile on the home screen to set it up.',
+          'Customize your lock — pick which apps and websites to block, '
+          'register a QR code or barcode as your key, and set a failsafe '
+          'timer that auto-unlocks after a set period.\n\n'
+          'Tap CUSTOMIZE LOCK on the home screen to set everything up.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
@@ -136,9 +139,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         const SizedBox(height: 32),
         Text(
           'Grant Permissions',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
@@ -152,7 +155,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         _PermissionRow(
           label: 'Accessibility Service (App & Website Blocking)',
           isGranted: blocker.isAccessibilityEnabled,
-          onGrant: () => context.read<PlatformChannelService>().openAccessibilitySettings(),
+          onGrant: () => context
+              .read<PlatformChannelService>()
+              .openAccessibilitySettings(),
         ),
       ],
     );
@@ -230,7 +235,9 @@ class _PermissionRow extends StatelessWidget {
       children: [
         Icon(
           isGranted ? Icons.check_circle : Icons.error,
-          color: isGranted ? const Color(0xFF2E7D32) : AppColors.primaryContainer,
+          color: isGranted
+              ? const Color(0xFF2E7D32)
+              : AppColors.primaryContainer,
         ),
         const SizedBox(width: 8),
         Text(label, style: Theme.of(context).textTheme.bodyMedium),
@@ -242,7 +249,10 @@ class _PermissionRow extends StatelessWidget {
               onPressed: onGrant,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.onPrimaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

@@ -5,113 +5,64 @@ import '../models/profile.dart';
 
 class ProfileManager extends ChangeNotifier {
   final SharedPreferences _prefs;
-  List<Profile> _profiles = [];
-  String? _currentProfileId;
+  late Profile _profile;
 
-  List<Profile> get profiles => _profiles;
-  String? get currentProfileId => _currentProfileId;
+  Profile get profile => _profile;
 
-  Profile get currentProfile {
-    return _profiles.firstWhere(
-      (p) => p.id == _currentProfileId,
-      orElse: () => _profiles.firstWhere(
-        (p) => p.name == 'Default',
-        orElse: () => _profiles.first,
-      ),
-    );
-  }
+  /// Convenience: app_blocker_service expects a list of profiles to merge
+  /// blocks across. With a single profile this is always a singleton.
+  List<Profile> get profilesForBlocker => [_profile];
 
   ProfileManager({required SharedPreferences prefs}) : _prefs = prefs {
+    _profile = Profile.defaultProfile();
     _init();
   }
 
   Future<void> _init() async {
-    await loadProfiles();
-    _ensureDefaultProfile();
+    await loadProfile();
     await _migrateLegacyCode();
     notifyListeners();
   }
 
-  Future<void> loadProfiles() async {
-    final savedProfiles = _prefs.getString(kPrefSavedProfiles);
+  Future<void> loadProfile() async {
+    final saved = _prefs.getString(kPrefSavedProfiles);
+    if (saved == null) {
+      _profile = Profile.defaultProfile();
+      await saveProfile();
+      return;
+    }
 
-    if (savedProfiles != null) {
-      _profiles = Profile.decodeList(savedProfiles);
+    // Persisted format may be a JSON list (legacy multi-profile) or a single
+    // JSON object (current). Handle both.
+    final trimmed = saved.trimLeft();
+    if (trimmed.startsWith('[')) {
+      final list = Profile.decodeList(saved);
+      if (list.isEmpty) {
+        _profile = Profile.defaultProfile();
+      } else {
+        final preferredId = _prefs.getString(kPrefCurrentProfileId);
+        _profile = list.cast<Profile?>().firstWhere(
+          (p) => p!.id == preferredId,
+          orElse: () => list.first,
+        )!;
+      }
+      // Collapse to single-profile storage going forward.
+      await _prefs.remove(kPrefCurrentProfileId);
+      await saveProfile();
     } else {
-      final defaultProfile = Profile.defaultProfile();
-      _profiles = [defaultProfile];
-      _currentProfileId = defaultProfile.id;
-    }
-
-    final savedId = _prefs.getString(kPrefCurrentProfileId);
-    if (savedId != null && _profiles.any((p) => p.id == savedId)) {
-      _currentProfileId = savedId;
-    } else {
-      _currentProfileId = _profiles.first.id;
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> saveProfiles() async {
-    await _prefs.setString(kPrefSavedProfiles, Profile.encodeList(_profiles));
-    if (_currentProfileId != null) {
-      await _prefs.setString(kPrefCurrentProfileId, _currentProfileId!);
+      _profile = Profile.fromJsonString(saved);
     }
   }
 
-  void addProfile({required String name}) {
-    final newProfile = Profile(name: name);
-    _profiles.add(newProfile);
-    _currentProfileId = newProfile.id;
-    saveProfiles();
-    notifyListeners();
-  }
-
-  void addProfileInstance(Profile profile) {
-    _profiles.add(profile);
-    _currentProfileId = profile.id;
-    saveProfiles();
-    notifyListeners();
-  }
-
-  void setCurrentProfile(String id) {
-    if (_profiles.any((p) => p.id == id)) {
-      _currentProfileId = id;
-      saveProfiles();
-      notifyListeners();
-    }
-  }
-
-  void deleteProfile(String id) {
-    _profiles.removeWhere((p) => p.id == id);
-    if (_currentProfileId == id) {
-      _currentProfileId = _profiles.isNotEmpty ? _profiles.first.id : null;
-    }
-    _ensureDefaultProfile();
-    saveProfiles();
-    notifyListeners();
-  }
-
-  void deleteCurrentProfile() {
-    _profiles.removeWhere((p) => p.id == _currentProfileId);
-    _currentProfileId = _profiles.isNotEmpty ? _profiles.first.id : null;
-    _ensureDefaultProfile();
-    saveProfiles();
-    notifyListeners();
+  Future<void> saveProfile() async {
+    await _prefs.setString(kPrefSavedProfiles, _profile.toJsonString());
   }
 
   Profile? findProfileByCode(String code) {
-    try {
-      return _profiles.firstWhere((p) => p.unlockCode == code);
-    } catch (_) {
-      return null;
-    }
+    return _profile.unlockCode == code ? _profile : null;
   }
 
   void updateProfile({
-    required String id,
-    String? name,
     String? lockStyleId,
     String? lockColorId,
     String? keyStyleId,
@@ -122,59 +73,35 @@ class ProfileManager extends ChangeNotifier {
     int? failsafeMinutes,
     bool clearUnlockCode = false,
   }) {
-    final index = _profiles.indexWhere((p) => p.id == id);
-    if (index == -1) return;
-
-    if (name != null) _profiles[index].name = name;
-    if (lockStyleId != null) _profiles[index].lockStyleId = lockStyleId;
-    if (lockColorId != null) _profiles[index].lockColorId = lockColorId;
-    if (keyStyleId != null) _profiles[index].keyStyleId = keyStyleId;
-    if (keyColorId != null) _profiles[index].keyColorId = keyColorId;
+    if (lockStyleId != null) _profile.lockStyleId = lockStyleId;
+    if (lockColorId != null) _profile.lockColorId = lockColorId;
+    if (keyStyleId != null) _profile.keyStyleId = keyStyleId;
+    if (keyColorId != null) _profile.keyColorId = keyColorId;
     if (blockedAppPackages != null) {
-      _profiles[index].blockedAppPackages = blockedAppPackages;
+      _profile.blockedAppPackages = blockedAppPackages;
     }
     if (blockedWebsites != null) {
-      _profiles[index].blockedWebsites = blockedWebsites;
+      _profile.blockedWebsites = blockedWebsites;
     }
     if (clearUnlockCode) {
-      _profiles[index].unlockCode = null;
+      _profile.unlockCode = null;
     } else if (unlockCode != null) {
-      _profiles[index].unlockCode = unlockCode;
+      _profile.unlockCode = unlockCode;
     }
     if (failsafeMinutes != null) {
-      _profiles[index].failsafeMinutes = failsafeMinutes;
+      _profile.failsafeMinutes = failsafeMinutes;
     }
 
-    saveProfiles();
+    saveProfile();
     notifyListeners();
-  }
-
-  void _ensureDefaultProfile() {
-    if (_profiles.isEmpty) {
-      final defaultProfile = Profile.defaultProfile();
-      _profiles.add(defaultProfile);
-      _currentProfileId = defaultProfile.id;
-    } else if (_currentProfileId == null) {
-      final defaultProfile = _profiles.cast<Profile?>().firstWhere(
-            (p) => p!.name == 'Default',
-            orElse: () => null,
-          );
-      _currentProfileId = defaultProfile?.id ?? _profiles.first.id;
-    }
   }
 
   Future<void> _migrateLegacyCode() async {
     final legacyCode = _prefs.getString('savedCodeValue');
     if (legacyCode == null) return;
-
-    // Assign legacy code to Default profile (or first profile)
-    final defaultProfile = _profiles.cast<Profile?>().firstWhere(
-          (p) => p!.name == 'Default',
-          orElse: () => _profiles.isNotEmpty ? _profiles.first : null,
-        );
-    if (defaultProfile != null && defaultProfile.unlockCode == null) {
-      defaultProfile.unlockCode = legacyCode;
-      await saveProfiles();
+    if (_profile.unlockCode == null) {
+      _profile.unlockCode = legacyCode;
+      await saveProfile();
     }
     await _prefs.remove('savedCodeValue');
   }

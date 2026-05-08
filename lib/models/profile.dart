@@ -29,26 +29,26 @@ class Profile {
     List<String>? blockedWebsites,
     this.unlockCode,
     this.failsafeMinutes = kDefaultFailsafeMinutes,
-  })  : id = id ?? const Uuid().v4(),
-        blockedAppPackages = blockedAppPackages ?? [],
-        blockedWebsites = blockedWebsites ?? [];
+  }) : id = id ?? const Uuid().v4(),
+       blockedAppPackages = blockedAppPackages ?? [],
+       blockedWebsites = blockedWebsites ?? [];
 
   factory Profile.defaultProfile() {
     return Profile(name: 'Default');
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'lockStyleId': lockStyleId,
-        'lockColorId': lockColorId,
-        'keyStyleId': keyStyleId,
-        'keyColorId': keyColorId,
-        'blockedAppPackages': blockedAppPackages,
-        'blockedWebsites': blockedWebsites,
-        'unlockCode': unlockCode,
-        'failsafeMinutes': failsafeMinutes,
-      };
+    'id': id,
+    'name': name,
+    'lockStyleId': lockStyleId,
+    'lockColorId': lockColorId,
+    'keyStyleId': keyStyleId,
+    'keyColorId': keyColorId,
+    'blockedAppPackages': blockedAppPackages,
+    'blockedWebsites': blockedWebsites,
+    'unlockCode': unlockCode,
+    'failsafeMinutes': failsafeMinutes,
+  };
 
   factory Profile.fromJson(Map<String, dynamic> json) {
     return Profile(
@@ -66,12 +66,15 @@ class Profile {
     );
   }
 
-  static String encodeList(List<Profile> profiles) {
-    return jsonEncode(profiles.map((p) => p.toJson()).toList());
-  }
+  String toJsonString() => jsonEncode(toJson());
+
+  factory Profile.fromJsonString(String jsonString) =>
+      Profile.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
 
   static List<Profile> decodeList(String jsonString) {
     final list = jsonDecode(jsonString) as List;
-    return list.map((e) => Profile.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => Profile.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

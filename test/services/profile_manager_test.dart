@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:phone_lockdown/constants.dart';
 import 'package:phone_lockdown/models/profile.dart';
 import 'package:phone_lockdown/services/profile_manager.dart';
 
@@ -14,46 +15,30 @@ void main() {
   });
 
   group('Profile JSON round-trip', () {
-    test('encodeList and decodeList are inverses', () {
-      final profiles = [
-        Profile(
-          id: 'test-id-1',
-          name: 'Work',
-          blockedAppPackages: ['com.twitter.android'],
-          blockedWebsites: ['twitter.com'],
-          unlockCode: 'abc123',
-          failsafeMinutes: 60,
-        ),
-        Profile(
-          id: 'test-id-2',
-          name: 'Study',
-          blockedAppPackages: ['com.instagram.android', 'com.reddit.frontpage'],
-          blockedWebsites: ['instagram.com', 'reddit.com'],
-          failsafeMinutes: 120,
-        ),
-      ];
+    test('toJsonString and fromJsonString are inverses', () {
+      final profile = Profile(
+        id: 'test-id-1',
+        name: 'Default',
+        blockedAppPackages: ['com.twitter.android'],
+        blockedWebsites: ['twitter.com'],
+        unlockCode: 'abc123',
+        failsafeMinutes: 60,
+      );
 
-      final encoded = Profile.encodeList(profiles);
-      final decoded = Profile.decodeList(encoded);
+      final encoded = profile.toJsonString();
+      final decoded = Profile.fromJsonString(encoded);
 
-      expect(decoded.length, 2);
-      expect(decoded[0].id, 'test-id-1');
-      expect(decoded[0].name, 'Work');
-      expect(decoded[0].blockedAppPackages, ['com.twitter.android']);
-      expect(decoded[0].blockedWebsites, ['twitter.com']);
-      expect(decoded[0].unlockCode, 'abc123');
-      expect(decoded[0].failsafeMinutes, 60);
-      expect(decoded[1].id, 'test-id-2');
-      expect(decoded[1].name, 'Study');
-      expect(decoded[1].blockedAppPackages, ['com.instagram.android', 'com.reddit.frontpage']);
-      expect(decoded[1].unlockCode, isNull);
+      expect(decoded.id, 'test-id-1');
+      expect(decoded.blockedAppPackages, ['com.twitter.android']);
+      expect(decoded.blockedWebsites, ['twitter.com']);
+      expect(decoded.unlockCode, 'abc123');
+      expect(decoded.failsafeMinutes, 60);
     });
 
     test('Profile.fromJson uses default failsafeMinutes when missing', () {
       final json = {
         'id': 'test-id',
-        'name': 'Test',
-        'iconCodePoint': 0xe7f5,
+        'name': 'Default',
         'blockedAppPackages': <String>[],
         'blockedWebsites': <String>[],
       };
@@ -62,100 +47,77 @@ void main() {
     });
   });
 
-  group('ProfileManager CRUD', () {
-    test('starts with default profile', () async {
+  group('ProfileManager single-profile model', () {
+    test('starts with default profile when no saved data', () async {
       final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
-      expect(manager.profiles.length, 1);
-      expect(manager.profiles.first.name, 'Default');
-      expect(manager.currentProfileId, isNotNull);
+      expect(manager.profile.name, 'Default');
+      expect(manager.profilesForBlocker, hasLength(1));
     });
 
-    test('addProfile creates new profile and sets it current', () async {
+    test('updateProfile mutates fields and persists', () async {
       final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
-      manager.addProfile(name: 'Work');
-
-      expect(manager.profiles.length, 2);
-      expect(manager.profiles.last.name, 'Work');
-      expect(manager.currentProfileId, manager.profiles.last.id);
-    });
-
-    test('deleteProfile removes profile and falls back to first', () async {
-      final manager = ProfileManager(prefs: prefs);
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
-
-      manager.addProfile(name: 'Work');
-      final workId = manager.profiles.last.id;
-
-      manager.deleteProfile(workId);
-
-      expect(manager.profiles.length, 1);
-      expect(manager.profiles.first.name, 'Default');
-    });
-
-    test('deleteProfile ensures default profile always exists', () async {
-      final manager = ProfileManager(prefs: prefs);
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
-
-      final defaultId = manager.profiles.first.id;
-      manager.deleteProfile(defaultId);
-
-      expect(manager.profiles.length, 1);
-      expect(manager.profiles.first.name, 'Default');
-    });
-
-    test('updateProfile modifies fields', () async {
-      final manager = ProfileManager(prefs: prefs);
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
-
-      final id = manager.profiles.first.id;
       manager.updateProfile(
-        id: id,
-        name: 'Updated',
         blockedAppPackages: ['com.test.app'],
         blockedWebsites: ['test.com'],
         failsafeMinutes: 30,
       );
 
-      final updated = manager.profiles.first;
-      expect(updated.name, 'Updated');
-      expect(updated.blockedAppPackages, ['com.test.app']);
-      expect(updated.blockedWebsites, ['test.com']);
-      expect(updated.failsafeMinutes, 30);
+      expect(manager.profile.blockedAppPackages, ['com.test.app']);
+      expect(manager.profile.blockedWebsites, ['test.com']);
+      expect(manager.profile.failsafeMinutes, 30);
+
+      // Reload to verify persistence.
+      final reloaded = ProfileManager(prefs: prefs);
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+      expect(reloaded.profile.blockedAppPackages, ['com.test.app']);
+      expect(reloaded.profile.failsafeMinutes, 30);
     });
 
-    test('findProfileByCode returns matching profile', () async {
+    test('findProfileByCode returns match', () async {
       final manager = ProfileManager(prefs: prefs);
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
-      final id = manager.profiles.first.id;
-      manager.updateProfile(id: id, unlockCode: 'secret-code');
+      manager.updateProfile(unlockCode: 'secret-code');
 
-      final found = manager.findProfileByCode('secret-code');
-      expect(found, isNotNull);
-      expect(found!.id, id);
-    });
-
-    test('findProfileByCode returns null for non-existent code', () async {
-      final manager = ProfileManager(prefs: prefs);
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
-
+      expect(manager.findProfileByCode('secret-code'), isNotNull);
       expect(manager.findProfileByCode('non-existent'), isNull);
+    });
+
+    test('collapses legacy multi-profile list to single profile', () async {
+      // Simulate persisted state from the previous multi-profile system.
+      SharedPreferences.setMockInitialValues({
+        kPrefSavedProfiles:
+            '[{"id":"a","name":"Default","lockStyleId":"small_sturdy","lockColorId":"grey","keyStyleId":"key_4","keyColorId":"gold","blockedAppPackages":[],"blockedWebsites":[],"unlockCode":null,"failsafeMinutes":1440},'
+            '{"id":"b","name":"Work","lockStyleId":"small_sturdy","lockColorId":"grey","keyStyleId":"key_4","keyColorId":"gold","blockedAppPackages":["com.work"],"blockedWebsites":[],"unlockCode":"work-code","failsafeMinutes":60}]',
+        kPrefCurrentProfileId: 'b',
+      });
+      final legacyPrefs = await SharedPreferences.getInstance();
+
+      final manager = ProfileManager(prefs: legacyPrefs);
+      await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+
+      // Currently-selected legacy profile is preserved.
+      expect(manager.profile.id, 'b');
+      expect(manager.profile.unlockCode, 'work-code');
+      // Legacy current-id key cleared, storage now single-profile JSON.
+      expect(legacyPrefs.getString(kPrefCurrentProfileId), isNull);
+      final saved = legacyPrefs.getString(kPrefSavedProfiles);
+      expect(saved, isNotNull);
+      expect(saved!.trimLeft().startsWith('{'), isTrue);
     });
   });
 
   group('ProfileManager legacy migration', () {
-    test('migrates savedCodeValue to default profile unlockCode', () async {
+    test('migrates savedCodeValue to profile unlockCode', () async {
       SharedPreferences.setMockInitialValues({
         'savedCodeValue': 'legacy-code-123',
       });
@@ -166,8 +128,7 @@ void main() {
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
-      expect(manager.profiles.first.unlockCode, 'legacy-code-123');
-
+      expect(manager.profile.unlockCode, 'legacy-code-123');
       expect(legacyPrefs.getString('savedCodeValue'), isNull);
     });
   });

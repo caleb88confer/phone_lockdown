@@ -5,6 +5,7 @@ import 'services/app_blocker_service.dart';
 import 'services/master_key_service.dart';
 import 'services/platform_channel_service.dart';
 import 'services/profile_manager.dart';
+import 'services/unlocked_items_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'theme/app_theme.dart';
@@ -52,6 +53,7 @@ class PhoneLockdownApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileManager(prefs: prefs)),
         ChangeNotifierProvider<AppBlockerService>.value(value: appBlocker),
         ChangeNotifierProvider<MasterKeyService>.value(value: masterKey),
+        ChangeNotifierProvider(create: (_) => UnlockedItemsService()),
       ],
       child: MaterialApp(
         title: 'Phone Lockdown',
