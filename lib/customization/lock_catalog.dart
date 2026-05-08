@@ -26,6 +26,9 @@ class LockStyle {
   final double displayScale;
   // Per-frame duration in ms. Null falls back to kDefaultLockFrameMs.
   final int? frameMs;
+  // Vertical paint offset as a fraction of rendered height. Negative shifts
+  // the sprite up, positive shifts it down. Layout footprint is unaffected.
+  final double centerOffsetY;
 
   const LockStyle({
     required this.id,
@@ -38,6 +41,7 @@ class LockStyle {
     required this.colors,
     this.displayScale = 1.0,
     this.frameMs,
+    this.centerOffsetY = 0.0,
   });
 
   String spritesheetPath(String colorId) =>

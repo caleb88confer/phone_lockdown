@@ -26,6 +26,11 @@ class KeyStyle {
   final double displayScale;
   // Per-frame duration in ms. Null falls back to kDefaultKeyFrameMs.
   final int? frameMs;
+  // Vertical paint offset as a fraction of rendered height. Negative shifts
+  // the sprite up, positive shifts it down. Layout footprint is unaffected.
+  // Use to compensate for sprites whose visible glyph isn't centered in
+  // their canvas (e.g. when particle padding is on one side).
+  final double centerOffsetY;
 
   const KeyStyle({
     required this.id,
@@ -37,6 +42,7 @@ class KeyStyle {
     required this.colors,
     this.displayScale = 1.0,
     this.frameMs,
+    this.centerOffsetY = 0.0,
   });
 
   String spritesheetPath(String colorId) =>
@@ -58,7 +64,7 @@ const _key8Colors = <KeyColorOption>[_gold, _silver, _grey, _curse];
 
 const kKeyCatalog = <KeyStyle>[
   KeyStyle(id: 'key_4', displayName: 'Key 4', animated: true,
-      frameCount: 5, frameWidth: 14, frameHeight: 27, colors: _standardColors),
+      frameCount: 5, frameWidth: 14, frameHeight: 27, colors: _standardColors, frameMs: 150),
   KeyStyle(id: 'key_1', displayName: 'Key 1', animated: false,
       frameCount: 1, frameWidth: 10, frameHeight: 28, colors: _standardColors),
   KeyStyle(id: 'key_2', displayName: 'Key 2', animated: true,
@@ -73,7 +79,7 @@ const kKeyCatalog = <KeyStyle>[
       frameCount: 28, frameWidth: 17, frameHeight: 29, colors: _standardColors),
   KeyStyle(id: 'key_8', displayName: 'Key 8', animated: true,
       frameCount: 27, frameWidth: 21, frameHeight: 47, colors: _key8Colors,
-      displayScale: 47 / 28),
+      displayScale: 1.6),
   KeyStyle(id: 'key_9', displayName: 'Key 9', animated: false,
       frameCount: 1, frameWidth: 9, frameHeight: 30, colors: _standardColors),
   KeyStyle(id: 'key_10', displayName: 'Key 10', animated: false,
@@ -87,7 +93,7 @@ const kKeyCatalog = <KeyStyle>[
   KeyStyle(id: 'key_14', displayName: 'Key 14', animated: false,
       frameCount: 1, frameWidth: 10, frameHeight: 27, colors: _standardColors),
   KeyStyle(id: 'key_15', displayName: 'Key 15', animated: true,
-      frameCount: 48, frameWidth: 15, frameHeight: 29, colors: _standardColors),
+      frameCount: 48, frameWidth: 15, frameHeight: 29, frameMs: 100, colors: _standardColors),
 ];
 
 const kDefaultKeyStyleId = 'key_4';

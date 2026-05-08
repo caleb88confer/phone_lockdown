@@ -56,26 +56,32 @@ class LockStyleColorPicker extends StatelessWidget {
                           fill: AppColors.surfaceContainerLow,
                           opacity: 0.4,
                         ),
-                  child: isSelected
-                      ? AnimatedSprite(
-                          key: ValueKey('lock-anim-${style.id}'),
-                          assetPath: assetPath,
-                          frameWidth: style.frameWidth,
-                          frameHeight: style.frameHeight,
-                          frameCount: style.frameCount,
-                          startFrame: 0,
-                          endFrame: style.frameCount - 1,
-                          duration: style.durationFor(style.frameCount),
-                          loop: true,
-                          size: 44 * style.displayScale,
-                        )
-                      : SpriteFrame(
-                          assetPath: assetPath,
-                          frameWidth: style.frameWidth,
-                          frameHeight: style.frameHeight,
-                          frameIndex: style.lockedFrame,
-                          size: 44 * style.displayScale,
-                        ),
+                  child: Transform.translate(
+                    offset: Offset(
+                      0,
+                      44 * style.displayScale * style.centerOffsetY,
+                    ),
+                    child: isSelected
+                        ? AnimatedSprite(
+                            key: ValueKey('lock-anim-${style.id}'),
+                            assetPath: assetPath,
+                            frameWidth: style.frameWidth,
+                            frameHeight: style.frameHeight,
+                            frameCount: style.frameCount,
+                            startFrame: 0,
+                            endFrame: style.frameCount - 1,
+                            duration: style.durationFor(style.frameCount),
+                            loop: true,
+                            size: 44 * style.displayScale,
+                          )
+                        : SpriteFrame(
+                            assetPath: assetPath,
+                            frameWidth: style.frameWidth,
+                            frameHeight: style.frameHeight,
+                            frameIndex: style.lockedFrame,
+                            size: 44 * style.displayScale,
+                          ),
+                  ),
                 ),
               );
             },
@@ -99,12 +105,18 @@ class LockStyleColorPicker extends StatelessWidget {
                         fill: AppColors.surfaceContainerLow,
                         opacity: 0.4,
                       ),
-                child: SpriteFrame(
-                  assetPath: selectedStyle.spritesheetPath(c.id),
-                  frameWidth: selectedStyle.frameWidth,
-                  frameHeight: selectedStyle.frameHeight,
-                  frameIndex: selectedStyle.lockedFrame,
-                  size: 44 * selectedStyle.displayScale,
+                child: Transform.translate(
+                  offset: Offset(
+                    0,
+                    44 * selectedStyle.displayScale * selectedStyle.centerOffsetY,
+                  ),
+                  child: SpriteFrame(
+                    assetPath: selectedStyle.spritesheetPath(c.id),
+                    frameWidth: selectedStyle.frameWidth,
+                    frameHeight: selectedStyle.frameHeight,
+                    frameIndex: selectedStyle.lockedFrame,
+                    size: 44 * selectedStyle.displayScale,
+                  ),
                 ),
               ),
             );

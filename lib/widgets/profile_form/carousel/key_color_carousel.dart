@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../customization/key_catalog.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/bevel.dart';
-import '../../sprite_sheet.dart';
+import '../../key_display.dart';
 import 'sprite_carousel.dart';
 
 class KeyColorCarousel extends StatelessWidget {
@@ -51,12 +51,11 @@ class KeyColorCarousel extends StatelessWidget {
                   fill: AppColors.surfaceContainerLow,
                   opacity: 0.4,
                 ),
-          child: SpriteFrame(
-            assetPath: style.spritesheetPath(color.id),
-            frameWidth: style.frameWidth,
-            frameHeight: style.frameHeight,
-            frameIndex: 0,
-            size: 36 * style.displayScale,
+          child: KeyDisplay(
+            style: style,
+            color: color,
+            size: 36,
+            staticFrame: 0,
           ),
         );
       },

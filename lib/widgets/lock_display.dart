@@ -53,9 +53,10 @@ class _LockDisplayState extends State<LockDisplay> {
     final assetPath = s.spritesheetPath(widget.color.id);
     final renderSize = widget.size * s.displayScale;
 
+    final Widget sprite;
     if (_animating) {
       final framesPlayed = (_endFrame - _startFrame).abs() + 1;
-      return AnimatedSprite(
+      sprite = AnimatedSprite(
         assetPath: assetPath,
         frameWidth: s.frameWidth,
         frameHeight: s.frameHeight,
@@ -68,16 +69,20 @@ class _LockDisplayState extends State<LockDisplay> {
           if (mounted) setState(() => _animating = false);
         },
       );
+    } else {
+      final restingFrame =
+          widget.isBlocking ? s.lockedFrame : s.unlockedFrame;
+      sprite = SpriteFrame(
+        assetPath: assetPath,
+        frameWidth: s.frameWidth,
+        frameHeight: s.frameHeight,
+        frameIndex: restingFrame,
+        size: renderSize,
+      );
     }
 
-    final restingFrame =
-        widget.isBlocking ? s.lockedFrame : s.unlockedFrame;
-    return SpriteFrame(
-      assetPath: assetPath,
-      frameWidth: s.frameWidth,
-      frameHeight: s.frameHeight,
-      frameIndex: restingFrame,
-      size: renderSize,
-    );
+    final dy = renderSize * s.centerOffsetY;
+    if (dy == 0) return sprite;
+    return Transform.translate(offset: Offset(0, dy), child: sprite);
   }
 }
