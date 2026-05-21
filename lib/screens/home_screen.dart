@@ -7,6 +7,7 @@ import '../services/app_blocker_service.dart';
 import '../services/profile_manager.dart';
 import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
+import '../utils/duration_format.dart';
 import '../widgets/block_button.dart';
 import '../widgets/stats_info_section.dart';
 import 'permissions_screen.dart';
@@ -240,6 +241,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         keyStyle,
                         p.keyColorId,
                       );
+                      final countdown = isBlocking
+                          ? formatDurationShort(
+                              appBlocker.getLock(p.id)?.remaining ??
+                                  Duration.zero,
+                            )
+                          : null;
                       return BlockButton(
                         isBlocking: isBlocking,
                         onTap: () => _onLockButtonTap(context),
@@ -247,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         lockColor: color,
                         keyStyle: keyStyle,
                         keyColor: keyColor,
+                        countdown: countdown,
                       );
                     },
                   ),

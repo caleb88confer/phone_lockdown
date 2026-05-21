@@ -13,6 +13,9 @@ class BlockButton extends StatelessWidget {
   final KeyStyle? keyStyle;
   final KeyColorOption? keyColor;
 
+  /// Live "time till unlock" countdown, shown only while blocking.
+  final String? countdown;
+
   const BlockButton({
     super.key,
     required this.isBlocking,
@@ -21,6 +24,7 @@ class BlockButton extends StatelessWidget {
     required this.lockColor,
     this.keyStyle,
     this.keyColor,
+    this.countdown,
   });
 
   @override
@@ -58,6 +62,28 @@ class BlockButton extends StatelessWidget {
               ),
             ),
           ] else if (keyStyle != null && keyColor != null) ...[
+            if (countdown != null) ...[
+              Text(
+                'TIME TILL UNLOCK',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                countdown!,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 30,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
             SizedBox(
               height: spriteSize,
               width: spriteSize,

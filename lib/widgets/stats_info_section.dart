@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../customization/key_catalog.dart';
+import '../customization/lock_catalog.dart';
 import '../services/app_blocker_service.dart';
 import '../services/master_key_service.dart';
 import '../services/profile_manager.dart';
@@ -9,7 +9,7 @@ import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
 import '../utils/app_logger.dart';
 import '../utils/duration_format.dart';
-import '../widgets/key_display.dart';
+import '../widgets/lock_display.dart';
 import 'profile_form/profile_form_dialog.dart';
 
 class StatsInfoSection extends StatelessWidget {
@@ -111,18 +111,9 @@ class StatsInfoSection extends StatelessWidget {
       >(
         builder: (context, appBlocker, profileManager, masterKey, unlocked, _) {
           final profile = profileManager.profile;
-          final keyStyle = keyStyleById(profile.keyStyleId);
-          final keyColor = keyColorForRender(keyStyle, profile.keyColorId);
-
-          // When locked, swap "total locked" for the live countdown.
+          final lockStyle = lockStyleById(profile.lockStyleId);
+          final lockColor = lockColorById(lockStyle, profile.lockColorId);
           final isLocked = appBlocker.isBlocking;
-          final lock = isLocked
-              ? appBlocker.getLock(profile.id)
-              : null;
-          final timeLabel = isLocked ? 'TIME TILL UNLOCK' : 'TOTAL LOCKED';
-          final timeValue = isLocked
-              ? formatDurationShort(lock?.remaining ?? Duration.zero)
-              : formatDurationShort(masterKey.totalLockdown);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,9 +150,10 @@ class StatsInfoSection extends StatelessWidget {
                     Expanded(
                       flex: 4,
                       child: Center(
-                        child: KeyDisplay(
-                          style: keyStyle,
-                          color: keyColor,
+                        child: LockDisplay(
+                          style: lockStyle,
+                          color: lockColor,
+                          isBlocking: isLocked,
                           size: 110,
                         ),
                       ),
@@ -172,7 +164,10 @@ class StatsInfoSection extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _StatRow(label: timeLabel, value: timeValue),
+                          _StatRow(
+                            label: 'TOTAL LOCKED',
+                            value: formatDurationShort(masterKey.totalLockdown),
+                          ),
                           const SizedBox(height: 12),
                           _StatRow(
                             label: 'MASTER KEYS',
