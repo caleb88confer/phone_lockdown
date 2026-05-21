@@ -38,8 +38,8 @@ class _LockDisplayState extends State<LockDisplay> {
   void _triggerTransition(bool from, bool to) {
     final s = widget.style;
     if (s.hasDistinctStates) {
-      _startFrame = from ? s.lockedFrame : s.unlockedFrame;
-      _endFrame = to ? s.lockedFrame : s.unlockedFrame;
+      _startFrame = from ? s.lockedFrame : s.openFrame;
+      _endFrame = to ? s.lockedFrame : s.openFrame;
     } else {
       _startFrame = 0;
       _endFrame = s.frameCount - 1;
@@ -70,7 +70,7 @@ class _LockDisplayState extends State<LockDisplay> {
         },
       );
     } else {
-      final restingFrame = widget.isBlocking ? s.lockedFrame : s.unlockedFrame;
+      final restingFrame = widget.isBlocking ? s.lockedFrame : s.openFrame;
       sprite = SpriteFrame(
         assetPath: assetPath,
         frameWidth: s.frameWidth,

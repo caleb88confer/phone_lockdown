@@ -49,6 +49,11 @@ class LockStyle {
 
   bool get hasDistinctStates => unlockedFrame != lockedFrame;
 
+  /// Every lock sheet animates closed -> open -> closed, so the most-open
+  /// pose sits at the middle frame. Used to render the resting "unlocked"
+  /// look regardless of how many frames a given lock has.
+  int get openFrame => frameCount ~/ 2;
+
   Duration durationFor(int framesPlayed) =>
       Duration(milliseconds: (frameMs ?? kDefaultLockFrameMs) * framesPlayed);
 }
