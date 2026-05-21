@@ -31,19 +31,17 @@ class _LockDisplayState extends State<LockDisplay> {
     if (oldWidget.isBlocking != widget.isBlocking ||
         oldWidget.style.id != widget.style.id ||
         oldWidget.color.id != widget.color.id) {
-      _triggerTransition(oldWidget.isBlocking, widget.isBlocking);
+      _triggerTransition(widget.isBlocking);
     }
   }
 
-  void _triggerTransition(bool from, bool to) {
+  void _triggerTransition(bool toBlocking) {
     final s = widget.style;
-    if (s.hasDistinctStates) {
-      _startFrame = from ? s.lockedFrame : s.openFrame;
-      _endFrame = to ? s.lockedFrame : s.openFrame;
-    } else {
-      _startFrame = 0;
-      _endFrame = s.frameCount - 1;
-    }
+    // Locking plays open->closed (second half of the sheet); unlocking plays
+    // closed->open (first half). Each lands on its matching resting pose.
+    final (start, end) = toBlocking ? s.closingRange : s.openingRange;
+    _startFrame = start;
+    _endFrame = end;
     setState(() => _animating = true);
   }
 

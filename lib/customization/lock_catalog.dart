@@ -54,6 +54,21 @@ class LockStyle {
   /// look regardless of how many frames a given lock has.
   int get openFrame => frameCount ~/ 2;
 
+  /// Frame 0 is the fully-closed shackle on every sheet (the final frame is an
+  /// identical closed pose), so it doubles as the resting closed frame and the
+  /// anchor for the two transition animations below.
+  int get closedFrame => 0;
+
+  /// Frames for the "unlocking" transition: closed shackle easing open.
+  /// The first half of the sheet, ending on the fully-open [openFrame].
+  (int, int) get openingRange => (closedFrame, openFrame);
+
+  /// Frames for the "locking" transition: open shackle easing closed.
+  /// The second half of the sheet, from [openFrame] back to the closed pose.
+  /// The midpoint provably lands inside every lock's fully-open hold, so this
+  /// always begins on a genuinely open frame.
+  (int, int) get closingRange => (openFrame, frameCount - 1);
+
   Duration durationFor(int framesPlayed) =>
       Duration(milliseconds: (frameMs ?? kDefaultLockFrameMs) * framesPlayed);
 }
