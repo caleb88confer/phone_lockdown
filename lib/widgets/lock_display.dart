@@ -70,8 +70,7 @@ class _LockDisplayState extends State<LockDisplay> {
         },
       );
     } else {
-      final restingFrame =
-          widget.isBlocking ? s.lockedFrame : s.unlockedFrame;
+      final restingFrame = widget.isBlocking ? s.lockedFrame : s.unlockedFrame;
       sprite = SpriteFrame(
         assetPath: assetPath,
         frameWidth: s.frameWidth,

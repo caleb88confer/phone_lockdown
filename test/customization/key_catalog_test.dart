@@ -18,9 +18,15 @@ void main() {
     test('falls back to first color when style has neither saved nor grey', () {
       // Synthetic style for the defensive branch.
       const style = KeyStyle(
-        id: 'synthetic', displayName: 'X', animated: false,
-        frameCount: 1, frameWidth: 1, frameHeight: 1,
-        colors: [KeyColorOption(id: 'rust', displayName: 'Rust', swatchColor: 0)],
+        id: 'synthetic',
+        displayName: 'X',
+        animated: false,
+        frameCount: 1,
+        frameWidth: 1,
+        frameHeight: 1,
+        colors: [
+          KeyColorOption(id: 'rust', displayName: 'Rust', swatchColor: 0),
+        ],
       );
       expect(renderColorIdFor(style, 'gold'), 'rust');
     });
@@ -42,9 +48,15 @@ void main() {
 
     test('returns 0 when neither saved color nor grey are present', () {
       const style = KeyStyle(
-        id: 'synthetic', displayName: 'X', animated: false,
-        frameCount: 1, frameWidth: 1, frameHeight: 1,
-        colors: [KeyColorOption(id: 'rust', displayName: 'Rust', swatchColor: 0)],
+        id: 'synthetic',
+        displayName: 'X',
+        animated: false,
+        frameCount: 1,
+        frameWidth: 1,
+        frameHeight: 1,
+        colors: [
+          KeyColorOption(id: 'rust', displayName: 'Rust', swatchColor: 0),
+        ],
       );
       expect(colorCenterIndex(style, 'gold'), 0);
     });

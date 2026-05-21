@@ -81,7 +81,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
   void _scanUnlockCode() async {
     final keyStyle = keyStyleById(_keyStyleId);
     final keyColor = keyColorForRender(keyStyle, _keyColorId);
-    final scannedValue = await Navigator.of(context).push<String>(
+    final result = await Navigator.of(context).push<ScanResult>(
       MaterialPageRoute(
         builder: (_) => ScanScreen(
           title: 'Register Code',
@@ -92,10 +92,10 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
       ),
     );
 
-    if (!mounted || scannedValue == null) return;
+    if (!mounted || result == null || result.code == null) return;
 
     setState(() {
-      _unlockCode = scannedValue;
+      _unlockCode = result.code;
     });
   }
 

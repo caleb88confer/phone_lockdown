@@ -26,9 +26,8 @@ class _AppSelectorState extends State<AppSelector> {
     try {
       final selected = await Navigator.of(context).push<List<String>>(
         MaterialPageRoute(
-          builder: (_) => AppPickerScreen(
-            initialSelected: widget.blockedAppPackages,
-          ),
+          builder: (_) =>
+              AppPickerScreen(initialSelected: widget.blockedAppPackages),
         ),
       );
       if (selected != null) {
@@ -49,9 +48,9 @@ class _AppSelectorState extends State<AppSelector> {
         Text(
           'BLOCKED APPS',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         GestureDetector(

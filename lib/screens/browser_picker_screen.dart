@@ -94,8 +94,10 @@ class _BrowserPickerScreenState extends State<BrowserPickerScreen> {
                   hintText: 'Search apps...',
                   prefixIcon: Icon(Icons.search, color: AppColors.outline),
                   border: InputBorder.none,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
                 onChanged: (value) => setState(() => _searchQuery = value),
               ),
@@ -122,10 +124,7 @@ class _BrowserPickerScreenState extends State<BrowserPickerScreen> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
-          child: Text(
-            'No matching apps.',
-            textAlign: TextAlign.center,
-          ),
+          child: Text('No matching apps.', textAlign: TextAlign.center),
         ),
       );
     }
@@ -161,8 +160,10 @@ class _BrowserPickerScreenState extends State<BrowserPickerScreen> {
                 onPressed: () => Navigator.of(context).pop(app),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.onPrimaryContainer,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),

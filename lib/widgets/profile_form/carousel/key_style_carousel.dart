@@ -17,8 +17,9 @@ class KeyStyleCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex =
-        kKeyCatalog.indexWhere((s) => s.id == selectedStyleId).clamp(0, kKeyCatalog.length - 1);
+    final selectedIndex = kKeyCatalog
+        .indexWhere((s) => s.id == selectedStyleId)
+        .clamp(0, kKeyCatalog.length - 1);
 
     return SpriteCarousel<KeyStyle>(
       items: kKeyCatalog,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../customization/key_catalog.dart';
 import '../customization/lock_catalog.dart';
+import 'bobbing_sprite.dart';
 import 'key_display.dart';
 import 'lock_display.dart';
 
@@ -25,8 +26,7 @@ class BlockButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final lockSize = screenHeight / 5;
-    final keySize = lockSize / 2;
+    final spriteSize = screenHeight / 5;
 
     return GestureDetector(
       onTap: onTap,
@@ -34,7 +34,7 @@ class BlockButton extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (!isBlocking)
+          if (!isBlocking) ...[
             Text(
               'TAP TO LOCK',
               style: TextStyle(
@@ -44,33 +44,34 @@ class BlockButton extends StatelessWidget {
                 fontSize: 12,
               ),
             ),
-          if (!isBlocking) const SizedBox(height: 8),
-          SizedBox(
-            height: lockSize,
-            width: lockSize,
-            child: Center(
-              child: LockDisplay(
-                style: lockStyle,
-                color: lockColor,
-                isBlocking: isBlocking,
-                size: lockSize,
-              ),
-            ),
-          ),
-          if (isBlocking && keyStyle != null && keyColor != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             SizedBox(
-              height: keySize,
-              width: keySize,
+              height: spriteSize,
+              width: spriteSize,
               child: Center(
-                child: KeyDisplay(
-                  style: keyStyle!,
-                  color: keyColor!,
-                  size: keySize,
+                child: LockDisplay(
+                  style: lockStyle,
+                  color: lockColor,
+                  isBlocking: isBlocking,
+                  size: spriteSize,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+          ] else if (keyStyle != null && keyColor != null) ...[
+            SizedBox(
+              height: spriteSize,
+              width: spriteSize,
+              child: Center(
+                child: BobbingSprite(
+                  child: KeyDisplay(
+                    style: keyStyle!,
+                    color: keyColor!,
+                    size: spriteSize,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             Text(
               'TAP TO SCAN KEY',
               style: TextStyle(

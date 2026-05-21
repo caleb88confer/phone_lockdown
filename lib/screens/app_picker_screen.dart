@@ -61,7 +61,11 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
       appBar: AppBar(
         title: const Text(
           'SELECT APPS TO BLOCK',
-          style: TextStyle(letterSpacing: 1.0, fontWeight: FontWeight.w700, fontSize: 16),
+          style: TextStyle(
+            letterSpacing: 1.0,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -101,7 +105,10 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
                   hintText: 'Search apps...',
                   prefixIcon: Icon(Icons.search, color: AppColors.outline),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
                 onChanged: (value) => setState(() => _searchQuery = value),
               ),
@@ -141,8 +148,8 @@ class _AppPickerScreenState extends State<AppPickerScreen> {
           color: isSelected
               ? AppColors.primaryFixed.withValues(alpha: 0.3)
               : (index.isEven
-                  ? AppColors.surfaceContainerLow
-                  : AppColors.surface),
+                    ? AppColors.surfaceContainerLow
+                    : AppColors.surface),
           child: ListTile(
             leading: iconPath != null && File(iconPath).existsSync()
                 ? Image.file(File(iconPath), width: 40, height: 40)

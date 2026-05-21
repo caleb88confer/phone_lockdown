@@ -54,9 +54,9 @@ class _WebsiteEditorState extends State<WebsiteEditor> {
         Text(
           'BLOCKED WEBSITES',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -70,8 +70,10 @@ class _WebsiteEditorState extends State<WebsiteEditor> {
                   decoration: const InputDecoration(
                     hintText: 'e.g. youtube.com',
                     border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                   onSubmitted: (_) => _addWebsite(),
                 ),
@@ -109,7 +111,11 @@ class _WebsiteEditorState extends State<WebsiteEditor> {
                 ),
               ),
               trailing: IconButton(
-                icon: const Icon(Icons.close, size: 18, color: AppColors.outline),
+                icon: const Icon(
+                  Icons.close,
+                  size: 18,
+                  color: AppColors.outline,
+                ),
                 onPressed: () => _removeWebsite(website),
               ),
             ),

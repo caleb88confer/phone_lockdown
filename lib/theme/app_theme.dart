@@ -9,11 +9,19 @@ class AppTheme {
 
     return TextTheme(
       displayLarge: headline.displayLarge?.copyWith(color: AppColors.onSurface),
-      displayMedium: headline.displayMedium?.copyWith(color: AppColors.onSurface),
+      displayMedium: headline.displayMedium?.copyWith(
+        color: AppColors.onSurface,
+      ),
       displaySmall: headline.displaySmall?.copyWith(color: AppColors.onSurface),
-      headlineLarge: headline.headlineLarge?.copyWith(color: AppColors.onSurface),
-      headlineMedium: headline.headlineMedium?.copyWith(color: AppColors.onSurface),
-      headlineSmall: headline.headlineSmall?.copyWith(color: AppColors.onSurface),
+      headlineLarge: headline.headlineLarge?.copyWith(
+        color: AppColors.onSurface,
+      ),
+      headlineMedium: headline.headlineMedium?.copyWith(
+        color: AppColors.onSurface,
+      ),
+      headlineSmall: headline.headlineSmall?.copyWith(
+        color: AppColors.onSurface,
+      ),
       titleLarge: headline.titleLarge?.copyWith(color: AppColors.onSurface),
       titleMedium: body.titleMedium?.copyWith(color: AppColors.onSurface),
       titleSmall: body.titleSmall?.copyWith(color: AppColors.onSurface),
@@ -67,9 +75,7 @@ class AppTheme {
       cardTheme: const CardThemeData(
         color: AppColors.surfaceContainerLow,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: const InputDecorationTheme(
@@ -95,9 +101,7 @@ class AppTheme {
           backgroundColor: AppColors.primaryContainer,
           foregroundColor: AppColors.onPrimaryContainer,
           elevation: 0,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
@@ -108,18 +112,14 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceContainerHigh,
         selectedColor: AppColors.primaryContainer,
         labelStyle: textTheme.labelMedium!,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       ),
@@ -131,21 +131,15 @@ class AppTheme {
           return AppColors.surfaceContainerLowest;
         }),
         checkColor: WidgetStateProperty.all(AppColors.onPrimaryContainer),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
       dialogTheme: const DialogThemeData(
         backgroundColor: AppColors.surfaceContainerLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: AppColors.onSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         behavior: SnackBarBehavior.floating,
       ),
       dividerTheme: const DividerThemeData(

@@ -26,9 +26,11 @@ class FakePlatformService implements PlatformChannelService {
     required List<String> blockedWebsites,
     List<Map<String, dynamic>>? activeProfileBlocks,
   }) async {
-    calls.add('updateBlockingState(isBlocking=$isBlocking, '
-        'packages=${blockedPackages.length}, '
-        'websites=${blockedWebsites.length})');
+    calls.add(
+      'updateBlockingState(isBlocking=$isBlocking, '
+      'packages=${blockedPackages.length}, '
+      'websites=${blockedWebsites.length})',
+    );
   }
 
   @override
@@ -197,23 +199,26 @@ void main() {
       expect(service.activeProfileIds, isEmpty);
     });
 
-    test('multiple profiles stack — blocking continues until all deactivated', () async {
-      final service = createService();
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+    test(
+      'multiple profiles stack — blocking continues until all deactivated',
+      () async {
+        final service = createService();
+        await Future.delayed(Duration.zero);
+        await Future.delayed(Duration.zero);
 
-      final profiles = makeProfiles();
-      await service.activateProfile(profiles[0], allProfiles: profiles);
-      await service.activateProfile(profiles[1], allProfiles: profiles);
+        final profiles = makeProfiles();
+        await service.activateProfile(profiles[0], allProfiles: profiles);
+        await service.activateProfile(profiles[1], allProfiles: profiles);
 
-      expect(service.activeProfileIds.length, 2);
+        expect(service.activeProfileIds.length, 2);
 
-      await service.deactivateProfile('profile-1', allProfiles: profiles);
-      expect(service.isBlocking, isTrue);
+        await service.deactivateProfile('profile-1', allProfiles: profiles);
+        expect(service.isBlocking, isTrue);
 
-      await service.deactivateProfile('profile-2', allProfiles: profiles);
-      expect(service.isBlocking, isFalse);
-    });
+        await service.deactivateProfile('profile-2', allProfiles: profiles);
+        expect(service.isBlocking, isFalse);
+      },
+    );
 
     test('deactivateProfile returns false for non-existent profile', () async {
       final service = createService();
@@ -267,51 +272,54 @@ void main() {
   });
 
   group('AppBlockerService platform calls', () {
-    test('activateProfile calls updateBlockingState with merged packages', () async {
-      final service = createService();
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+    test(
+      'activateProfile calls updateBlockingState with merged packages',
+      () async {
+        final service = createService();
+        await Future.delayed(Duration.zero);
+        await Future.delayed(Duration.zero);
 
-      fakePlatform.calls.clear();
+        fakePlatform.calls.clear();
 
-      final profiles = makeProfiles();
-      await service.activateProfile(profiles[0], allProfiles: profiles);
+        final profiles = makeProfiles();
+        await service.activateProfile(profiles[0], allProfiles: profiles);
 
-      expect(
-        fakePlatform.calls,
-        contains(
-          'updateBlockingState(isBlocking=true, packages=1, websites=1)',
-        ),
-      );
-      expect(
-        fakePlatform.calls,
-        contains('scheduleFailsafeAlarm(profile-1)'),
-      );
-    });
+        expect(
+          fakePlatform.calls,
+          contains(
+            'updateBlockingState(isBlocking=true, packages=1, websites=1)',
+          ),
+        );
+        expect(
+          fakePlatform.calls,
+          contains('scheduleFailsafeAlarm(profile-1)'),
+        );
+      },
+    );
 
-    test('deactivateProfile calls updateBlockingState with empty lists when last profile', () async {
-      final service = createService();
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
+    test(
+      'deactivateProfile calls updateBlockingState with empty lists when last profile',
+      () async {
+        final service = createService();
+        await Future.delayed(Duration.zero);
+        await Future.delayed(Duration.zero);
 
-      final profiles = makeProfiles();
-      await service.activateProfile(profiles[0], allProfiles: profiles);
+        final profiles = makeProfiles();
+        await service.activateProfile(profiles[0], allProfiles: profiles);
 
-      fakePlatform.calls.clear();
+        fakePlatform.calls.clear();
 
-      await service.deactivateProfile('profile-1', allProfiles: profiles);
+        await service.deactivateProfile('profile-1', allProfiles: profiles);
 
-      expect(
-        fakePlatform.calls,
-        contains(
-          'updateBlockingState(isBlocking=false, packages=0, websites=0)',
-        ),
-      );
-      expect(
-        fakePlatform.calls,
-        contains('cancelFailsafeAlarm(profile-1)'),
-      );
-    });
+        expect(
+          fakePlatform.calls,
+          contains(
+            'updateBlockingState(isBlocking=false, packages=0, websites=0)',
+          ),
+        );
+        expect(fakePlatform.calls, contains('cancelFailsafeAlarm(profile-1)'));
+      },
+    );
   });
 
   group('AppBlockerService reconciliation', () {
@@ -328,9 +336,13 @@ void main() {
       });
       final reconPrefs = await SharedPreferences.getInstance();
       final reconPlatform = FakePlatformService();
-      reconPlatform.enforcementActiveProfileIds = []; // Android says nothing active
+      reconPlatform.enforcementActiveProfileIds =
+          []; // Android says nothing active
 
-      final service = AppBlockerService(platform: reconPlatform, prefs: reconPrefs);
+      final service = AppBlockerService(
+        platform: reconPlatform,
+        prefs: reconPrefs,
+      );
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 

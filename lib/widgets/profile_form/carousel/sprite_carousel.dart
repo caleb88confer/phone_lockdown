@@ -27,7 +27,13 @@ class SpriteCarousel<T> extends StatefulWidget {
   final bool sideFade;
   final bool centerBevel;
 
-  final Widget Function(BuildContext, T item, double centerness, double targetSize) itemBuilder;
+  final Widget Function(
+    BuildContext,
+    T item,
+    double centerness,
+    double targetSize,
+  )
+  itemBuilder;
 
   const SpriteCarousel({
     super.key,
@@ -90,7 +96,8 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
     // If the items list itself changed (length or contents), reset the
     // controller to the new selectedIndex. Compare lengths (cheap) and fall
     // back to identity check for in-place mutations.
-    final itemsChanged = oldWidget.items.length != widget.items.length ||
+    final itemsChanged =
+        oldWidget.items.length != widget.items.length ||
         !identical(oldWidget.items, widget.items);
 
     if (oldWidget.selectedIndex != widget.selectedIndex || itemsChanged) {
@@ -125,7 +132,8 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
     _currentPage = roundedPage;
 
     final rawIndex = roundedPage % widget.items.length;
-    final positiveIndex = (rawIndex + widget.items.length) % widget.items.length;
+    final positiveIndex =
+        (rawIndex + widget.items.length) % widget.items.length;
     if (positiveIndex != widget.selectedIndex) {
       HapticFeedback.selectionClick();
       widget.onSelectedChanged(positiveIndex);
@@ -156,7 +164,10 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
     if (reduce && _bobController.isAnimating) {
       _bobController.stop();
       _bobController.value = 0;
-    } else if (!reduce && widget.centerBob && widget.bobAmplitude > 0 && !_bobController.isAnimating) {
+    } else if (!reduce &&
+        widget.centerBob &&
+        widget.bobAmplitude > 0 &&
+        !_bobController.isAnimating) {
       _bobController.repeat();
     }
 
@@ -260,15 +271,16 @@ class _CarouselCell extends StatelessWidget {
         // Horizontal squish.
         double xScale = 1.0;
         if (sideSquish) {
-          xScale = 1.0 - 0.15 * d.clamp(0.0, 1.0) - 0.15 * (d - 1.0).clamp(0.0, 1.0);
+          xScale =
+              1.0 - 0.15 * d.clamp(0.0, 1.0) - 0.15 * (d - 1.0).clamp(0.0, 1.0);
         }
 
         // Bob: only the center-most cell actually moves; weight by centerness.
         final bobDy = bobAmplitude > 0
             ? (-bobAmplitude *
-                    math.sin(bobController.value * 2 * math.pi) *
-                    centerness)
-                .roundToDouble()
+                      math.sin(bobController.value * 2 * math.pi) *
+                      centerness)
+                  .roundToDouble()
             : 0.0;
 
         return GestureDetector(

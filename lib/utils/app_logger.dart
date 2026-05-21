@@ -8,6 +8,7 @@ class AppLogger {
       debugPrint('[$_prefix/$tag] WARNING: $msg');
   static void e(String tag, String msg, [Object? error]) {
     debugPrint(
-        '[$_prefix/$tag] ERROR: $msg${error != null ? ' ($error)' : ''}');
+      '[$_prefix/$tag] ERROR: $msg${error != null ? ' ($error)' : ''}',
+    );
   }
 }

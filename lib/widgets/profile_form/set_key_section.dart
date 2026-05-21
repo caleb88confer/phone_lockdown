@@ -37,9 +37,9 @@ class SetKeySection extends StatelessWidget {
         Text(
           'SET KEY',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -52,19 +52,11 @@ class SetKeySection extends StatelessWidget {
                   height: 32,
                   width: 32,
                   child: Center(
-                    child: KeyDisplay(
-                      style: style,
-                      color: color,
-                      size: 28,
-                    ),
+                    child: KeyDisplay(style: style, color: color, size: 28),
                   ),
                 )
               else
-                Icon(
-                  Icons.vpn_key_off,
-                  size: 20,
-                  color: AppColors.outline,
-                ),
+                Icon(Icons.vpn_key_off, size: 20, color: AppColors.outline),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -81,7 +73,11 @@ class SetKeySection extends StatelessWidget {
               ),
               if (unlockCode != null)
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: AppColors.outline),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 20,
+                    color: AppColors.outline,
+                  ),
                   onPressed: onClear,
                   tooltip: 'Clear code',
                 ),

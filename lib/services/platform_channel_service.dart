@@ -28,27 +28,30 @@ class MethodChannelPlatformService implements PlatformChannelService {
 
   @override
   Future<List<Map<String, dynamic>>> getInstalledApps() async {
-    final List<dynamic> result = await _channel.invokeMethod('getInstalledApps');
+    final List<dynamic> result = await _channel.invokeMethod(
+      'getInstalledApps',
+    );
     return result.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   @override
   Future<List<String>> getCustomBrowsers() async {
-    final List<dynamic> result = await _channel.invokeMethod('getCustomBrowsers');
+    final List<dynamic> result = await _channel.invokeMethod(
+      'getCustomBrowsers',
+    );
     return result.map((e) => e as String).toList();
   }
 
   @override
   Future<void> updateCustomBrowsers(List<String> packages) async {
-    await _channel.invokeMethod('updateCustomBrowsers', {
-      'packages': packages,
-    });
+    await _channel.invokeMethod('updateCustomBrowsers', {'packages': packages});
   }
 
   @override
   Future<Map<String, bool>> checkPermissions() async {
-    final Map<dynamic, dynamic> result =
-        await _channel.invokeMethod('checkPermissions');
+    final Map<dynamic, dynamic> result = await _channel.invokeMethod(
+      'checkPermissions',
+    );
     return result.map((k, v) => MapEntry(k as String, v as bool));
   }
 
@@ -102,8 +105,9 @@ class MethodChannelPlatformService implements PlatformChannelService {
 
   @override
   Future<Map<String, dynamic>> getEnforcementState() async {
-    final Map<dynamic, dynamic> result =
-        await _channel.invokeMethod('getEnforcementState');
+    final Map<dynamic, dynamic> result = await _channel.invokeMethod(
+      'getEnforcementState',
+    );
     return result.map((k, v) => MapEntry(k as String, v));
   }
 }

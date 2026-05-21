@@ -38,9 +38,9 @@ class FailsafeSelector extends StatelessWidget {
         Text(
           'FAILSAFE AUTO-UNLOCK',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -56,7 +56,10 @@ class FailsafeSelector extends StatelessWidget {
             return GestureDetector(
               onTap: () => onChanged(preset.minutes),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 color: isSelected
                     ? AppColors.primaryContainer
                     : AppColors.surfaceContainerHigh,

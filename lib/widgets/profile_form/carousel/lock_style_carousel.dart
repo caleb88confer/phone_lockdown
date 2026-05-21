@@ -17,8 +17,9 @@ class LockStyleCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedIndex =
-        kLockCatalog.indexWhere((s) => s.id == selectedStyleId).clamp(0, kLockCatalog.length - 1);
+    final selectedIndex = kLockCatalog
+        .indexWhere((s) => s.id == selectedStyleId)
+        .clamp(0, kLockCatalog.length - 1);
 
     return SpriteCarousel<LockStyle>(
       items: kLockCatalog,
@@ -39,13 +40,12 @@ class LockStyleCarousel extends StatelessWidget {
       centerBevel: false,
       itemBuilder: (context, style, centerness, targetSize) {
         final renderColorId = renderLockColorIdFor(style, selectedColorId);
-        final isSelected = style.id == selectedStyleId;
         return LockPickerSprite(
-          key: ValueKey('lockcar-${style.id}-$renderColorId-${isSelected ? 'on' : 'off'}'),
+          key: ValueKey('lockcar-${style.id}-$renderColorId'),
           style: style,
           color: lockColorById(style, renderColorId),
           size: targetSize,
-          playing: isSelected,
+          playing: style.id == selectedStyleId,
         );
       },
     );

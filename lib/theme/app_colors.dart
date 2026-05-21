@@ -26,6 +26,6 @@ class AppColors {
   static const outlineVariant = Color(0xFFD5C4AB);
 
   // App-specific backgrounds
-  static const blockingBackground = Color(0xFF3D1111);
-  static const nonBlockingBackground = Color(0xFF1A1E2C);
+  static const blockingBackground = Color(0xFF5B1A1A);
+  static const nonBlockingBackground = Color(0xFF3A4263);
 }

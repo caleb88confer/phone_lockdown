@@ -24,9 +24,9 @@ class SetLockSection extends StatelessWidget {
         Text(
           'SET LOCK',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 16),
         LockStyleCarousel(

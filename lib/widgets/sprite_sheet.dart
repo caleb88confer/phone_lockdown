@@ -101,11 +101,13 @@ class _SpritePainter extends CustomPainter {
     final src = Rect.fromLTWH(
       (frameIndex * frameWidth).toDouble(),
       0,
-      frameWidth.toDouble(),
+      frameWidth.toDouble() - 0.5,
       frameHeight.toDouble(),
     );
     final dst = Rect.fromLTWH(0, 0, size.width, size.height);
-    final paint = Paint()..filterQuality = FilterQuality.none;
+    final paint = Paint()
+      ..filterQuality = FilterQuality.none
+      ..isAntiAlias = false;
     canvas.drawImageRect(image, src, dst, paint);
   }
 
@@ -156,8 +158,10 @@ class _AnimatedSpriteState extends State<AnimatedSprite>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _frame = IntTween(begin: widget.startFrame, end: widget.endFrame)
-        .animate(_controller);
+    _frame = IntTween(
+      begin: widget.startFrame,
+      end: widget.endFrame,
+    ).animate(_controller);
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         if (widget.loop) {
@@ -178,8 +182,10 @@ class _AnimatedSpriteState extends State<AnimatedSprite>
         oldWidget.assetPath != widget.assetPath ||
         oldWidget.duration != widget.duration) {
       _controller.duration = widget.duration;
-      _frame = IntTween(begin: widget.startFrame, end: widget.endFrame)
-          .animate(_controller);
+      _frame = IntTween(
+        begin: widget.startFrame,
+        end: widget.endFrame,
+      ).animate(_controller);
       _controller.forward(from: 0);
     }
   }

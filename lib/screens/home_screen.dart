@@ -7,7 +7,6 @@ import '../services/app_blocker_service.dart';
 import '../services/profile_manager.dart';
 import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
-import '../utils/duration_format.dart';
 import '../widgets/block_button.dart';
 import '../widgets/stats_info_section.dart';
 import 'permissions_screen.dart';
@@ -53,11 +52,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (appBlocker.isBlocking) {
       _scanToUnlock(context);
     } else {
-      _manualLock(context);
+      _scanToLock(context);
     }
   }
 
-  Future<void> _manualLock(BuildContext context) async {
+  Future<void> _scanToLock(BuildContext context) async {
     final appBlocker = context.read<AppBlockerService>();
     final profileManager = context.read<ProfileManager>();
     final profile = profileManager.profile;
@@ -73,28 +72,31 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Lock Now?'),
-        content: Text(
-          'Failsafe: ${formatDurationShort(Duration(minutes: profile.failsafeMinutes))}\n\n'
-          'Scan your key to unlock early.',
+    final keyStyle = keyStyleById(profile.keyStyleId);
+    final keyColor = keyColorForRender(keyStyle, profile.keyColorId);
+
+    final result = await Navigator.of(context).push<ScanResult>(
+      MaterialPageRoute(
+        builder: (_) => ScanScreen(
+          title: 'Scan to Lock',
+          keyStyle: keyStyle,
+          keyColor: keyColor,
+          enableManualLock: true,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Lock'),
-          ),
-        ],
       ),
     );
 
-    if (!context.mounted || confirmed != true) return;
+    if (!context.mounted || result == null) return;
+
+    // Default path: a key was scanned — it must match the registered key.
+    if (!result.isManualLock && result.code != code) {
+      _showAlert(
+        context,
+        title: 'Code Not Recognized',
+        message: 'That code doesn\'t match your registered key.',
+      );
+      return;
+    }
 
     final error = await appBlocker.activateProfile(
       profile,
@@ -117,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final keyStyle = keyStyleById(p.keyStyleId);
     final keyColor = keyColorForRender(keyStyle, p.keyColorId);
 
-    final scannedValue = await Navigator.of(context).push<String>(
+    final result = await Navigator.of(context).push<ScanResult>(
       MaterialPageRoute(
         builder: (_) => ScanScreen(
           title: 'Scan to Unlock',
@@ -128,7 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (!context.mounted || scannedValue == null) return;
+    if (!context.mounted || result == null || result.code == null) return;
+    final scannedValue = result.code;
 
     if (p.unlockCode != scannedValue) {
       _showAlert(

@@ -70,7 +70,9 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
 
   Future<void> _persist(List<_BrowserEntry> next) async {
     final platform = context.read<PlatformChannelService>();
-    await platform.updateCustomBrowsers(next.map((b) => b.packageName).toList());
+    await platform.updateCustomBrowsers(
+      next.map((b) => b.packageName).toList(),
+    );
     if (!mounted) return;
     setState(() => _browsers = next);
   }
@@ -86,9 +88,9 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
             Text(
               'CUSTOM BROWSERS',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             Container(
               decoration: Bevel.raised(fill: AppColors.primaryContainer),
@@ -126,9 +128,9 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
             width: double.infinity,
             child: Text(
               'No custom browsers added. Tap + to add one.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
             ),
           )
         else
@@ -142,13 +144,10 @@ class _CustomBrowserEditorState extends State<CustomBrowserEditor> {
                   : AppColors.surfaceContainerLow,
               child: ListTile(
                 dense: true,
-                leading: browser.iconPath != null &&
+                leading:
+                    browser.iconPath != null &&
                         File(browser.iconPath!).existsSync()
-                    ? Image.file(
-                        File(browser.iconPath!),
-                        width: 32,
-                        height: 32,
-                      )
+                    ? Image.file(File(browser.iconPath!), width: 32, height: 32)
                     : const Icon(
                         Icons.public,
                         size: 32,
