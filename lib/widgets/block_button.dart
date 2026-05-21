@@ -53,11 +53,13 @@ class BlockButton extends StatelessWidget {
               height: spriteSize,
               width: spriteSize,
               child: Center(
-                child: LockDisplay(
-                  style: lockStyle,
-                  color: lockColor,
-                  isBlocking: isBlocking,
-                  size: spriteSize,
+                child: BobbingSprite(
+                  child: LockDisplay(
+                    style: lockStyle,
+                    color: lockColor,
+                    isBlocking: false,
+                    size: spriteSize,
+                  ),
                 ),
               ),
             ),
