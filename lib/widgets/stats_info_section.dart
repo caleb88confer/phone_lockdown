@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../customization/key_catalog.dart';
 import '../customization/lock_catalog.dart';
 import '../services/app_blocker_service.dart';
 import '../services/master_key_service.dart';
@@ -9,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
 import '../utils/app_logger.dart';
 import '../utils/duration_format.dart';
+import '../widgets/key_display.dart';
 import '../widgets/lock_display.dart';
 import 'profile_form/profile_form_dialog.dart';
 
@@ -113,6 +115,8 @@ class StatsInfoSection extends StatelessWidget {
           final profile = profileManager.profile;
           final lockStyle = lockStyleById(profile.lockStyleId);
           final lockColor = lockColorById(lockStyle, profile.lockColorId);
+          final keyStyle = keyStyleById(profile.keyStyleId);
+          final keyColor = keyColorForRender(keyStyle, profile.keyColorId);
           final isLocked = appBlocker.isBlocking;
 
           return Column(
@@ -150,12 +154,21 @@ class StatsInfoSection extends StatelessWidget {
                     Expanded(
                       flex: 4,
                       child: Center(
-                        child: LockDisplay(
-                          style: lockStyle,
-                          color: lockColor,
-                          isBlocking: isLocked,
-                          size: 110,
-                        ),
+                        // Inverse of the main window: when locked the main
+                        // window shows the key, so stats shows the lock — and
+                        // vice versa when unlocked.
+                        child: isLocked
+                            ? LockDisplay(
+                                style: lockStyle,
+                                color: lockColor,
+                                isBlocking: true,
+                                size: 110,
+                              )
+                            : KeyDisplay(
+                                style: keyStyle,
+                                color: keyColor,
+                                size: 110,
+                              ),
                       ),
                     ),
                     Expanded(
