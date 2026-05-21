@@ -165,7 +165,7 @@ class StatsInfoSection extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _StatRow(
-                            label: 'TOTAL LOCKED',
+                            label: 'TOTAL TIME LOCKED',
                             value: formatDurationShort(masterKey.totalLockdown),
                           ),
                           const SizedBox(height: 12),
@@ -229,25 +229,13 @@ class _StatRow extends StatelessWidget {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            if (onTap != null) ...[
-              const SizedBox(width: 6),
-              Icon(
-                Icons.touch_app,
-                size: 12,
-                color: AppColors.primaryContainer,
-              ),
-            ],
-          ],
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface.withValues(alpha: 0.6),
+          ),
         ),
         const SizedBox(height: 2),
         Text(
