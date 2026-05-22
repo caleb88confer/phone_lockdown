@@ -18,5 +18,14 @@ const kMasterKeyMaxCount = 3;
 const kMasterKeyAwardMs = 40 * 60 * 60 * 1000; // 40 hours
 const kMasterKeyTickSeconds = 30;
 
+// Lock-landing explosion (pixel burst) tuning
+const kPrefExplosionSetupMode = 'explosionSetupMode';
+const kPrefExplosionCount = 'explosionCount';
+const kPrefExplosionSizeScale = 'explosionSizeScale';
+const kPrefExplosionSpread = 'explosionSpread';
+const kPrefExplosionSpinTurns = 'explosionSpinTurns';
+const kPrefExplosionDurationMs = 'explosionDurationMs';
+const kPrefExplosionColors = 'explosionColors'; // comma-separated palette indices
+
 // Defaults
 const kDefaultFailsafeMinutes = 1440;

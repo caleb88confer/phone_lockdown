@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/app_blocker_service.dart';
+import 'services/explosion_settings.dart';
 import 'services/master_key_service.dart';
 import 'services/platform_channel_service.dart';
 import 'services/profile_manager.dart';
@@ -53,6 +54,7 @@ class PhoneLockdownApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileManager(prefs: prefs)),
         ChangeNotifierProvider<AppBlockerService>.value(value: appBlocker),
         ChangeNotifierProvider<MasterKeyService>.value(value: masterKey),
+        ChangeNotifierProvider(create: (_) => ExplosionSettings(prefs: prefs)),
         ChangeNotifierProvider(create: (_) => UnlockedItemsService()),
       ],
       child: MaterialApp(

@@ -15,6 +15,9 @@ class PixelBurst extends StatefulWidget {
   /// Logical px per sprite pixel — each shard is 4x2 of these.
   final double shardPixel;
 
+  /// Maximum full rotations a shard makes over its flight (either direction).
+  final double spinTurns;
+
   final Duration duration;
   final int seed;
 
@@ -24,6 +27,7 @@ class PixelBurst extends StatefulWidget {
     this.count = 30,
     this.travel = 160,
     this.shardPixel = 4,
+    this.spinTurns = 2,
     this.duration = const Duration(milliseconds: 600),
     this.seed = 0,
   });
@@ -50,7 +54,7 @@ class _PixelBurstState extends State<PixelBurst>
         angle: angle,
         distance: widget.travel * (0.55 + rng.nextDouble() * 0.65),
         rotation: rng.nextDouble() * 2 * math.pi,
-        spin: (rng.nextDouble() * 2 - 1) * 4 * math.pi, // up to ~2 turns
+        spin: (rng.nextDouble() * 2 - 1) * widget.spinTurns * 2 * math.pi,
         color: widget.colors[rng.nextInt(widget.colors.length)],
         sizeJitter: 0.8 + rng.nextDouble() * 0.5,
       );

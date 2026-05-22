@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/explosion_settings.dart';
 import '../services/master_key_service.dart';
 import '../widgets/settings/custom_browser_editor.dart';
+import 'explosion_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -57,6 +59,35 @@ class SettingsScreen extends StatelessWidget {
                   const SnackBar(content: Text('Master keys reset — count=3')),
                 );
               },
+            ),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+            Consumer<ExplosionSettings>(
+              builder: (ctx, ex, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Explosion animation setup'),
+                    subtitle: const Text(
+                      'After a scan, keep the lock animation open with replay '
+                      'and tuning controls instead of returning home.',
+                    ),
+                    value: ex.setupMode,
+                    onChanged: (v) => ex.setupMode = v,
+                  ),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.tune, size: 18),
+                    label: const Text('Adjust explosion'),
+                    onPressed: () => Navigator.of(ctx).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ExplosionSettingsScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         );

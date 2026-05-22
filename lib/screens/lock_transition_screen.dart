@@ -1,20 +1,28 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../customization/lock_catalog.dart';
+import '../services/explosion_settings.dart';
 import '../theme/app_colors.dart';
+import '../theme/bevel.dart';
 import '../widgets/pixel_burst.dart';
 import '../widgets/sprite_sheet.dart';
+import 'explosion_settings_screen.dart';
 
 /// Full-screen flourish shown right after a successful key scan. It re-creates
 /// the home screen's lock (static — no idle bob), plays the lock/unlock sprite
 /// transition, then lands the moment with a white flash, a haptic tap, a small
-/// tilt, and a background-colour swap — making the lock/unlock feel deliberate.
+/// tilt, a pixel-shard burst, and a background-colour swap.
 ///
 /// The real blocking state change runs via [onApply] while this screen covers
 /// the home, so the home updates out of sight and is settled by the time we
 /// pop. [onApply] returns null on success or an error message; that error is
 /// handed back to the caller via [Navigator.pop].
+///
+/// When [ExplosionSettings.setupMode] is on, the screen does not auto-pop after
+/// the burst — it shows close / replay / adjust controls so the burst can be
+/// tuned and replayed without re-scanning (replays never re-run [onApply]).
 class LockTransitionScreen extends StatefulWidget {
   final LockStyle style;
   final LockColorOption color;
@@ -55,8 +63,10 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   late final Animation<double> _tilt;
 
   bool _playing = false;
-  bool _climaxed = false; // climax fired: flash overlay is now live
+  bool _climaxed = false; // climax fired: flash overlay + burst are now live
   bool _landed = false; // end colour shown, lock tilted
+  bool _showControls = false; // setup mode: controls visible after a play
+  int _replayCount = 0; // bumps each play so the burst widget remounts fresh
 
   @override
   void initState() {
@@ -86,15 +96,30 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   }
 
   Future<void> _run() async {
-    // Apply the real lock/unlock while we cover the home. On failure, bail out
-    // immediately and hand the error back to the caller to surface.
+    // Apply the real lock/unlock once while we cover the home. On failure, bail
+    // out immediately and hand the error back to the caller to surface.
     final error = await widget.onApply();
     if (!mounted) return;
     if (error != null) {
       Navigator.of(context).pop(error);
       return;
     }
+    await _playVisuals();
+  }
 
+  /// Resets to the start pose and plays the sprite transition. Used for the
+  /// first play and for the setup-mode replay button — it never touches
+  /// [onApply], so replays don't toggle the real lock again.
+  Future<void> _playVisuals() async {
+    _flashController.value = 0;
+    _tiltController.value = 0;
+    setState(() {
+      _replayCount++;
+      _playing = false;
+      _climaxed = false;
+      _landed = false;
+      _showControls = false;
+    });
     await Future.delayed(_startHold);
     if (!mounted) return;
     setState(() => _playing = true);
@@ -113,7 +138,20 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     _tiltController.forward(from: 0);
 
     await Future.delayed(_endHold);
-    if (mounted) Navigator.of(context).pop(null);
+    if (!mounted) return;
+    if (context.read<ExplosionSettings>().setupMode) {
+      setState(() => _showControls = true);
+    } else {
+      Navigator.of(context).pop(null);
+    }
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ExplosionSettingsScreen()),
+    );
+    if (!mounted) return;
+    _playVisuals(); // replay so the new values are visible immediately
   }
 
   @override
@@ -125,6 +163,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<ExplosionSettings>();
     final bg = _landed ? widget.endColor : widget.startColor;
     final screen = MediaQuery.of(context).size;
     final size = screen.height / 4;
@@ -158,14 +197,83 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
           if (_climaxed)
             Positioned.fill(
               child: PixelBurst(
-                colors: const [AppColors.primaryContainer, Colors.white],
-                count: 16,
-                travel: size * 1.15,
-                shardPixel: screen.width / 150,
-                duration: const Duration(milliseconds: 720),
+                key: ValueKey(_replayCount),
+                colors: settings.colors,
+                count: settings.count,
+                travel: size * 1.15 * settings.spread,
+                shardPixel: screen.width / 150 * settings.sizeScale,
+                spinTurns: settings.spinTurns,
+                duration: settings.duration,
               ),
             ),
+          if (settings.setupMode) _buildReadout(settings),
+          if (settings.setupMode && _showControls) _buildControls(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildReadout(ExplosionSettings s) {
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 12,
+      left: 16,
+      right: 16,
+      child: IgnorePointer(
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'count ${s.count}   ·   size ${s.sizeScale.toStringAsFixed(2)}×   ·   '
+              'spread ${s.spread.toStringAsFixed(2)}×   ·   '
+              'spin ${s.spinTurns.toStringAsFixed(2)}   ·   ${s.durationMs}ms',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControls() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: MediaQuery.of(context).padding.bottom + 40,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _circleButton(
+            Icons.close,
+            'Close',
+            () => Navigator.of(context).pop(null),
+          ),
+          const SizedBox(width: 24),
+          _circleButton(Icons.replay, 'Replay', () => _playVisuals()),
+          const SizedBox(width: 24),
+          _circleButton(Icons.tune, 'Adjust', () => _openSettings()),
+        ],
+      ),
+    );
+  }
+
+  Widget _circleButton(IconData icon, String tip, VoidCallback onTap) {
+    return Container(
+      decoration: Bevel.raised(fill: AppColors.surfaceContainerHigh),
+      child: IconButton(
+        icon: Icon(icon, size: 24),
+        tooltip: tip,
+        color: AppColors.onSurface,
+        onPressed: onTap,
       ),
     );
   }
