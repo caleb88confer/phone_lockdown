@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../customization/lock_catalog.dart';
+import '../theme/app_colors.dart';
 import '../widgets/pixel_burst.dart';
 import '../widgets/sprite_sheet.dart';
 
@@ -45,7 +46,8 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   // Beat showing the start pose before the lock moves, so the change registers.
   static const _startHold = Duration(milliseconds: 280);
   // Beat resting on the landed pose before returning to the home screen.
-  static const _endHold = Duration(milliseconds: 650);
+  // Must outlast the pixel burst so it isn't cut off mid-flight.
+  static const _endHold = Duration(milliseconds: 780);
 
   late final AnimationController _flashController;
   late final Animation<double> _flash;
@@ -156,9 +158,11 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
           if (_climaxed)
             Positioned.fill(
               child: PixelBurst(
-                colors: [Color(widget.color.swatchColor), Colors.white],
+                colors: const [AppColors.primaryContainer, Colors.white],
+                count: 16,
                 travel: size * 1.15,
-                shardPixel: screen.width / 110,
+                shardPixel: screen.width / 150,
+                duration: const Duration(milliseconds: 720),
               ),
             ),
         ],
