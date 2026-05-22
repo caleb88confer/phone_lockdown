@@ -10,6 +10,7 @@ import '../theme/bevel.dart';
 import '../utils/duration_format.dart';
 import '../widgets/block_button.dart';
 import '../widgets/stats_info_section.dart';
+import 'lock_transition_screen.dart';
 import 'permissions_screen.dart';
 import 'scan_screen.dart';
 import 'settings_screen.dart';
@@ -99,18 +100,28 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final error = await appBlocker.activateProfile(
-      profile,
-      allProfiles: profileManager.profilesForBlocker,
+    final lockStyle = lockStyleById(profile.lockStyleId);
+    final lockColor = lockColorForRender(lockStyle, profile.lockColorId);
+
+    final error = await Navigator.of(context).push<String?>(
+      _instantRoute(
+        LockTransitionScreen(
+          style: lockStyle,
+          color: lockColor,
+          toBlocking: true,
+          startColor: AppColors.nonBlockingBackground,
+          endColor: AppColors.blockingBackground,
+          onApply: () => appBlocker.activateProfile(
+            profile,
+            allProfiles: profileManager.profilesForBlocker,
+          ),
+        ),
+      ),
     );
     if (!context.mounted) return;
     if (error != null) {
       _showAlert(context, title: 'Cannot Activate Blocking', message: error);
-      return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Locked')));
   }
 
   Future<void> _scanToUnlock(BuildContext context) async {
@@ -143,17 +154,38 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final success = await appBlocker.deactivateProfile(
-      p.id,
-      allProfiles: profileManager.profilesForBlocker,
+    final lockStyle = lockStyleById(p.lockStyleId);
+    final lockColor = lockColorForRender(lockStyle, p.lockColorId);
+
+    await Navigator.of(context).push<String?>(
+      _instantRoute(
+        LockTransitionScreen(
+          style: lockStyle,
+          color: lockColor,
+          toBlocking: false,
+          startColor: AppColors.blockingBackground,
+          endColor: AppColors.nonBlockingBackground,
+          onApply: () async {
+            final ok = await appBlocker.deactivateProfile(
+              p.id,
+              allProfiles: profileManager.profilesForBlocker,
+            );
+            return ok ? null : 'Could not unlock.';
+          },
+        ),
+      ),
     );
-    if (!context.mounted) return;
-    if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Unlocked')));
-    }
   }
+
+  /// Pushes [page] with no route animation so it instantly covers the home —
+  /// the home's own state change happens hidden behind it, and the page reveals
+  /// the home (already settled) on pop without a slide.
+  PageRoute<T> _instantRoute<T>(Widget page) => PageRouteBuilder<T>(
+    opaque: true,
+    transitionDuration: Duration.zero,
+    reverseTransitionDuration: Duration.zero,
+    pageBuilder: (_, _, _) => page,
+  );
 
   void _showAlert(
     BuildContext context, {
