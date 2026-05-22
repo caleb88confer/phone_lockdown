@@ -181,6 +181,26 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
       backgroundColor: bg,
       body: Stack(
         children: [
+          // Burst sits at the back so shards never cover the lock; the lock is
+          // drawn over it, and the flash sits on top of both.
+          if (_climaxed)
+            Positioned.fill(
+              child: PixelBurst(
+                key: ValueKey(_replayCount),
+                colors: settings.colors,
+                count: settings.count,
+                travel: size * 1.15 * settings.explosionSpeed,
+                radius: settings.ringEnabled
+                    ? size * 1.15 * settings.radius
+                    : double.infinity,
+                shardPixel: lockPixel * settings.sizeScale,
+                sizeRandomizer: settings.sizeRandomizer,
+                spinRate: settings.spinRate,
+                spinRandomizer: settings.spinRandomizer,
+                speedRandomizer: settings.speedRandomizer,
+                duration: settings.duration,
+              ),
+            ),
           Positioned.fill(
             child: Center(
               child: AnimatedBuilder(
@@ -203,24 +223,6 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               ),
             ),
           ),
-          if (_climaxed)
-            Positioned.fill(
-              child: PixelBurst(
-                key: ValueKey(_replayCount),
-                colors: settings.colors,
-                count: settings.count,
-                travel: size * 1.15 * settings.explosionSpeed,
-                radius: settings.ringEnabled
-                    ? size * 1.15 * settings.radius
-                    : double.infinity,
-                shardPixel: lockPixel * settings.sizeScale,
-                sizeRandomizer: settings.sizeRandomizer,
-                spinRate: settings.spinRate,
-                spinRandomizer: settings.spinRandomizer,
-                speedRandomizer: settings.speedRandomizer,
-                duration: settings.duration,
-              ),
-            ),
           if (settings.setupMode) _buildReadout(settings),
           if (settings.setupMode && _showControls) _buildControls(),
         ],
