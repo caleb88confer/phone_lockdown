@@ -52,14 +52,16 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   late final Animation<double> _tilt;
 
   bool _playing = false;
-  bool _landed = false; // climax reached: end colour shown, lock tilted
+  bool _climaxed = false; // climax fired: flash overlay is now live
+  bool _landed = false; // end colour shown, lock tilted
 
   @override
   void initState() {
     super.initState();
 
-    // The flash starts near-opaque and fades, so the background colour swap
-    // underneath it is hidden — no blip of the wrong colour shows through.
+    // At the climax the overlay snaps to near-opaque (hiding the background
+    // colour swap underneath it) then fades out, revealing the new colour.
+    // It is not rendered at all before the climax — see [_climaxed] in build.
     _flashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 360),
@@ -96,11 +98,16 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   }
 
   Future<void> _onAnimationComplete() async {
-    if (!mounted || _landed) return;
+    if (!mounted || _climaxed) return;
     HapticFeedback.mediumImpact();
+    // Swap the colour and arm the flash in the same frame so the overlay (which
+    // starts near-opaque) hides the swap, then forward() fades it away.
+    setState(() {
+      _climaxed = true;
+      _landed = true;
+    });
     _flashController.forward(from: 0);
     _tiltController.forward(from: 0);
-    setState(() => _landed = true);
 
     await Future.delayed(_endHold);
     if (mounted) Navigator.of(context).pop(null);
@@ -137,7 +144,9 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               child: AnimatedBuilder(
                 animation: _flash,
                 builder: (_, _) => ColoredBox(
-                  color: Colors.white.withValues(alpha: _flash.value),
+                  color: Colors.white.withValues(
+                    alpha: _climaxed ? _flash.value : 0.0,
+                  ),
                 ),
               ),
             ),
