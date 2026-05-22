@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../customization/lock_catalog.dart';
+import '../widgets/pixel_burst.dart';
 import '../widgets/sprite_sheet.dart';
 
 /// Full-screen flourish shown right after a successful key scan. It re-creates
@@ -123,7 +124,8 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   @override
   Widget build(BuildContext context) {
     final bg = _landed ? widget.endColor : widget.startColor;
-    final size = MediaQuery.of(context).size.height / 4;
+    final screen = MediaQuery.of(context).size;
+    final size = screen.height / 4;
 
     return Scaffold(
       backgroundColor: bg,
@@ -151,6 +153,14 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               ),
             ),
           ),
+          if (_climaxed)
+            Positioned.fill(
+              child: PixelBurst(
+                colors: [Color(widget.color.swatchColor), Colors.white],
+                travel: size * 1.15,
+                shardPixel: screen.width / 110,
+              ),
+            ),
         ],
       ),
     );
