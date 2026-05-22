@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 /// then fade. Plays once when first built, so mount it at the moment you want
 /// the explosion (e.g. when a lock lands).
 ///
+/// An optional vanish ring ([radius]) caps how far shards travel: any shard
+/// that reaches it dissolves there, while shards that fall short fade out on
+/// the normal end-of-burst schedule.
+///
 /// The shard art lives in a horizontal sprite sheet of [_frameCount] square
 /// frames showing one shard turning through a full rotation. The sheet is pure
 /// white, so each shard is tinted to its swatch with a [BlendMode.modulate]
@@ -38,6 +42,13 @@ class PixelBurst extends StatefulWidget {
   /// (and matches the lock's pixel grid at size 1×), 1 = sizes fan out ±100%.
   final double sizeRandomizer;
 
+  /// Vanish ring, in logical px from the centre. A shard whose reach crosses
+  /// this radius stops there and begins dissolving the instant it arrives,
+  /// fading over [_fadeFraction] of the burst — the same fade shards get at the
+  /// end. Shards that never reach the ring fade on the normal end-of-burst
+  /// schedule. Pass [double.infinity] (the default) to disable the ring.
+  final double radius;
+
   final Duration duration;
   final int seed;
 
@@ -51,6 +62,7 @@ class PixelBurst extends StatefulWidget {
     this.spinRandomizer = 0,
     this.speedRandomizer = 0,
     this.sizeRandomizer = 0,
+    this.radius = double.infinity,
     this.duration = const Duration(milliseconds: 600),
     this.seed = 0,
   });
@@ -64,6 +76,12 @@ class PixelBurst extends StatefulWidget {
 const String _shardAsset = 'assets/sprites/rotating_shard.png';
 const int _frameSize = 5;
 const int _frameCount = 8;
+
+// A shard holds full opacity, then fades out over the final [_fadeFraction] of
+// its life — whether that life ends at the burst's end (the default) or early,
+// the moment it reaches the vanish ring.
+const double _fadeFraction = 0.35;
+const double _timeFadeStart = 1.0 - _fadeFraction;
 
 /// A per-shard multiplier centred on 1.0: with [randomizer] 0 it is always 1.0
 /// (uniform), and as it grows the result fans out symmetrically over
@@ -92,9 +110,23 @@ class _PixelBurstState extends State<PixelBurst>
       // Spread directions evenly around the circle, then jitter within a slice
       // so the burst reads as radial but not mechanically regular.
       final angle = i * slice + (rng.nextDouble() - 0.5) * slice;
+      final distance = widget.travel * _deviate(rng, widget.speedRandomizer);
+
+      // Does this shard's reach cross the vanish ring? If so, it stops at the
+      // ring and starts fading the moment it arrives; otherwise it travels its
+      // full distance and fades on the normal end-of-burst schedule. eased(t)
+      // is easeOutCubic, so the crossing time inverts to 1 - cbrt(1 - r).
+      final hitsRing = widget.radius < distance;
+      final clampDistance = hitsRing ? widget.radius : double.infinity;
+      final fadeStart = hitsRing
+          ? 1 - math.pow(1 - widget.radius / distance, 1 / 3).toDouble()
+          : _timeFadeStart;
+
       return _Shard(
         angle: angle,
-        distance: widget.travel * _deviate(rng, widget.speedRandomizer),
+        distance: distance,
+        clampDistance: clampDistance,
+        fadeStart: fadeStart,
         startFrame: rng.nextInt(_frameCount),
         // Total frames advanced over the flight, signed for spin direction.
         spinFrames: (rng.nextBool() ? 1 : -1) *
@@ -154,6 +186,8 @@ class _PixelBurstState extends State<PixelBurst>
 class _Shard {
   final double angle; // travel direction
   final double distance; // max travel distance
+  final double clampDistance; // travel is capped here (the ring), or infinity
+  final double fadeStart; // progress (0..1) at which this shard begins fading
   final int startFrame; // initial sprite frame
   final double spinFrames; // total frames advanced over the burst (signed)
   final Color color;
@@ -162,6 +196,8 @@ class _Shard {
   const _Shard({
     required this.angle,
     required this.distance,
+    required this.clampDistance,
+    required this.fadeStart,
     required this.startFrame,
     required this.spinFrames,
     required this.color,
@@ -187,13 +223,17 @@ class _BurstPainter extends CustomPainter {
     if (t >= 1.0) return;
     final center = Offset(size.width / 2, size.height / 2);
     final eased = Curves.easeOutCubic.transform(t); // fast out, then settle
-    // Hold full opacity, then fade over the last 35%.
-    final fade = t < 0.65 ? 1.0 : (1 - (t - 0.65) / 0.35).clamp(0.0, 1.0);
 
     for (final s in shards) {
-      final d = s.distance * eased;
+      final d = math.min(s.distance * eased, s.clampDistance);
       final pos = center + Offset(math.cos(s.angle), math.sin(s.angle)) * d;
       final side = _frameSize * shardPixel * s.sizeJitter;
+
+      // Hold full opacity, then fade over [_fadeFraction] from this shard's
+      // start — the burst end for most, the ring crossing for those that reach.
+      final fade = t < s.fadeStart
+          ? 1.0
+          : (1 - (t - s.fadeStart) / _fadeFraction).clamp(0.0, 1.0);
 
       // Advance through the sheet for the spin; wrap into [0, _frameCount).
       final frame =

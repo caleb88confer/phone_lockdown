@@ -73,6 +73,17 @@ class ExplosionSettingsScreen extends StatelessWidget {
                 onChanged: (v) => s.speedRandomizer = v,
               ),
               _Slider(
+                label: 'Vanish radius',
+                valueLabel: s.ringEnabled
+                    ? '${s.radius.toStringAsFixed(2)}×'
+                    : 'off',
+                value: s.radius,
+                min: ExplosionSettings.radiusMin,
+                max: ExplosionSettings.radiusMax,
+                divisions: 25,
+                onChanged: (v) => s.radius = v,
+              ),
+              _Slider(
                 label: 'Spin rate',
                 valueLabel: '${s.spinTurns.toStringAsFixed(2)} turns',
                 value: s.spinTurns,

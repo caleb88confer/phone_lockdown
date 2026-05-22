@@ -25,6 +25,7 @@ const kPrefExplosionSizeScale = 'explosionSizeScale';
 const kPrefExplosionSizeRandom = 'explosionSizeRandom'; // per-shard size deviation
 const kPrefExplosionSpeed = 'explosionSpeed'; // standard outward speed (was 'spread')
 const kPrefExplosionSpeedRandom = 'explosionSpeedRandom'; // per-shard speed deviation
+const kPrefExplosionRadius = 'explosionRadius'; // vanish-ring distance (× of base reach)
 const kPrefExplosionSpinTurns = 'explosionSpinTurns';
 const kPrefExplosionSpinRandom = 'explosionSpinRandom'; // per-shard spin deviation
 const kPrefExplosionDurationMs = 'explosionDurationMs';

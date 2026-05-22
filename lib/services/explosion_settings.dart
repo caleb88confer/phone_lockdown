@@ -33,6 +33,7 @@ class ExplosionSettings extends ChangeNotifier {
   double _sizeRandomizer;
   double _explosionSpeed;
   double _speedRandomizer;
+  double _radius;
   double _spinTurns;
   double _spinRandomizer;
   int _durationMs;
@@ -46,6 +47,11 @@ class ExplosionSettings extends ChangeNotifier {
   // Non-zero so the default burst keeps a natural spread of reach; spin starts
   // uniform (the original burst spun every shard at the same rate).
   static const _defaultSpeedRandom = 0.3;
+  // Vanish-ring distance, as a multiple of the base reach. At [radiusMax] the
+  // ring is "off" (no cap), which is the default so the original burst is kept.
+  static const radiusMin = 0.5;
+  static const radiusMax = 3.0;
+  static const _defaultRadius = radiusMax;
   static const _defaultSpinTurns = 2.0;
   static const _defaultSpinRandom = 0.0;
   static const _defaultDurationMs = 720;
@@ -64,6 +70,7 @@ class ExplosionSettings extends ChangeNotifier {
           _defaultExplosionSpeed,
       _speedRandomizer =
           prefs.getDouble(kPrefExplosionSpeedRandom) ?? _defaultSpeedRandom,
+      _radius = prefs.getDouble(kPrefExplosionRadius) ?? _defaultRadius,
       _spinTurns =
           prefs.getDouble(kPrefExplosionSpinTurns) ?? _defaultSpinTurns,
       _spinRandomizer =
@@ -87,6 +94,12 @@ class ExplosionSettings extends ChangeNotifier {
   double get sizeRandomizer => _sizeRandomizer;
   double get explosionSpeed => _explosionSpeed;
   double get speedRandomizer => _speedRandomizer;
+  double get radius => _radius;
+
+  /// Whether the vanish ring is active. At [radiusMax] it is "off" — shards
+  /// travel their full distance and fade only at the burst's end.
+  bool get ringEnabled => _radius < radiusMax;
+
   double get spinTurns => _spinTurns;
   double get spinRandomizer => _spinRandomizer;
   int get durationMs => _durationMs;
@@ -146,6 +159,14 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  set radius(double v) {
+    final c = v.clamp(radiusMin, radiusMax).toDouble();
+    if (_radius == c) return;
+    _radius = c;
+    _prefs.setDouble(kPrefExplosionRadius, c);
+    notifyListeners();
+  }
+
   set spinTurns(double v) {
     final c = v.clamp(0.0, 6.0).toDouble();
     if (_spinTurns == c) return;
@@ -189,6 +210,7 @@ class ExplosionSettings extends ChangeNotifier {
     _sizeRandomizer = _defaultSizeRandom;
     _explosionSpeed = _defaultExplosionSpeed;
     _speedRandomizer = _defaultSpeedRandom;
+    _radius = _defaultRadius;
     _spinTurns = _defaultSpinTurns;
     _spinRandomizer = _defaultSpinRandom;
     _durationMs = _defaultDurationMs;
@@ -198,6 +220,7 @@ class ExplosionSettings extends ChangeNotifier {
     _prefs.setDouble(kPrefExplosionSizeRandom, _sizeRandomizer);
     _prefs.setDouble(kPrefExplosionSpeed, _explosionSpeed);
     _prefs.setDouble(kPrefExplosionSpeedRandom, _speedRandomizer);
+    _prefs.setDouble(kPrefExplosionRadius, _radius);
     _prefs.setDouble(kPrefExplosionSpinTurns, _spinTurns);
     _prefs.setDouble(kPrefExplosionSpinRandom, _spinRandomizer);
     _prefs.setInt(kPrefExplosionDurationMs, _durationMs);

@@ -206,6 +206,9 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
                 colors: settings.colors,
                 count: settings.count,
                 travel: size * 1.15 * settings.explosionSpeed,
+                radius: settings.ringEnabled
+                    ? size * 1.15 * settings.radius
+                    : double.infinity,
                 shardPixel: lockPixel * settings.sizeScale,
                 sizeRandomizer: settings.sizeRandomizer,
                 spinTurns: settings.spinTurns,
@@ -237,6 +240,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
             child: Text(
               'count ${s.count}   ·   size ${s.sizeScale.toStringAsFixed(2)}× ±${s.sizeRandomizer.toStringAsFixed(2)}   ·   '
               'speed ${s.explosionSpeed.toStringAsFixed(2)}× ±${s.speedRandomizer.toStringAsFixed(2)}   ·   '
+              'radius ${s.ringEnabled ? '${s.radius.toStringAsFixed(2)}×' : 'off'}   ·   '
               'spin ${s.spinTurns.toStringAsFixed(2)} ±${s.spinRandomizer.toStringAsFixed(2)}   ·   '
               '${s.durationMs}ms',
               textAlign: TextAlign.center,
