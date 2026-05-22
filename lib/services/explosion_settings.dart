@@ -30,15 +30,21 @@ class ExplosionSettings extends ChangeNotifier {
   bool _setupMode;
   int _count;
   double _sizeScale;
-  double _spread;
+  double _explosionSpeed;
+  double _speedRandomizer;
   double _spinTurns;
+  double _spinRandomizer;
   int _durationMs;
   Set<int> _colorIndices;
 
   static const _defaultCount = 16;
   static const _defaultSizeScale = 1.0;
-  static const _defaultSpread = 1.0;
+  static const _defaultExplosionSpeed = 1.0;
+  // Non-zero so the default burst keeps a natural spread of reach; spin starts
+  // uniform (the original burst spun every shard at the same rate).
+  static const _defaultSpeedRandom = 0.3;
   static const _defaultSpinTurns = 2.0;
+  static const _defaultSpinRandom = 0.0;
   static const _defaultDurationMs = 720;
   static const _defaultColors = {0, 1}; // white, gold
 
@@ -47,9 +53,16 @@ class ExplosionSettings extends ChangeNotifier {
       _setupMode = prefs.getBool(kPrefExplosionSetupMode) ?? false,
       _count = prefs.getInt(kPrefExplosionCount) ?? _defaultCount,
       _sizeScale = prefs.getDouble(kPrefExplosionSizeScale) ?? _defaultSizeScale,
-      _spread = prefs.getDouble(kPrefExplosionSpread) ?? _defaultSpread,
+      _explosionSpeed =
+          prefs.getDouble(kPrefExplosionSpeed) ??
+          prefs.getDouble('explosionSpread') ?? // migrate legacy 'spread' value
+          _defaultExplosionSpeed,
+      _speedRandomizer =
+          prefs.getDouble(kPrefExplosionSpeedRandom) ?? _defaultSpeedRandom,
       _spinTurns =
           prefs.getDouble(kPrefExplosionSpinTurns) ?? _defaultSpinTurns,
+      _spinRandomizer =
+          prefs.getDouble(kPrefExplosionSpinRandom) ?? _defaultSpinRandom,
       _durationMs = prefs.getInt(kPrefExplosionDurationMs) ?? _defaultDurationMs,
       _colorIndices = _decodeColors(prefs.getString(kPrefExplosionColors));
 
@@ -66,8 +79,10 @@ class ExplosionSettings extends ChangeNotifier {
   bool get setupMode => _setupMode;
   int get count => _count;
   double get sizeScale => _sizeScale;
-  double get spread => _spread;
+  double get explosionSpeed => _explosionSpeed;
+  double get speedRandomizer => _speedRandomizer;
   double get spinTurns => _spinTurns;
+  double get spinRandomizer => _spinRandomizer;
   int get durationMs => _durationMs;
   Duration get duration => Duration(milliseconds: _durationMs);
   Set<int> get colorIndices => {..._colorIndices};
@@ -101,11 +116,19 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  set spread(double v) {
+  set explosionSpeed(double v) {
     final c = v.clamp(0.3, 3.0).toDouble();
-    if (_spread == c) return;
-    _spread = c;
-    _prefs.setDouble(kPrefExplosionSpread, c);
+    if (_explosionSpeed == c) return;
+    _explosionSpeed = c;
+    _prefs.setDouble(kPrefExplosionSpeed, c);
+    notifyListeners();
+  }
+
+  set speedRandomizer(double v) {
+    final c = v.clamp(0.0, 1.0).toDouble();
+    if (_speedRandomizer == c) return;
+    _speedRandomizer = c;
+    _prefs.setDouble(kPrefExplosionSpeedRandom, c);
     notifyListeners();
   }
 
@@ -114,6 +137,14 @@ class ExplosionSettings extends ChangeNotifier {
     if (_spinTurns == c) return;
     _spinTurns = c;
     _prefs.setDouble(kPrefExplosionSpinTurns, c);
+    notifyListeners();
+  }
+
+  set spinRandomizer(double v) {
+    final c = v.clamp(0.0, 1.0).toDouble();
+    if (_spinRandomizer == c) return;
+    _spinRandomizer = c;
+    _prefs.setDouble(kPrefExplosionSpinRandom, c);
     notifyListeners();
   }
 
@@ -141,14 +172,18 @@ class ExplosionSettings extends ChangeNotifier {
   void resetToDefaults() {
     _count = _defaultCount;
     _sizeScale = _defaultSizeScale;
-    _spread = _defaultSpread;
+    _explosionSpeed = _defaultExplosionSpeed;
+    _speedRandomizer = _defaultSpeedRandom;
     _spinTurns = _defaultSpinTurns;
+    _spinRandomizer = _defaultSpinRandom;
     _durationMs = _defaultDurationMs;
     _colorIndices = {..._defaultColors};
     _prefs.setInt(kPrefExplosionCount, _count);
     _prefs.setDouble(kPrefExplosionSizeScale, _sizeScale);
-    _prefs.setDouble(kPrefExplosionSpread, _spread);
+    _prefs.setDouble(kPrefExplosionSpeed, _explosionSpeed);
+    _prefs.setDouble(kPrefExplosionSpeedRandom, _speedRandomizer);
     _prefs.setDouble(kPrefExplosionSpinTurns, _spinTurns);
+    _prefs.setDouble(kPrefExplosionSpinRandom, _spinRandomizer);
     _prefs.setInt(kPrefExplosionDurationMs, _durationMs);
     _prefs.setString(kPrefExplosionColors, _colorIndices.join(','));
     notifyListeners();

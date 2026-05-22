@@ -22,8 +22,10 @@ const kMasterKeyTickSeconds = 30;
 const kPrefExplosionSetupMode = 'explosionSetupMode';
 const kPrefExplosionCount = 'explosionCount';
 const kPrefExplosionSizeScale = 'explosionSizeScale';
-const kPrefExplosionSpread = 'explosionSpread';
+const kPrefExplosionSpeed = 'explosionSpeed'; // standard outward speed (was 'spread')
+const kPrefExplosionSpeedRandom = 'explosionSpeedRandom'; // per-shard speed deviation
 const kPrefExplosionSpinTurns = 'explosionSpinTurns';
+const kPrefExplosionSpinRandom = 'explosionSpinRandom'; // per-shard spin deviation
 const kPrefExplosionDurationMs = 'explosionDurationMs';
 const kPrefExplosionColors = 'explosionColors'; // comma-separated palette indices
 

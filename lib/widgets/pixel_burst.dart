@@ -26,6 +26,14 @@ class PixelBurst extends StatefulWidget {
   /// direction is randomised per shard.
   final double spinTurns;
 
+  /// Per-shard deviation around [spinTurns]: 0 = every shard spins at the same
+  /// rate, 1 = rates fan out ±100% (some still, some twice as fast).
+  final double spinRandomizer;
+
+  /// Per-shard deviation around [travel]: 0 = every shard flies the same
+  /// distance, 1 = distances fan out ±100% (some barely move, some go twice).
+  final double speedRandomizer;
+
   final Duration duration;
   final int seed;
 
@@ -36,6 +44,8 @@ class PixelBurst extends StatefulWidget {
     this.travel = 160,
     this.shardPixel = 4,
     this.spinTurns = 2,
+    this.spinRandomizer = 0,
+    this.speedRandomizer = 0,
     this.duration = const Duration(milliseconds: 600),
     this.seed = 0,
   });
@@ -49,6 +59,15 @@ class PixelBurst extends StatefulWidget {
 const String _shardAsset = 'assets/sprites/rotating_shard.png';
 const int _frameSize = 5;
 const int _frameCount = 8;
+
+/// A per-shard multiplier centred on 1.0: with [randomizer] 0 it is always 1.0
+/// (uniform), and as it grows the result fans out symmetrically over
+/// [1 - randomizer, 1 + randomizer], floored at 0 so nothing reverses.
+double _deviate(math.Random rng, double randomizer) {
+  if (randomizer <= 0) return 1.0;
+  final dev = 1 + (rng.nextDouble() * 2 - 1) * randomizer;
+  return dev < 0 ? 0.0 : dev;
+}
 
 class _PixelBurstState extends State<PixelBurst>
     with SingleTickerProviderStateMixin {
@@ -70,11 +89,13 @@ class _PixelBurstState extends State<PixelBurst>
       final angle = i * slice + (rng.nextDouble() - 0.5) * slice;
       return _Shard(
         angle: angle,
-        distance: widget.travel * (0.55 + rng.nextDouble() * 0.65),
+        distance: widget.travel * _deviate(rng, widget.speedRandomizer),
         startFrame: rng.nextInt(_frameCount),
         // Total frames advanced over the flight, signed for spin direction.
-        spinFrames:
-            (rng.nextBool() ? 1 : -1) * widget.spinTurns * _frameCount,
+        spinFrames: (rng.nextBool() ? 1 : -1) *
+            widget.spinTurns *
+            _deviate(rng, widget.spinRandomizer) *
+            _frameCount,
         color: widget.colors[rng.nextInt(widget.colors.length)],
         sizeJitter: 0.8 + rng.nextDouble() * 0.5,
       );

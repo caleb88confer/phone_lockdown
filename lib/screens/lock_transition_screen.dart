@@ -167,6 +167,11 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     final bg = _landed ? widget.endColor : widget.startColor;
     final screen = MediaQuery.of(context).size;
     final size = screen.height / 4;
+    // On-screen size of one lock sprite pixel. The burst matches it at shard
+    // size 1× so the shard art shares the lock's pixel grid (no mixed pixel
+    // sizes — "mixels"); scaling shard size away from 1× is then a choice.
+    final lockPixel =
+        size * widget.style.displayScale / widget.style.frameWidth;
 
     return Scaffold(
       backgroundColor: bg,
@@ -200,9 +205,11 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
                 key: ValueKey(_replayCount),
                 colors: settings.colors,
                 count: settings.count,
-                travel: size * 1.15 * settings.spread,
-                shardPixel: screen.width / 150 * settings.sizeScale,
+                travel: size * 1.15 * settings.explosionSpeed,
+                shardPixel: lockPixel * settings.sizeScale,
                 spinTurns: settings.spinTurns,
+                spinRandomizer: settings.spinRandomizer,
+                speedRandomizer: settings.speedRandomizer,
                 duration: settings.duration,
               ),
             ),
@@ -228,8 +235,9 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
             ),
             child: Text(
               'count ${s.count}   ·   size ${s.sizeScale.toStringAsFixed(2)}×   ·   '
-              'spread ${s.spread.toStringAsFixed(2)}×   ·   '
-              'spin ${s.spinTurns.toStringAsFixed(2)}   ·   ${s.durationMs}ms',
+              'speed ${s.explosionSpeed.toStringAsFixed(2)}× ±${s.speedRandomizer.toStringAsFixed(2)}   ·   '
+              'spin ${s.spinTurns.toStringAsFixed(2)} ±${s.spinRandomizer.toStringAsFixed(2)}   ·   '
+              '${s.durationMs}ms',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
