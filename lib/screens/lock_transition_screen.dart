@@ -182,9 +182,13 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
       body: Stack(
         children: [
           // Burst sits at the back so shards never cover the lock; the lock is
-          // drawn over it, and the flash sits on top of both.
+          // drawn over it, and the flash sits on top of both. The stable keys
+          // matter: the burst is inserted at the front at the climax, so without
+          // keys Flutter would match children by position and rebuild the lock's
+          // sprite (restarting its animation) when the burst appears.
           if (_climaxed)
             Positioned.fill(
+              key: const ValueKey('burst'),
               child: PixelBurst(
                 key: ValueKey(_replayCount),
                 colors: settings.colors,
@@ -202,6 +206,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               ),
             ),
           Positioned.fill(
+            key: const ValueKey('lock'),
             child: Center(
               child: AnimatedBuilder(
                 animation: _tilt,
@@ -212,6 +217,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
             ),
           ),
           Positioned.fill(
+            key: const ValueKey('flash'),
             child: IgnorePointer(
               child: AnimatedBuilder(
                 animation: _flash,
