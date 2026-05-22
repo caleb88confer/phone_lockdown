@@ -38,6 +38,7 @@ class ExplosionSettings extends ChangeNotifier {
   double _spinRandomizer;
   int _durationMs;
   Set<int> _colorIndices;
+  bool _useLockPalette;
 
   static const _defaultCount = 16;
   static const _defaultSizeScale = 1.0;
@@ -59,6 +60,8 @@ class ExplosionSettings extends ChangeNotifier {
   static const _defaultSpinRandom = 0.0;
   static const _defaultDurationMs = 720;
   static const _defaultColors = {0, 1}; // white, gold
+  // Off by default: the burst keeps the custom palette unless this is turned on.
+  static const _defaultLockPalette = false;
 
   ExplosionSettings({required SharedPreferences prefs})
     : _prefs = prefs,
@@ -78,7 +81,9 @@ class ExplosionSettings extends ChangeNotifier {
       _spinRandomizer =
           prefs.getDouble(kPrefExplosionSpinRandom) ?? _defaultSpinRandom,
       _durationMs = prefs.getInt(kPrefExplosionDurationMs) ?? _defaultDurationMs,
-      _colorIndices = _decodeColors(prefs.getString(kPrefExplosionColors));
+      _colorIndices = _decodeColors(prefs.getString(kPrefExplosionColors)),
+      _useLockPalette =
+          prefs.getBool(kPrefExplosionLockPalette) ?? _defaultLockPalette;
 
   static Set<int> _decodeColors(String? raw) {
     if (raw == null || raw.isEmpty) return {..._defaultColors};
@@ -107,6 +112,10 @@ class ExplosionSettings extends ChangeNotifier {
   int get durationMs => _durationMs;
   Duration get duration => Duration(milliseconds: _durationMs);
   Set<int> get colorIndices => {..._colorIndices};
+
+  /// When true, the burst samples its shard colours from the equipped lock
+  /// sprite (see [SpritePalette]); when false it uses the custom palette below.
+  bool get useLockPalette => _useLockPalette;
 
   /// Concrete shard colours for the enabled palette entries. Never empty.
   List<Color> get colors {
@@ -193,6 +202,13 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  set useLockPalette(bool v) {
+    if (_useLockPalette == v) return;
+    _useLockPalette = v;
+    _prefs.setBool(kPrefExplosionLockPalette, v);
+    notifyListeners();
+  }
+
   /// Toggles a palette colour on/off. Keeps at least one colour enabled.
   void toggleColor(int index) {
     if (index < 0 || index >= kExplosionPalette.length) return;
@@ -217,6 +233,7 @@ class ExplosionSettings extends ChangeNotifier {
     _spinRandomizer = _defaultSpinRandom;
     _durationMs = _defaultDurationMs;
     _colorIndices = {..._defaultColors};
+    _useLockPalette = _defaultLockPalette;
     _prefs.setInt(kPrefExplosionCount, _count);
     _prefs.setDouble(kPrefExplosionSizeScale, _sizeScale);
     _prefs.setDouble(kPrefExplosionSizeRandom, _sizeRandomizer);
@@ -227,6 +244,7 @@ class ExplosionSettings extends ChangeNotifier {
     _prefs.setDouble(kPrefExplosionSpinRandom, _spinRandomizer);
     _prefs.setInt(kPrefExplosionDurationMs, _durationMs);
     _prefs.setString(kPrefExplosionColors, _colorIndices.join(','));
+    _prefs.setBool(kPrefExplosionLockPalette, _useLockPalette);
     notifyListeners();
   }
 }

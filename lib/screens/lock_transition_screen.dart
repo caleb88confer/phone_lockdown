@@ -7,6 +7,7 @@ import '../services/explosion_settings.dart';
 import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
 import '../widgets/pixel_burst.dart';
+import '../widgets/sprite_palette.dart';
 import '../widgets/sprite_sheet.dart';
 import 'explosion_settings_screen.dart';
 
@@ -68,9 +69,16 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   bool _showControls = false; // setup mode: controls visible after a play
   int _replayCount = 0; // bumps each play so the burst widget remounts fresh
 
+  // The equipped lock's own colours, decoded once for the lock-palette burst.
+  // Null until loaded (or if decoding fails); the burst falls back to the
+  // custom palette in that case. Loaded eagerly so it is ready by the climax
+  // even when the user flips the mode on and replays from the setup controls.
+  List<Color>? _lockPalette;
+
   @override
   void initState() {
     super.initState();
+    _loadLockPalette();
 
     // At the climax the overlay snaps to near-opaque (hiding the background
     // colour swap underneath it) then fades out, revealing the new colour.
@@ -93,6 +101,13 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _run());
+  }
+
+  Future<void> _loadLockPalette() async {
+    final path = widget.style.spritesheetPath(widget.color.id);
+    final palette = await SpritePalette.of(path);
+    if (!mounted || palette.isEmpty) return;
+    setState(() => _lockPalette = palette);
   }
 
   Future<void> _run() async {
@@ -177,6 +192,15 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     final lockPixel =
         size * widget.style.displayScale / widget.style.frameWidth;
 
+    // Shard colours: the lock's own palette when that mode is on and a palette
+    // has loaded, otherwise the custom swatches. With more lock colours than
+    // shards we hand the burst a random subset sized to the shard count.
+    final lockPalette = _lockPalette;
+    final burstColors =
+        settings.useLockPalette && lockPalette != null && lockPalette.isNotEmpty
+        ? pickBurstColors(lockPalette, settings.count)
+        : settings.colors;
+
     return Scaffold(
       backgroundColor: bg,
       body: Stack(
@@ -191,7 +215,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               key: const ValueKey('burst'),
               child: PixelBurst(
                 key: ValueKey(_replayCount),
-                colors: settings.colors,
+                colors: burstColors,
                 count: settings.count,
                 travel: size * 1.15 * settings.explosionSpeed,
                 radius: settings.ringEnabled

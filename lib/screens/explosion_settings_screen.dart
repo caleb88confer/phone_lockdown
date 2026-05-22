@@ -122,22 +122,43 @@ class ExplosionSettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Use lock palette'),
+                subtitle: const Text(
+                  'Shards take their colours from the equipped lock sprite '
+                  'instead of the swatches below.',
+                ),
+                value: s.useLockPalette,
+                onChanged: (v) => s.useLockPalette = v,
+              ),
+              const SizedBox(height: 8),
               Text(
-                'Shards pick at random from the selected colours.',
+                s.useLockPalette
+                    ? 'Each burst picks random colours sampled from the lock.'
+                    : 'Shards pick at random from the selected colours.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: [
-                  for (var i = 0; i < kExplosionPalette.length; i++)
-                    _Swatch(
-                      option: kExplosionPalette[i],
-                      selected: s.colorIndices.contains(i),
-                      onTap: () => s.toggleColor(i),
-                    ),
-                ],
+              // The custom swatches stay visible but inert while the lock
+              // palette drives the colours, so the choice is easy to undo.
+              Opacity(
+                opacity: s.useLockPalette ? 0.4 : 1.0,
+                child: IgnorePointer(
+                  ignoring: s.useLockPalette,
+                  child: Wrap(
+                    spacing: 14,
+                    runSpacing: 14,
+                    children: [
+                      for (var i = 0; i < kExplosionPalette.length; i++)
+                        _Swatch(
+                          option: kExplosionPalette[i],
+                          selected: s.colorIndices.contains(i),
+                          onTap: () => s.toggleColor(i),
+                        ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               OutlinedButton.icon(
