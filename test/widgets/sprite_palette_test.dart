@@ -36,4 +36,38 @@ void main() {
       expect(pickBurstColors(palette, 0), palette);
     });
   });
+
+  group('lightnessWeights', () {
+    const black = Color(0xFF000000);
+    const grey = Color(0xFF808080);
+    const white = Color(0xFFFFFFFF);
+
+    test('bias 0 weights every colour equally', () {
+      expect(lightnessWeights([black, grey, white], 0), [1.0, 1.0, 1.0]);
+    });
+
+    test('weights climb with lightness once biased', () {
+      final w = lightnessWeights([black, grey, white], 1);
+      expect(w[0], lessThan(w[1])); // black under grey
+      expect(w[1], lessThan(w[2])); // grey under white
+      expect(w.last, 1.0); // brightest colour anchors at 1
+    });
+
+    test('a stronger bias widens the gap between dark and light', () {
+      final mild = lightnessWeights([grey, white], 0.4);
+      final strong = lightnessWeights([grey, white], 1.0);
+      // Both anchor white at 1, so the darker colour's weight shrinks as bias
+      // grows — a steeper skew toward the lighter colour.
+      expect(strong.first, lessThan(mild.first));
+    });
+
+    test('falls back to equal weights when there is no lightness to separate', () {
+      expect(lightnessWeights([black, black], 1), [1.0, 1.0]);
+    });
+
+    test('returns an entry per colour', () {
+      expect(lightnessWeights([black, grey, white], 0.5).length, 3);
+      expect(lightnessWeights(const [], 1), isEmpty);
+    });
+  });
 }

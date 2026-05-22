@@ -31,6 +31,7 @@ const kPrefExplosionSpinRandom = 'explosionSpinRandom'; // per-shard spin deviat
 const kPrefExplosionDurationMs = 'explosionDurationMs';
 const kPrefExplosionColors = 'explosionColors'; // comma-separated palette indices
 const kPrefExplosionLockPalette = 'explosionLockPalette'; // sample colours from the lock sprite
+const kPrefExplosionLightnessBias = 'explosionLightnessBias'; // skew lock palette toward lighter colours
 
 // Defaults
 const kDefaultFailsafeMinutes = 1440;

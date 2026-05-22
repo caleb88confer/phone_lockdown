@@ -139,6 +139,20 @@ class ExplosionSettingsScreen extends StatelessWidget {
                     : 'Shards pick at random from the selected colours.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (s.useLockPalette) ...[
+                const SizedBox(height: 12),
+                _Slider(
+                  label: 'Lightness bias',
+                  valueLabel: s.lightnessBias == 0
+                      ? 'even'
+                      : 'lighter ${(s.lightnessBias * 100).round()}%',
+                  value: s.lightnessBias,
+                  min: 0,
+                  max: 1.0,
+                  divisions: 20,
+                  onChanged: (v) => s.lightnessBias = v,
+                ),
+              ],
               const SizedBox(height: 12),
               // The custom swatches stay visible but inert while the lock
               // palette drives the colours, so the choice is easy to undo.

@@ -20,6 +20,12 @@ import 'package:flutter/material.dart';
 class PixelBurst extends StatefulWidget {
   /// Shard colours, chosen at random per shard. Pass the lock's swatch + white.
   final List<Color> colors;
+
+  /// Optional per-colour weights aligned 1:1 with [colors]. When given (and
+  /// usable), each shard's colour is drawn in proportion to these instead of
+  /// uniformly — used to bias the lock-palette burst toward lighter colours.
+  final List<double>? weights;
+
   final int count;
 
   /// Base distance (logical px) a shard travels; jittered per shard.
@@ -60,6 +66,7 @@ class PixelBurst extends StatefulWidget {
   const PixelBurst({
     super.key,
     required this.colors,
+    this.weights,
     this.count = 30,
     this.travel = 160,
     this.shardPixel = 4,
@@ -99,6 +106,30 @@ double _deviate(math.Random rng, double randomizer) {
   return dev < 0 ? 0.0 : dev;
 }
 
+/// Running totals of [weights] for weighted index selection, or null when the
+/// weights are absent, the wrong length, or sum to nothing — selection then
+/// falls back to uniform.
+List<double>? _cumulativeWeights(List<double>? weights, int n) {
+  if (weights == null || weights.length != n) return null;
+  final cum = List<double>.filled(n, 0);
+  var sum = 0.0;
+  for (var i = 0; i < n; i++) {
+    if (weights[i] > 0) sum += weights[i];
+    cum[i] = sum;
+  }
+  return sum > 0 ? cum : null;
+}
+
+/// An index in [0, n): weighted by [cum] when present, otherwise uniform.
+int _weightedIndex(math.Random rng, List<double>? cum, int n) {
+  if (cum == null) return rng.nextInt(n);
+  final r = rng.nextDouble() * cum[n - 1];
+  for (var i = 0; i < n; i++) {
+    if (r < cum[i]) return i;
+  }
+  return n - 1;
+}
+
 class _PixelBurstState extends State<PixelBurst>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
@@ -118,6 +149,7 @@ class _PixelBurstState extends State<PixelBurst>
 
     final rng = math.Random(widget.seed);
     final slice = 2 * math.pi / widget.count;
+    final colorCum = _cumulativeWeights(widget.weights, widget.colors.length);
     _shards = List.generate(widget.count, (i) {
       // Spread directions evenly around the circle, then jitter within a slice
       // so the burst reads as radial but not mechanically regular.
@@ -145,7 +177,7 @@ class _PixelBurstState extends State<PixelBurst>
         vanishStartMs: vanishFraction * _lifeMs,
         framesPerMs: dir * loopsPerSec * _frameCount / 1000,
         startFrame: rng.nextInt(_frameCount),
-        color: widget.colors[rng.nextInt(widget.colors.length)],
+        color: widget.colors[_weightedIndex(rng, colorCum, widget.colors.length)],
         sizeJitter: _deviate(rng, widget.sizeRandomizer),
       );
     });

@@ -196,10 +196,18 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     // has loaded, otherwise the custom swatches. With more lock colours than
     // shards we hand the burst a random subset sized to the shard count.
     final lockPalette = _lockPalette;
-    final burstColors =
-        settings.useLockPalette && lockPalette != null && lockPalette.isNotEmpty
+    final usingLockPalette =
+        settings.useLockPalette &&
+        lockPalette != null &&
+        lockPalette.isNotEmpty;
+    final burstColors = usingLockPalette
         ? pickBurstColors(lockPalette, settings.count)
         : settings.colors;
+    // Skew the lock palette toward its lighter colours; the custom palette is
+    // always picked evenly.
+    final burstWeights = usingLockPalette
+        ? lightnessWeights(burstColors, settings.lightnessBias)
+        : null;
 
     return Scaffold(
       backgroundColor: bg,
@@ -216,6 +224,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               child: PixelBurst(
                 key: ValueKey(_replayCount),
                 colors: burstColors,
+                weights: burstWeights,
                 count: settings.count,
                 travel: size * 1.15 * settings.explosionSpeed,
                 radius: settings.ringEnabled

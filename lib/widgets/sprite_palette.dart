@@ -82,3 +82,25 @@ List<Color> pickBurstColors(List<Color> palette, int count, [math.Random? rng]) 
   final pool = List<Color>.of(palette)..shuffle(rng ?? math.Random());
   return pool.sublist(0, count);
 }
+
+/// How hard the brightest colour outweighs the darkest at [lightnessWeights]'
+/// full bias — the exponent applied to each colour's relative lightness.
+const double _lightnessBiasMaxExponent = 3.0;
+
+/// Per-colour selection weights, aligned 1:1 with [colors], that bias a burst
+/// toward the lighter colours. [bias] 0 returns equal weights (uniform, the
+/// burst's default); as it climbs toward 1 a colour's weight scales ever more
+/// steeply with its lightness, so the darkest colours are picked rarely and a
+/// near-black one effectively drops out. Returns equal weights when there is
+/// no lightness to separate the colours.
+List<double> lightnessWeights(List<Color> colors, double bias) {
+  final b = bias.clamp(0.0, 1.0);
+  if (colors.isEmpty || b == 0) {
+    return List<double>.filled(colors.length, 1.0);
+  }
+  final lum = [for (final c in colors) c.computeLuminance()];
+  final maxL = lum.reduce(math.max);
+  if (maxL <= 0) return List<double>.filled(colors.length, 1.0);
+  final exponent = b * _lightnessBiasMaxExponent;
+  return [for (final l in lum) math.pow(l / maxL, exponent).toDouble()];
+}

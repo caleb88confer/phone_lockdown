@@ -39,6 +39,7 @@ class ExplosionSettings extends ChangeNotifier {
   int _durationMs;
   Set<int> _colorIndices;
   bool _useLockPalette;
+  double _lightnessBias;
 
   static const _defaultCount = 16;
   static const _defaultSizeScale = 1.0;
@@ -62,6 +63,8 @@ class ExplosionSettings extends ChangeNotifier {
   static const _defaultColors = {0, 1}; // white, gold
   // Off by default: the burst keeps the custom palette unless this is turned on.
   static const _defaultLockPalette = false;
+  // No skew by default: lock-palette shards are drawn uniformly until raised.
+  static const _defaultLightnessBias = 0.0;
 
   ExplosionSettings({required SharedPreferences prefs})
     : _prefs = prefs,
@@ -83,7 +86,10 @@ class ExplosionSettings extends ChangeNotifier {
       _durationMs = prefs.getInt(kPrefExplosionDurationMs) ?? _defaultDurationMs,
       _colorIndices = _decodeColors(prefs.getString(kPrefExplosionColors)),
       _useLockPalette =
-          prefs.getBool(kPrefExplosionLockPalette) ?? _defaultLockPalette;
+          prefs.getBool(kPrefExplosionLockPalette) ?? _defaultLockPalette,
+      _lightnessBias =
+          prefs.getDouble(kPrefExplosionLightnessBias) ??
+          _defaultLightnessBias;
 
   static Set<int> _decodeColors(String? raw) {
     if (raw == null || raw.isEmpty) return {..._defaultColors};
@@ -116,6 +122,11 @@ class ExplosionSettings extends ChangeNotifier {
   /// When true, the burst samples its shard colours from the equipped lock
   /// sprite (see [SpritePalette]); when false it uses the custom palette below.
   bool get useLockPalette => _useLockPalette;
+
+  /// How hard the lock palette is skewed toward its lighter colours: 0 picks
+  /// uniformly, 1 picks in steep proportion to lightness. Only meaningful while
+  /// [useLockPalette] is on.
+  double get lightnessBias => _lightnessBias;
 
   /// Concrete shard colours for the enabled palette entries. Never empty.
   List<Color> get colors {
@@ -209,6 +220,14 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  set lightnessBias(double v) {
+    final c = v.clamp(0.0, 1.0).toDouble();
+    if (_lightnessBias == c) return;
+    _lightnessBias = c;
+    _prefs.setDouble(kPrefExplosionLightnessBias, c);
+    notifyListeners();
+  }
+
   /// Toggles a palette colour on/off. Keeps at least one colour enabled.
   void toggleColor(int index) {
     if (index < 0 || index >= kExplosionPalette.length) return;
@@ -234,6 +253,7 @@ class ExplosionSettings extends ChangeNotifier {
     _durationMs = _defaultDurationMs;
     _colorIndices = {..._defaultColors};
     _useLockPalette = _defaultLockPalette;
+    _lightnessBias = _defaultLightnessBias;
     _prefs.setInt(kPrefExplosionCount, _count);
     _prefs.setDouble(kPrefExplosionSizeScale, _sizeScale);
     _prefs.setDouble(kPrefExplosionSizeRandom, _sizeRandomizer);
@@ -245,6 +265,7 @@ class ExplosionSettings extends ChangeNotifier {
     _prefs.setInt(kPrefExplosionDurationMs, _durationMs);
     _prefs.setString(kPrefExplosionColors, _colorIndices.join(','));
     _prefs.setBool(kPrefExplosionLockPalette, _useLockPalette);
+    _prefs.setDouble(kPrefExplosionLightnessBias, _lightnessBias);
     notifyListeners();
   }
 }
