@@ -34,7 +34,7 @@ class ExplosionSettings extends ChangeNotifier {
   double _explosionSpeed;
   double _speedRandomizer;
   double _radius;
-  double _spinTurns;
+  double _spinRate;
   double _spinRandomizer;
   int _durationMs;
   Set<int> _colorIndices;
@@ -52,7 +52,10 @@ class ExplosionSettings extends ChangeNotifier {
   static const radiusMin = 0.5;
   static const radiusMax = 3.0;
   static const _defaultRadius = radiusMax;
-  static const _defaultSpinTurns = 2.0;
+  // Spin animation speed, in full sprite loops per second. ~2.8 matches the old
+  // "2 turns over a 720 ms burst" look, but is now independent of duration.
+  static const spinRateMax = 8.0;
+  static const _defaultSpinRate = 2.8;
   static const _defaultSpinRandom = 0.0;
   static const _defaultDurationMs = 720;
   static const _defaultColors = {0, 1}; // white, gold
@@ -71,8 +74,7 @@ class ExplosionSettings extends ChangeNotifier {
       _speedRandomizer =
           prefs.getDouble(kPrefExplosionSpeedRandom) ?? _defaultSpeedRandom,
       _radius = prefs.getDouble(kPrefExplosionRadius) ?? _defaultRadius,
-      _spinTurns =
-          prefs.getDouble(kPrefExplosionSpinTurns) ?? _defaultSpinTurns,
+      _spinRate = prefs.getDouble(kPrefExplosionSpinRate) ?? _defaultSpinRate,
       _spinRandomizer =
           prefs.getDouble(kPrefExplosionSpinRandom) ?? _defaultSpinRandom,
       _durationMs = prefs.getInt(kPrefExplosionDurationMs) ?? _defaultDurationMs,
@@ -100,7 +102,7 @@ class ExplosionSettings extends ChangeNotifier {
   /// travel their full distance and fade only at the burst's end.
   bool get ringEnabled => _radius < radiusMax;
 
-  double get spinTurns => _spinTurns;
+  double get spinRate => _spinRate;
   double get spinRandomizer => _spinRandomizer;
   int get durationMs => _durationMs;
   Duration get duration => Duration(milliseconds: _durationMs);
@@ -167,11 +169,11 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  set spinTurns(double v) {
-    final c = v.clamp(0.0, 6.0).toDouble();
-    if (_spinTurns == c) return;
-    _spinTurns = c;
-    _prefs.setDouble(kPrefExplosionSpinTurns, c);
+  set spinRate(double v) {
+    final c = v.clamp(0.0, spinRateMax).toDouble();
+    if (_spinRate == c) return;
+    _spinRate = c;
+    _prefs.setDouble(kPrefExplosionSpinRate, c);
     notifyListeners();
   }
 
@@ -211,7 +213,7 @@ class ExplosionSettings extends ChangeNotifier {
     _explosionSpeed = _defaultExplosionSpeed;
     _speedRandomizer = _defaultSpeedRandom;
     _radius = _defaultRadius;
-    _spinTurns = _defaultSpinTurns;
+    _spinRate = _defaultSpinRate;
     _spinRandomizer = _defaultSpinRandom;
     _durationMs = _defaultDurationMs;
     _colorIndices = {..._defaultColors};
@@ -221,7 +223,7 @@ class ExplosionSettings extends ChangeNotifier {
     _prefs.setDouble(kPrefExplosionSpeed, _explosionSpeed);
     _prefs.setDouble(kPrefExplosionSpeedRandom, _speedRandomizer);
     _prefs.setDouble(kPrefExplosionRadius, _radius);
-    _prefs.setDouble(kPrefExplosionSpinTurns, _spinTurns);
+    _prefs.setDouble(kPrefExplosionSpinRate, _spinRate);
     _prefs.setDouble(kPrefExplosionSpinRandom, _spinRandomizer);
     _prefs.setInt(kPrefExplosionDurationMs, _durationMs);
     _prefs.setString(kPrefExplosionColors, _colorIndices.join(','));

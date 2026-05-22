@@ -3,18 +3,20 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 /// A one-shot pixel-art burst: small rotating-shard sprites fire out from the
-/// centre, spin (by cycling the sprite's frames) as they travel, decelerate,
-/// then fade. Plays once when first built, so mount it at the moment you want
-/// the explosion (e.g. when a lock lands).
+/// centre, each spinning at its own steady rate, until it vanishes. Plays once
+/// when first built, so mount it at the moment you want the explosion (e.g. when
+/// a lock lands).
 ///
-/// An optional vanish ring ([radius]) caps how far shards travel: any shard
-/// that reaches it dissolves there, while shards that fall short fade out on
-/// the normal end-of-burst schedule.
+/// A shard begins to vanish at whichever comes first: it reaches the vanish ring
+/// ([radius]), or [duration] elapses. Either way it then dissolves over a short
+/// tail, so the whole burst runs for [duration] plus that tail (see
+/// [totalDuration]). Spin speed is independent of [duration] — a shorter burst
+/// no longer means a faster spin.
 ///
 /// The shard art lives in a horizontal sprite sheet of [_frameCount] square
-/// frames showing one shard turning through a full rotation. The sheet is pure
-/// white, so each shard is tinted to its swatch with a [BlendMode.modulate]
-/// colour filter (white * colour = colour), which also carries the fade.
+/// frames showing one shard turning. The sheet is pure white, so each shard is
+/// tinted to its swatch with a [BlendMode.modulate] colour filter (white *
+/// colour = colour), which also carries the fade.
 class PixelBurst extends StatefulWidget {
   /// Shard colours, chosen at random per shard. Pass the lock's swatch + white.
   final List<Color> colors;
@@ -26,12 +28,12 @@ class PixelBurst extends StatefulWidget {
   /// Logical px per sprite pixel — each shard is [_frameSize] of these square.
   final double shardPixel;
 
-  /// Full sprite-frame cycles (rotations) a shard makes over its flight; the
-  /// direction is randomised per shard.
-  final double spinTurns;
+  /// Spin speed in full sprite loops per second. Steady for a shard's whole
+  /// life and unrelated to [duration]; the direction is randomised per shard.
+  final double spinRate;
 
-  /// Per-shard deviation around [spinTurns]: 0 = every shard spins at the same
-  /// rate, 1 = rates fan out ±100% (some still, some twice as fast).
+  /// Per-shard deviation around [spinRate]: 0 = every shard spins at the same
+  /// speed, 1 = speeds fan out ±100% (some still, some twice as fast).
   final double spinRandomizer;
 
   /// Per-shard deviation around [travel]: 0 = every shard flies the same
@@ -43,13 +45,16 @@ class PixelBurst extends StatefulWidget {
   final double sizeRandomizer;
 
   /// Vanish ring, in logical px from the centre. A shard whose reach crosses
-  /// this radius stops there and begins dissolving the instant it arrives,
-  /// fading over [_fadeFraction] of the burst — the same fade shards get at the
-  /// end. Shards that never reach the ring fade on the normal end-of-burst
-  /// schedule. Pass [double.infinity] (the default) to disable the ring.
+  /// this radius stops there and begins dissolving the instant it arrives.
+  /// Shards that never reach the ring instead live until [duration]. Pass
+  /// [double.infinity] (the default) to disable the ring.
   final double radius;
 
+  /// How long a shard that never reaches the ring lives before it begins to
+  /// vanish. After the trigger (ring or this), the shard dissolves over an extra
+  /// tail; [totalDuration] is the full run including that tail.
   final Duration duration;
+
   final int seed;
 
   const PixelBurst({
@@ -58,7 +63,7 @@ class PixelBurst extends StatefulWidget {
     this.count = 30,
     this.travel = 160,
     this.shardPixel = 4,
-    this.spinTurns = 2,
+    this.spinRate = 3,
     this.spinRandomizer = 0,
     this.speedRandomizer = 0,
     this.sizeRandomizer = 0,
@@ -67,21 +72,23 @@ class PixelBurst extends StatefulWidget {
     this.seed = 0,
   });
 
+  /// The full burst length for a given [life] (the [duration]): the life plus
+  /// the dissolve tail. Hosts use this to keep the burst on screen to the end.
+  static Duration totalDuration(Duration life) => life * (1 + _fadeFraction);
+
   @override
   State<PixelBurst> createState() => _PixelBurstState();
 }
 
-// Sprite sheet: a single shard turning through one rotation, laid out as
-// [_frameCount] square [_frameSize]x[_frameSize] frames in a horizontal strip.
+// Sprite sheet: a single shard turning, laid out as [_frameCount] square
+// [_frameSize]x[_frameSize] frames in a horizontal strip.
 const String _shardAsset = 'assets/sprites/rotating_shard.png';
 const int _frameSize = 5;
 const int _frameCount = 8;
 
-// A shard holds full opacity, then fades out over the final [_fadeFraction] of
-// its life — whether that life ends at the burst's end (the default) or early,
-// the moment it reaches the vanish ring.
+// The dissolve tail, as a fraction of a shard's life. A shard holds full
+// opacity until its vanish trigger, then fades out over (life * _fadeFraction).
 const double _fadeFraction = 0.35;
-const double _timeFadeStart = 1.0 - _fadeFraction;
 
 /// A per-shard multiplier centred on 1.0: with [randomizer] 0 it is always 1.0
 /// (uniform), and as it grows the result fans out symmetrically over
@@ -96,6 +103,8 @@ class _PixelBurstState extends State<PixelBurst>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final List<_Shard> _shards;
+  late final double _lifeMs; // travel + spin window before leftovers vanish
+  late final double _fadeMs; // dissolve tail length
 
   ui.Image? _image;
   ImageStream? _stream;
@@ -104,6 +113,9 @@ class _PixelBurstState extends State<PixelBurst>
   @override
   void initState() {
     super.initState();
+    _lifeMs = widget.duration.inMicroseconds / 1000;
+    _fadeMs = _lifeMs * _fadeFraction;
+
     final rng = math.Random(widget.seed);
     final slice = 2 * math.pi / widget.count;
     _shards = List.generate(widget.count, (i) {
@@ -112,34 +124,37 @@ class _PixelBurstState extends State<PixelBurst>
       final angle = i * slice + (rng.nextDouble() - 0.5) * slice;
       final distance = widget.travel * _deviate(rng, widget.speedRandomizer);
 
-      // Does this shard's reach cross the vanish ring? If so, it stops at the
-      // ring and starts fading the moment it arrives; otherwise it travels its
-      // full distance and fades on the normal end-of-burst schedule. eased(t)
-      // is easeOutCubic, so the crossing time inverts to 1 - cbrt(1 - r).
+      // When does this shard begin to vanish? If its reach crosses the ring, the
+      // instant it arrives there; otherwise when its life runs out. Travel eases
+      // out over the life (easeOutCubic), so the ring-crossing fraction inverts
+      // to 1 - cbrt(1 - r); a non-ring shard's fraction is simply 1.
       final hitsRing = widget.radius < distance;
       final clampDistance = hitsRing ? widget.radius : double.infinity;
-      final fadeStart = hitsRing
+      final vanishFraction = hitsRing
           ? 1 - math.pow(1 - widget.radius / distance, 1 / 3).toDouble()
-          : _timeFadeStart;
+          : 1.0;
+
+      // Spin speed: signed sprite frames per ms, steady for the shard's life.
+      final loopsPerSec = widget.spinRate * _deviate(rng, widget.spinRandomizer);
+      final dir = rng.nextBool() ? 1.0 : -1.0;
 
       return _Shard(
         angle: angle,
         distance: distance,
         clampDistance: clampDistance,
-        fadeStart: fadeStart,
+        vanishStartMs: vanishFraction * _lifeMs,
+        framesPerMs: dir * loopsPerSec * _frameCount / 1000,
         startFrame: rng.nextInt(_frameCount),
-        // Total frames advanced over the flight, signed for spin direction.
-        spinFrames: (rng.nextBool() ? 1 : -1) *
-            widget.spinTurns *
-            _deviate(rng, widget.spinRandomizer) *
-            _frameCount,
         color: widget.colors[rng.nextInt(widget.colors.length)],
         sizeJitter: _deviate(rng, widget.sizeRandomizer),
       );
     });
+
     _resolveImage();
-    _controller = AnimationController(vsync: this, duration: widget.duration)
-      ..forward();
+    _controller = AnimationController(
+      vsync: this,
+      duration: PixelBurst.totalDuration(widget.duration),
+    )..forward();
   }
 
   void _resolveImage() {
@@ -174,7 +189,9 @@ class _PixelBurstState extends State<PixelBurst>
           painter: _BurstPainter(
             image: image,
             shards: _shards,
-            t: _controller.value,
+            elapsedMs: _controller.value * (_lifeMs + _fadeMs),
+            lifeMs: _lifeMs,
+            fadeMs: _fadeMs,
             shardPixel: widget.shardPixel,
           ),
         ),
@@ -187,9 +204,9 @@ class _Shard {
   final double angle; // travel direction
   final double distance; // max travel distance
   final double clampDistance; // travel is capped here (the ring), or infinity
-  final double fadeStart; // progress (0..1) at which this shard begins fading
+  final double vanishStartMs; // ms into the burst when this shard starts fading
+  final double framesPerMs; // sprite frames advanced per ms (signed)
   final int startFrame; // initial sprite frame
-  final double spinFrames; // total frames advanced over the burst (signed)
   final Color color;
   final double sizeJitter;
 
@@ -197,9 +214,9 @@ class _Shard {
     required this.angle,
     required this.distance,
     required this.clampDistance,
-    required this.fadeStart,
+    required this.vanishStartMs,
+    required this.framesPerMs,
     required this.startFrame,
-    required this.spinFrames,
     required this.color,
     required this.sizeJitter,
   });
@@ -208,36 +225,43 @@ class _Shard {
 class _BurstPainter extends CustomPainter {
   final ui.Image image;
   final List<_Shard> shards;
-  final double t; // 0..1 progress
+  final double elapsedMs; // ms since the burst started
+  final double lifeMs; // travel window before leftovers vanish
+  final double fadeMs; // dissolve tail length
   final double shardPixel;
 
   _BurstPainter({
     required this.image,
     required this.shards,
-    required this.t,
+    required this.elapsedMs,
+    required this.lifeMs,
+    required this.fadeMs,
     required this.shardPixel,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (t >= 1.0) return;
     final center = Offset(size.width / 2, size.height / 2);
-    final eased = Curves.easeOutCubic.transform(t); // fast out, then settle
+    // Travel eases out over the life, then holds while the shard dissolves.
+    final moveT = (elapsedMs / lifeMs).clamp(0.0, 1.0);
+    final eased = Curves.easeOutCubic.transform(moveT);
 
     for (final s in shards) {
+      // Hold full opacity until this shard's vanish trigger, then fade over the
+      // tail — the trigger is the ring crossing for shards that reach it, the
+      // end of life for the rest.
+      final fade = elapsedMs < s.vanishStartMs
+          ? 1.0
+          : (1 - (elapsedMs - s.vanishStartMs) / fadeMs).clamp(0.0, 1.0);
+      if (fade <= 0) continue;
+
       final d = math.min(s.distance * eased, s.clampDistance);
       final pos = center + Offset(math.cos(s.angle), math.sin(s.angle)) * d;
       final side = _frameSize * shardPixel * s.sizeJitter;
 
-      // Hold full opacity, then fade over [_fadeFraction] from this shard's
-      // start — the burst end for most, the ring crossing for those that reach.
-      final fade = t < s.fadeStart
-          ? 1.0
-          : (1 - (t - s.fadeStart) / _fadeFraction).clamp(0.0, 1.0);
-
-      // Advance through the sheet for the spin; wrap into [0, _frameCount).
+      // Spin at a steady real-time rate; wrap the frame into [0, _frameCount).
       final frame =
-          ((s.startFrame + s.spinFrames * t).floor() % _frameCount +
+          ((s.startFrame + s.framesPerMs * elapsedMs).floor() % _frameCount +
               _frameCount) %
           _frameCount;
       final src = Rect.fromLTWH(
@@ -265,5 +289,6 @@ class _BurstPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BurstPainter old) => old.t != t || old.image != image;
+  bool shouldRepaint(_BurstPainter old) =>
+      old.elapsedMs != elapsedMs || old.image != image;
 }

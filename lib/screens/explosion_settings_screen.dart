@@ -84,13 +84,15 @@ class ExplosionSettingsScreen extends StatelessWidget {
                 onChanged: (v) => s.radius = v,
               ),
               _Slider(
-                label: 'Spin rate',
-                valueLabel: '${s.spinTurns.toStringAsFixed(2)} turns',
-                value: s.spinTurns,
+                label: 'Spin speed',
+                valueLabel: s.spinRate == 0
+                    ? 'still'
+                    : '${s.spinRate.toStringAsFixed(1)} /s',
+                value: s.spinRate,
                 min: 0,
-                max: 6,
-                divisions: 24,
-                onChanged: (v) => s.spinTurns = v,
+                max: ExplosionSettings.spinRateMax,
+                divisions: 32,
+                onChanged: (v) => s.spinRate = v,
               ),
               _Slider(
                 label: 'Spin randomizer',
@@ -104,7 +106,7 @@ class ExplosionSettingsScreen extends StatelessWidget {
                 onChanged: (v) => s.spinRandomizer = v,
               ),
               _Slider(
-                label: 'Duration',
+                label: 'Lifetime',
                 valueLabel: '${s.durationMs} ms',
                 value: s.durationMs.toDouble(),
                 min: 150,

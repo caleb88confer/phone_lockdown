@@ -53,9 +53,9 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     with TickerProviderStateMixin {
   // Beat showing the start pose before the lock moves, so the change registers.
   static const _startHold = Duration(milliseconds: 280);
-  // Beat resting on the landed pose before returning to the home screen.
-  // Must outlast the pixel burst so it isn't cut off mid-flight.
-  static const _endHold = Duration(milliseconds: 780);
+  // Extra beat on the landed pose after the burst finishes, before returning to
+  // the home screen. The full hold is the burst length plus this (see _run).
+  static const _endMargin = Duration(milliseconds: 120);
 
   late final AnimationController _flashController;
   late final Animation<double> _flash;
@@ -137,9 +137,13 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     _flashController.forward(from: 0);
     _tiltController.forward(from: 0);
 
-    await Future.delayed(_endHold);
+    // Hold until the burst (including its dissolve tail) is done, plus a beat.
+    final settings = context.read<ExplosionSettings>();
+    await Future.delayed(
+      PixelBurst.totalDuration(settings.duration) + _endMargin,
+    );
     if (!mounted) return;
-    if (context.read<ExplosionSettings>().setupMode) {
+    if (settings.setupMode) {
       setState(() => _showControls = true);
     } else {
       Navigator.of(context).pop(null);
@@ -211,7 +215,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
                     : double.infinity,
                 shardPixel: lockPixel * settings.sizeScale,
                 sizeRandomizer: settings.sizeRandomizer,
-                spinTurns: settings.spinTurns,
+                spinRate: settings.spinRate,
                 spinRandomizer: settings.spinRandomizer,
                 speedRandomizer: settings.speedRandomizer,
                 duration: settings.duration,
@@ -241,7 +245,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               'count ${s.count}   ·   size ${s.sizeScale.toStringAsFixed(2)}× ±${s.sizeRandomizer.toStringAsFixed(2)}   ·   '
               'speed ${s.explosionSpeed.toStringAsFixed(2)}× ±${s.speedRandomizer.toStringAsFixed(2)}   ·   '
               'radius ${s.ringEnabled ? '${s.radius.toStringAsFixed(2)}×' : 'off'}   ·   '
-              'spin ${s.spinTurns.toStringAsFixed(2)} ±${s.spinRandomizer.toStringAsFixed(2)}   ·   '
+              'spin ${s.spinRate.toStringAsFixed(1)}/s ±${s.spinRandomizer.toStringAsFixed(2)}   ·   '
               '${s.durationMs}ms',
               textAlign: TextAlign.center,
               style: const TextStyle(
