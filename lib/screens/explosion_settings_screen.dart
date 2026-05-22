@@ -114,6 +114,17 @@ class ExplosionSettingsScreen extends StatelessWidget {
                 divisions: 37,
                 onChanged: (v) => s.durationMs = v.round(),
               ),
+              _Slider(
+                label: 'Lifetime randomizer',
+                valueLabel: s.lifetimeRandomizer == 0
+                    ? 'uniform'
+                    : '±${(s.lifetimeRandomizer * 100).round()}%',
+                value: s.lifetimeRandomizer,
+                min: 0,
+                max: 1.0,
+                divisions: 20,
+                onChanged: (v) => s.lifetimeRandomizer = v,
+              ),
               const SizedBox(height: 16),
               Text(
                 'Colors',

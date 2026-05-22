@@ -61,6 +61,12 @@ class PixelBurst extends StatefulWidget {
   /// tail; [totalDuration] is the full run including that tail.
   final Duration duration;
 
+  /// Per-shard deviation around [duration] for ring-free shards: 0 = every
+  /// shard vanishes at the same time, 1 = vanish times fan out ±100% (some go
+  /// early, some live up to twice as long). Only affects time-based vanishing;
+  /// shards that hit the ring still vanish on arrival.
+  final double lifetimeRandomizer;
+
   final int seed;
 
   const PixelBurst({
@@ -76,12 +82,15 @@ class PixelBurst extends StatefulWidget {
     this.sizeRandomizer = 0,
     this.radius = double.infinity,
     this.duration = const Duration(milliseconds: 600),
+    this.lifetimeRandomizer = 0,
     this.seed = 0,
   });
 
-  /// The full burst length for a given [life] (the [duration]): the life plus
-  /// the dissolve tail. Hosts use this to keep the burst on screen to the end.
-  static Duration totalDuration(Duration life) => life * (1 + _fadeFraction);
+  /// The full burst length: the longest a shard can live (its [life] stretched
+  /// by [lifetimeRandomizer]) plus the dissolve tail. Hosts use this to keep the
+  /// burst on screen until the last, longest-lived shard has finished fading.
+  static Duration totalDuration(Duration life, [double lifetimeRandomizer = 0]) =>
+      life * (1 + lifetimeRandomizer + _fadeFraction);
 
   @override
   State<PixelBurst> createState() => _PixelBurstState();
@@ -140,6 +149,7 @@ class _PixelBurstState extends State<PixelBurst>
   late final List<_Shard> _shards;
   late final double _lifeMs; // travel + spin window before leftovers vanish
   late final double _fadeMs; // dissolve tail length
+  late final double _maxLifeMs; // longest a shard can live (life + jitter)
 
   ui.Image? _image;
   ImageStream? _stream;
@@ -150,6 +160,9 @@ class _PixelBurstState extends State<PixelBurst>
     super.initState();
     _lifeMs = widget.duration.inMicroseconds / 1000;
     _fadeMs = _lifeMs * _fadeFraction;
+    // The latest a ring-free shard can begin to vanish: its life can stretch by
+    // up to +lifetimeRandomizer (see _deviate). Drives the controller length.
+    _maxLifeMs = _lifeMs * (1 + widget.lifetimeRandomizer);
 
     final rng = math.Random(widget.seed);
     final slice = 2 * math.pi / widget.count;
@@ -163,12 +176,14 @@ class _PixelBurstState extends State<PixelBurst>
       // When does this shard begin to vanish? If its reach crosses the ring, the
       // instant it arrives there; otherwise when its life runs out. Travel eases
       // out over the life (easeOutCubic), so the ring-crossing fraction inverts
-      // to 1 - cbrt(1 - r); a non-ring shard's fraction is simply 1.
+      // to 1 - cbrt(1 - r). A ring-free shard lives for the burst's life,
+      // jittered per shard so they don't all wink out together.
       final hitsRing = widget.radius < distance;
       final clampDistance = hitsRing ? widget.radius : double.infinity;
-      final vanishFraction = hitsRing
-          ? 1 - math.pow(1 - widget.radius / distance, 1 / 3).toDouble()
-          : 1.0;
+      final vanishStartMs = hitsRing
+          ? (1 - math.pow(1 - widget.radius / distance, 1 / 3).toDouble()) *
+                _lifeMs
+          : _lifeMs * _deviate(rng, widget.lifetimeRandomizer);
 
       // Spin speed: signed sprite frames per ms, steady for the shard's life.
       final loopsPerSec = widget.spinRate * _deviate(rng, widget.spinRandomizer);
@@ -178,7 +193,7 @@ class _PixelBurstState extends State<PixelBurst>
         angle: angle,
         distance: distance,
         clampDistance: clampDistance,
-        vanishStartMs: vanishFraction * _lifeMs,
+        vanishStartMs: vanishStartMs,
         framesPerMs: dir * loopsPerSec * _frameCount / 1000,
         startFrame: rng.nextInt(_frameCount),
         color: widget.colors[_weightedIndex(rng, colorCum, widget.colors.length)],
@@ -189,7 +204,10 @@ class _PixelBurstState extends State<PixelBurst>
     _resolveImage();
     _controller = AnimationController(
       vsync: this,
-      duration: PixelBurst.totalDuration(widget.duration),
+      duration: PixelBurst.totalDuration(
+        widget.duration,
+        widget.lifetimeRandomizer,
+      ),
     )..forward();
   }
 
@@ -225,7 +243,7 @@ class _PixelBurstState extends State<PixelBurst>
           painter: _BurstPainter(
             image: image,
             shards: _shards,
-            elapsedMs: _controller.value * (_lifeMs + _fadeMs),
+            elapsedMs: _controller.value * (_maxLifeMs + _fadeMs),
             lifeMs: _lifeMs,
             fadeMs: _fadeMs,
             shardPixel: widget.shardPixel,

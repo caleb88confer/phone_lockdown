@@ -29,6 +29,7 @@ const kPrefExplosionRadius = 'explosionRadius'; // vanish-ring distance (× of b
 const kPrefExplosionSpinRate = 'explosionSpinRate'; // spin animation speed (loops/sec)
 const kPrefExplosionSpinRandom = 'explosionSpinRandom'; // per-shard spin deviation
 const kPrefExplosionDurationMs = 'explosionDurationMs';
+const kPrefExplosionLifetimeRandom = 'explosionLifetimeRandom'; // per-shard lifetime deviation
 const kPrefExplosionColors = 'explosionColors'; // comma-separated palette indices
 const kPrefExplosionLockPalette = 'explosionLockPalette'; // sample colours from the lock sprite
 const kPrefExplosionLightnessBias = 'explosionLightnessBias'; // skew lock palette toward lighter colours

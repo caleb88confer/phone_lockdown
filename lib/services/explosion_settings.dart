@@ -37,6 +37,7 @@ class ExplosionSettings extends ChangeNotifier {
   double _spinRate;
   double _spinRandomizer;
   int _durationMs;
+  double _lifetimeRandomizer;
   Set<int> _colorIndices;
   bool _useLockPalette;
   double _lightnessBias;
@@ -65,6 +66,8 @@ class ExplosionSettings extends ChangeNotifier {
   static const _defaultSpinRate = 2.8;
   static const _defaultSpinRandom = 0.0;
   static const _defaultDurationMs = 720;
+  // Non-zero so shards don't all wink out on the same frame by default.
+  static const _defaultLifetimeRandom = 0.2;
   static const _defaultColors = {0, 1}; // white, gold
   // Off by default: the burst keeps the custom palette unless this is turned on.
   static const _defaultLockPalette = false;
@@ -92,6 +95,9 @@ class ExplosionSettings extends ChangeNotifier {
       _spinRandomizer =
           prefs.getDouble(kPrefExplosionSpinRandom) ?? _defaultSpinRandom,
       _durationMs = prefs.getInt(kPrefExplosionDurationMs) ?? _defaultDurationMs,
+      _lifetimeRandomizer =
+          prefs.getDouble(kPrefExplosionLifetimeRandom) ??
+          _defaultLifetimeRandom,
       _colorIndices = _decodeColors(prefs.getString(kPrefExplosionColors)),
       _useLockPalette =
           prefs.getBool(kPrefExplosionLockPalette) ?? _defaultLockPalette,
@@ -125,6 +131,7 @@ class ExplosionSettings extends ChangeNotifier {
   double get spinRandomizer => _spinRandomizer;
   int get durationMs => _durationMs;
   Duration get duration => Duration(milliseconds: _durationMs);
+  double get lifetimeRandomizer => _lifetimeRandomizer;
   Set<int> get colorIndices => {..._colorIndices};
 
   /// When true, the burst samples its shard colours from the equipped lock
@@ -226,6 +233,14 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  set lifetimeRandomizer(double v) {
+    final c = v.clamp(0.0, 1.0).toDouble();
+    if (_lifetimeRandomizer == c) return;
+    _lifetimeRandomizer = c;
+    _prefs.setDouble(kPrefExplosionLifetimeRandom, c);
+    notifyListeners();
+  }
+
   set useLockPalette(bool v) {
     if (_useLockPalette == v) return;
     _useLockPalette = v;
@@ -272,6 +287,7 @@ class ExplosionSettings extends ChangeNotifier {
     _spinRate = _defaultSpinRate;
     _spinRandomizer = _defaultSpinRandom;
     _durationMs = _defaultDurationMs;
+    _lifetimeRandomizer = _defaultLifetimeRandom;
     _colorIndices = {..._defaultColors};
     _useLockPalette = _defaultLockPalette;
     _lightnessBias = _defaultLightnessBias;
@@ -285,6 +301,7 @@ class ExplosionSettings extends ChangeNotifier {
     _prefs.setDouble(kPrefExplosionSpinRate, _spinRate);
     _prefs.setDouble(kPrefExplosionSpinRandom, _spinRandomizer);
     _prefs.setInt(kPrefExplosionDurationMs, _durationMs);
+    _prefs.setDouble(kPrefExplosionLifetimeRandom, _lifetimeRandomizer);
     _prefs.setString(kPrefExplosionColors, _colorIndices.join(','));
     _prefs.setBool(kPrefExplosionLockPalette, _useLockPalette);
     _prefs.setDouble(kPrefExplosionLightnessBias, _lightnessBias);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -68,6 +69,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
   bool _landed = false; // end colour shown, lock tilted
   bool _showControls = false; // setup mode: controls visible after a play
   int _replayCount = 0; // bumps each play so the burst widget remounts fresh
+  int _burstSeed = 0; // fresh per play so each explosion spreads differently
 
   // The equipped lock's own colours, decoded once for the lock-palette burst.
   // Null until loaded (or if decoding fails); the burst falls back to the
@@ -130,6 +132,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     _tiltController.value = 0;
     setState(() {
       _replayCount++;
+      _burstSeed = math.Random().nextInt(1 << 31);
       _playing = false;
       _climaxed = false;
       _landed = false;
@@ -155,7 +158,8 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     // Hold until the burst (including its dissolve tail) is done, plus a beat.
     final settings = context.read<ExplosionSettings>();
     await Future.delayed(
-      PixelBurst.totalDuration(settings.duration) + _endMargin,
+      PixelBurst.totalDuration(settings.duration, settings.lifetimeRandomizer) +
+          _endMargin,
     );
     if (!mounted) return;
     if (settings.setupMode) {
@@ -243,6 +247,8 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
                 spinRandomizer: settings.spinRandomizer,
                 speedRandomizer: settings.speedRandomizer,
                 duration: settings.duration,
+                lifetimeRandomizer: settings.lifetimeRandomizer,
+                seed: _burstSeed,
               ),
             ),
           Positioned.fill(
@@ -294,7 +300,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               'speed ${s.explosionSpeed.toStringAsFixed(2)}× ±${s.speedRandomizer.toStringAsFixed(2)}   ·   '
               'radius ${s.ringEnabled ? '${s.radius.toStringAsFixed(2)}×' : 'off'}   ·   '
               'spin ${s.spinRate.toStringAsFixed(1)}/s ±${s.spinRandomizer.toStringAsFixed(2)}   ·   '
-              '${s.durationMs}ms',
+              '${s.durationMs}ms ±${s.lifetimeRandomizer.toStringAsFixed(2)}',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
