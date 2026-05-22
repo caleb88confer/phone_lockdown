@@ -34,6 +34,10 @@ class PixelBurst extends StatefulWidget {
   /// distance, 1 = distances fan out ±100% (some barely move, some go twice).
   final double speedRandomizer;
 
+  /// Per-shard deviation around the shard size: 0 = every shard is identical
+  /// (and matches the lock's pixel grid at size 1×), 1 = sizes fan out ±100%.
+  final double sizeRandomizer;
+
   final Duration duration;
   final int seed;
 
@@ -46,6 +50,7 @@ class PixelBurst extends StatefulWidget {
     this.spinTurns = 2,
     this.spinRandomizer = 0,
     this.speedRandomizer = 0,
+    this.sizeRandomizer = 0,
     this.duration = const Duration(milliseconds: 600),
     this.seed = 0,
   });
@@ -97,7 +102,7 @@ class _PixelBurstState extends State<PixelBurst>
             _deviate(rng, widget.spinRandomizer) *
             _frameCount,
         color: widget.colors[rng.nextInt(widget.colors.length)],
-        sizeJitter: 0.8 + rng.nextDouble() * 0.5,
+        sizeJitter: _deviate(rng, widget.sizeRandomizer),
       );
     });
     _resolveImage();

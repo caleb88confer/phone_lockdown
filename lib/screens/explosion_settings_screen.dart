@@ -42,6 +42,17 @@ class ExplosionSettingsScreen extends StatelessWidget {
                 onChanged: (v) => s.sizeScale = v,
               ),
               _Slider(
+                label: 'Size randomizer',
+                valueLabel: s.sizeRandomizer == 0
+                    ? 'uniform'
+                    : '±${(s.sizeRandomizer * 100).round()}%',
+                value: s.sizeRandomizer,
+                min: 0,
+                max: 1.0,
+                divisions: 20,
+                onChanged: (v) => s.sizeRandomizer = v,
+              ),
+              _Slider(
                 label: 'Explosion speed',
                 valueLabel: '${s.explosionSpeed.toStringAsFixed(2)}×',
                 value: s.explosionSpeed,

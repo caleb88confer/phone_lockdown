@@ -30,6 +30,7 @@ class ExplosionSettings extends ChangeNotifier {
   bool _setupMode;
   int _count;
   double _sizeScale;
+  double _sizeRandomizer;
   double _explosionSpeed;
   double _speedRandomizer;
   double _spinTurns;
@@ -39,6 +40,8 @@ class ExplosionSettings extends ChangeNotifier {
 
   static const _defaultCount = 16;
   static const _defaultSizeScale = 1.0;
+  // Uniform by default so every shard matches the lock's pixel grid at size 1×.
+  static const _defaultSizeRandom = 0.0;
   static const _defaultExplosionSpeed = 1.0;
   // Non-zero so the default burst keeps a natural spread of reach; spin starts
   // uniform (the original burst spun every shard at the same rate).
@@ -53,6 +56,8 @@ class ExplosionSettings extends ChangeNotifier {
       _setupMode = prefs.getBool(kPrefExplosionSetupMode) ?? false,
       _count = prefs.getInt(kPrefExplosionCount) ?? _defaultCount,
       _sizeScale = prefs.getDouble(kPrefExplosionSizeScale) ?? _defaultSizeScale,
+      _sizeRandomizer =
+          prefs.getDouble(kPrefExplosionSizeRandom) ?? _defaultSizeRandom,
       _explosionSpeed =
           prefs.getDouble(kPrefExplosionSpeed) ??
           prefs.getDouble('explosionSpread') ?? // migrate legacy 'spread' value
@@ -79,6 +84,7 @@ class ExplosionSettings extends ChangeNotifier {
   bool get setupMode => _setupMode;
   int get count => _count;
   double get sizeScale => _sizeScale;
+  double get sizeRandomizer => _sizeRandomizer;
   double get explosionSpeed => _explosionSpeed;
   double get speedRandomizer => _speedRandomizer;
   double get spinTurns => _spinTurns;
@@ -113,6 +119,14 @@ class ExplosionSettings extends ChangeNotifier {
     if (_sizeScale == c) return;
     _sizeScale = c;
     _prefs.setDouble(kPrefExplosionSizeScale, c);
+    notifyListeners();
+  }
+
+  set sizeRandomizer(double v) {
+    final c = v.clamp(0.0, 1.0).toDouble();
+    if (_sizeRandomizer == c) return;
+    _sizeRandomizer = c;
+    _prefs.setDouble(kPrefExplosionSizeRandom, c);
     notifyListeners();
   }
 
@@ -172,6 +186,7 @@ class ExplosionSettings extends ChangeNotifier {
   void resetToDefaults() {
     _count = _defaultCount;
     _sizeScale = _defaultSizeScale;
+    _sizeRandomizer = _defaultSizeRandom;
     _explosionSpeed = _defaultExplosionSpeed;
     _speedRandomizer = _defaultSpeedRandom;
     _spinTurns = _defaultSpinTurns;
@@ -180,6 +195,7 @@ class ExplosionSettings extends ChangeNotifier {
     _colorIndices = {..._defaultColors};
     _prefs.setInt(kPrefExplosionCount, _count);
     _prefs.setDouble(kPrefExplosionSizeScale, _sizeScale);
+    _prefs.setDouble(kPrefExplosionSizeRandom, _sizeRandomizer);
     _prefs.setDouble(kPrefExplosionSpeed, _explosionSpeed);
     _prefs.setDouble(kPrefExplosionSpeedRandom, _speedRandomizer);
     _prefs.setDouble(kPrefExplosionSpinTurns, _spinTurns);
