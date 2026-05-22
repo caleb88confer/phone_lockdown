@@ -70,4 +70,42 @@ void main() {
       expect(lightnessWeights(const [], 1), isEmpty);
     });
   });
+
+  group('lockBurstPalette', () {
+    const red = Color(0xFFB02D28);
+    const gold = Color(0xFFD4A437);
+    const white = Color(0xFFFFFFFF);
+
+    test('no white mix leaves the lock colours and weights untouched', () {
+      final p = lockBurstPalette([red, gold], 0, 0);
+      expect(p.colors, [red, gold]);
+      expect(p.weights, lightnessWeights([red, gold], 0));
+    });
+
+    test('white mix appends white carrying its share of the total weight', () {
+      final p = lockBurstPalette([red, gold], 0, 0.25);
+      expect(p.colors.last, white);
+      expect(p.colors.length, 3);
+      final total = p.weights.reduce((a, b) => a + b);
+      // White's weight is 25% of the whole, the lock colours split the rest.
+      expect(p.weights.last / total, closeTo(0.25, 1e-9));
+    });
+
+    test('white share is independent of the lightness bias', () {
+      double whiteShare(double bias) {
+        final p = lockBurstPalette([red, gold], bias, 0.3);
+        return p.weights.last / p.weights.reduce((a, b) => a + b);
+      }
+
+      expect(whiteShare(0), closeTo(0.3, 1e-9));
+      expect(whiteShare(1), closeTo(0.3, 1e-9));
+    });
+
+    test('full white mix drives every lock weight to zero', () {
+      final p = lockBurstPalette([red, gold], 0.5, 1);
+      expect(p.colors.last, white);
+      expect(p.weights.sublist(0, 2), everyElement(0.0));
+      expect(p.weights.last, 1.0);
+    });
+  });
 }

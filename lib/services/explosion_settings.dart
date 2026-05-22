@@ -29,7 +29,7 @@ class ExplosionSettings extends ChangeNotifier {
 
   bool _setupMode;
   int _count;
-  double _sizeScale;
+  double _shardSize;
   double _sizeRandomizer;
   double _explosionSpeed;
   double _speedRandomizer;
@@ -40,10 +40,15 @@ class ExplosionSettings extends ChangeNotifier {
   Set<int> _colorIndices;
   bool _useLockPalette;
   double _lightnessBias;
+  double _whiteMix;
 
   static const _defaultCount = 16;
-  static const _defaultSizeScale = 1.0;
-  // Uniform by default so every shard matches the lock's pixel grid at size 1×.
+  // Shard size is a fixed on-screen side in logical px, set by the user and
+  // independent of the lock — changing locks no longer resizes the shards.
+  static const shardSizeMin = 8.0;
+  static const shardSizeMax = 160.0;
+  static const _defaultShardSize = 64.0;
+  // Uniform by default so every shard is the same fixed size.
   static const _defaultSizeRandom = 0.0;
   static const _defaultExplosionSpeed = 1.0;
   // Non-zero so the default burst keeps a natural spread of reach; spin starts
@@ -65,12 +70,15 @@ class ExplosionSettings extends ChangeNotifier {
   static const _defaultLockPalette = false;
   // No skew by default: lock-palette shards are drawn uniformly until raised.
   static const _defaultLightnessBias = 0.0;
+  // A little white is always blended into the lock palette so highlights read
+  // even when the lock sprite has no white of its own.
+  static const _defaultWhiteMix = 0.15;
 
   ExplosionSettings({required SharedPreferences prefs})
     : _prefs = prefs,
       _setupMode = prefs.getBool(kPrefExplosionSetupMode) ?? false,
       _count = prefs.getInt(kPrefExplosionCount) ?? _defaultCount,
-      _sizeScale = prefs.getDouble(kPrefExplosionSizeScale) ?? _defaultSizeScale,
+      _shardSize = prefs.getDouble(kPrefExplosionShardSize) ?? _defaultShardSize,
       _sizeRandomizer =
           prefs.getDouble(kPrefExplosionSizeRandom) ?? _defaultSizeRandom,
       _explosionSpeed =
@@ -88,8 +96,8 @@ class ExplosionSettings extends ChangeNotifier {
       _useLockPalette =
           prefs.getBool(kPrefExplosionLockPalette) ?? _defaultLockPalette,
       _lightnessBias =
-          prefs.getDouble(kPrefExplosionLightnessBias) ??
-          _defaultLightnessBias;
+          prefs.getDouble(kPrefExplosionLightnessBias) ?? _defaultLightnessBias,
+      _whiteMix = prefs.getDouble(kPrefExplosionWhiteMix) ?? _defaultWhiteMix;
 
   static Set<int> _decodeColors(String? raw) {
     if (raw == null || raw.isEmpty) return {..._defaultColors};
@@ -103,7 +111,7 @@ class ExplosionSettings extends ChangeNotifier {
 
   bool get setupMode => _setupMode;
   int get count => _count;
-  double get sizeScale => _sizeScale;
+  double get shardSize => _shardSize;
   double get sizeRandomizer => _sizeRandomizer;
   double get explosionSpeed => _explosionSpeed;
   double get speedRandomizer => _speedRandomizer;
@@ -128,6 +136,11 @@ class ExplosionSettings extends ChangeNotifier {
   /// [useLockPalette] is on.
   double get lightnessBias => _lightnessBias;
 
+  /// Share of shards forced to white when sampling the lock palette: 0 adds no
+  /// white, 1 makes every shard white. Guarantees a white highlight even when
+  /// the lock sprite has none. Only meaningful while [useLockPalette] is on.
+  double get whiteMix => _whiteMix;
+
   /// Concrete shard colours for the enabled palette entries. Never empty.
   List<Color> get colors {
     final list = _colorIndices.map((i) => kExplosionPalette[i].color).toList();
@@ -149,11 +162,11 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
-  set sizeScale(double v) {
-    final c = v.clamp(0.3, 3.0).toDouble();
-    if (_sizeScale == c) return;
-    _sizeScale = c;
-    _prefs.setDouble(kPrefExplosionSizeScale, c);
+  set shardSize(double v) {
+    final c = v.clamp(shardSizeMin, shardSizeMax).toDouble();
+    if (_shardSize == c) return;
+    _shardSize = c;
+    _prefs.setDouble(kPrefExplosionShardSize, c);
     notifyListeners();
   }
 
@@ -228,6 +241,14 @@ class ExplosionSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  set whiteMix(double v) {
+    final c = v.clamp(0.0, 1.0).toDouble();
+    if (_whiteMix == c) return;
+    _whiteMix = c;
+    _prefs.setDouble(kPrefExplosionWhiteMix, c);
+    notifyListeners();
+  }
+
   /// Toggles a palette colour on/off. Keeps at least one colour enabled.
   void toggleColor(int index) {
     if (index < 0 || index >= kExplosionPalette.length) return;
@@ -243,7 +264,7 @@ class ExplosionSettings extends ChangeNotifier {
 
   void resetToDefaults() {
     _count = _defaultCount;
-    _sizeScale = _defaultSizeScale;
+    _shardSize = _defaultShardSize;
     _sizeRandomizer = _defaultSizeRandom;
     _explosionSpeed = _defaultExplosionSpeed;
     _speedRandomizer = _defaultSpeedRandom;
@@ -254,8 +275,9 @@ class ExplosionSettings extends ChangeNotifier {
     _colorIndices = {..._defaultColors};
     _useLockPalette = _defaultLockPalette;
     _lightnessBias = _defaultLightnessBias;
+    _whiteMix = _defaultWhiteMix;
     _prefs.setInt(kPrefExplosionCount, _count);
-    _prefs.setDouble(kPrefExplosionSizeScale, _sizeScale);
+    _prefs.setDouble(kPrefExplosionShardSize, _shardSize);
     _prefs.setDouble(kPrefExplosionSizeRandom, _sizeRandomizer);
     _prefs.setDouble(kPrefExplosionSpeed, _explosionSpeed);
     _prefs.setDouble(kPrefExplosionSpeedRandom, _speedRandomizer);
@@ -266,6 +288,7 @@ class ExplosionSettings extends ChangeNotifier {
     _prefs.setString(kPrefExplosionColors, _colorIndices.join(','));
     _prefs.setBool(kPrefExplosionLockPalette, _useLockPalette);
     _prefs.setDouble(kPrefExplosionLightnessBias, _lightnessBias);
+    _prefs.setDouble(kPrefExplosionWhiteMix, _whiteMix);
     notifyListeners();
   }
 }

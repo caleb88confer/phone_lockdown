@@ -34,12 +34,12 @@ class ExplosionSettingsScreen extends StatelessWidget {
               ),
               _Slider(
                 label: 'Shard size',
-                valueLabel: '${s.sizeScale.toStringAsFixed(2)}×',
-                value: s.sizeScale,
-                min: 0.3,
-                max: 3.0,
-                divisions: 27,
-                onChanged: (v) => s.sizeScale = v,
+                valueLabel: '${s.shardSize.round()} px',
+                value: s.shardSize,
+                min: ExplosionSettings.shardSizeMin,
+                max: ExplosionSettings.shardSizeMax,
+                divisions: 38,
+                onChanged: (v) => s.shardSize = v,
               ),
               _Slider(
                 label: 'Size randomizer',
@@ -151,6 +151,17 @@ class ExplosionSettingsScreen extends StatelessWidget {
                   max: 1.0,
                   divisions: 20,
                   onChanged: (v) => s.lightnessBias = v,
+                ),
+                _Slider(
+                  label: 'White mix',
+                  valueLabel: s.whiteMix == 0
+                      ? 'none'
+                      : '${(s.whiteMix * 100).round()}%',
+                  value: s.whiteMix,
+                  min: 0,
+                  max: 1.0,
+                  divisions: 20,
+                  onChanged: (v) => s.whiteMix = v,
                 ),
               ],
               const SizedBox(height: 12),

@@ -31,7 +31,7 @@ class PixelBurst extends StatefulWidget {
   /// Base distance (logical px) a shard travels; jittered per shard.
   final double travel;
 
-  /// Logical px per sprite pixel — each shard is [_frameSize] of these square.
+  /// Logical px per sprite pixel — each shard is [kShardFrameSize] of these square.
   final double shardPixel;
 
   /// Spin speed in full sprite loops per second. Steady for a shard's whole
@@ -88,9 +88,13 @@ class PixelBurst extends StatefulWidget {
 }
 
 // Sprite sheet: a single shard turning, laid out as [_frameCount] square
-// [_frameSize]x[_frameSize] frames in a horizontal strip.
+// [kShardFrameSize]x[kShardFrameSize] frames in a horizontal strip.
 const String _shardAsset = 'assets/sprites/rotating_shard.png';
-const int _frameSize = 5;
+
+/// Side of one shard sprite frame, in sprite pixels. A shard renders this many
+/// [PixelBurst.shardPixel]-sized squares across, so a desired on-screen shard
+/// side maps to `shardPixel = side / kShardFrameSize`.
+const int kShardFrameSize = 5;
 const int _frameCount = 8;
 
 // The dissolve tail, as a fraction of a shard's life. A shard holds full
@@ -289,7 +293,7 @@ class _BurstPainter extends CustomPainter {
 
       final d = math.min(s.distance * eased, s.clampDistance);
       final pos = center + Offset(math.cos(s.angle), math.sin(s.angle)) * d;
-      final side = _frameSize * shardPixel * s.sizeJitter;
+      final side = kShardFrameSize * shardPixel * s.sizeJitter;
 
       // Spin at a steady real-time rate; wrap the frame into [0, _frameCount).
       final frame =
@@ -297,10 +301,10 @@ class _BurstPainter extends CustomPainter {
               _frameCount) %
           _frameCount;
       final src = Rect.fromLTWH(
-        (frame * _frameSize).toDouble(),
+        (frame * kShardFrameSize).toDouble(),
         0,
-        _frameSize.toDouble(),
-        _frameSize.toDouble(),
+        kShardFrameSize.toDouble(),
+        kShardFrameSize.toDouble(),
       );
       final dst = Rect.fromCenter(center: pos, width: side, height: side);
 

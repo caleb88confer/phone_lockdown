@@ -186,28 +186,32 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
     final bg = _landed ? widget.endColor : widget.startColor;
     final screen = MediaQuery.of(context).size;
     final size = screen.height / 4;
-    // On-screen size of one lock sprite pixel. The burst matches it at shard
-    // size 1× so the shard art shares the lock's pixel grid (no mixed pixel
-    // sizes — "mixels"); scaling shard size away from 1× is then a choice.
-    final lockPixel =
-        size * widget.style.displayScale / widget.style.frameWidth;
 
     // Shard colours: the lock's own palette when that mode is on and a palette
     // has loaded, otherwise the custom swatches. With more lock colours than
-    // shards we hand the burst a random subset sized to the shard count.
+    // shards we hand the burst a random subset sized to the shard count, skewed
+    // toward lighter colours and blended with a little white. The custom
+    // palette is always picked evenly.
     final lockPalette = _lockPalette;
     final usingLockPalette =
         settings.useLockPalette &&
         lockPalette != null &&
         lockPalette.isNotEmpty;
-    final burstColors = usingLockPalette
-        ? pickBurstColors(lockPalette, settings.count)
-        : settings.colors;
-    // Skew the lock palette toward its lighter colours; the custom palette is
-    // always picked evenly.
-    final burstWeights = usingLockPalette
-        ? lightnessWeights(burstColors, settings.lightnessBias)
-        : null;
+    final List<Color> burstColors;
+    final List<double>? burstWeights;
+    if (usingLockPalette) {
+      final selected = pickBurstColors(lockPalette, settings.count);
+      final palette = lockBurstPalette(
+        selected,
+        settings.lightnessBias,
+        settings.whiteMix,
+      );
+      burstColors = palette.colors;
+      burstWeights = palette.weights;
+    } else {
+      burstColors = settings.colors;
+      burstWeights = null;
+    }
 
     return Scaffold(
       backgroundColor: bg,
@@ -230,7 +234,10 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
                 radius: settings.ringEnabled
                     ? size * 1.15 * settings.radius
                     : double.infinity,
-                shardPixel: lockPixel * settings.sizeScale,
+                // Fixed on-screen shard side, independent of the lock: a shard
+                // is kShardFrameSize sprite pixels across, so divide to get the
+                // size of one sprite pixel.
+                shardPixel: settings.shardSize / kShardFrameSize,
                 sizeRandomizer: settings.sizeRandomizer,
                 spinRate: settings.spinRate,
                 spinRandomizer: settings.spinRandomizer,
@@ -283,7 +290,7 @@ class _LockTransitionScreenState extends State<LockTransitionScreen>
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'count ${s.count}   ·   size ${s.sizeScale.toStringAsFixed(2)}× ±${s.sizeRandomizer.toStringAsFixed(2)}   ·   '
+              'count ${s.count}   ·   size ${s.shardSize.round()}px ±${s.sizeRandomizer.toStringAsFixed(2)}   ·   '
               'speed ${s.explosionSpeed.toStringAsFixed(2)}× ±${s.speedRandomizer.toStringAsFixed(2)}   ·   '
               'radius ${s.ringEnabled ? '${s.radius.toStringAsFixed(2)}×' : 'off'}   ·   '
               'spin ${s.spinRate.toStringAsFixed(1)}/s ±${s.spinRandomizer.toStringAsFixed(2)}   ·   '

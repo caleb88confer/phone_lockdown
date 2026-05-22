@@ -21,7 +21,7 @@ const kMasterKeyTickSeconds = 30;
 // Lock-landing explosion (pixel burst) tuning
 const kPrefExplosionSetupMode = 'explosionSetupMode';
 const kPrefExplosionCount = 'explosionCount';
-const kPrefExplosionSizeScale = 'explosionSizeScale';
+const kPrefExplosionShardSize = 'explosionShardSize'; // fixed shard side, logical px
 const kPrefExplosionSizeRandom = 'explosionSizeRandom'; // per-shard size deviation
 const kPrefExplosionSpeed = 'explosionSpeed'; // standard outward speed (was 'spread')
 const kPrefExplosionSpeedRandom = 'explosionSpeedRandom'; // per-shard speed deviation
@@ -32,6 +32,7 @@ const kPrefExplosionDurationMs = 'explosionDurationMs';
 const kPrefExplosionColors = 'explosionColors'; // comma-separated palette indices
 const kPrefExplosionLockPalette = 'explosionLockPalette'; // sample colours from the lock sprite
 const kPrefExplosionLightnessBias = 'explosionLightnessBias'; // skew lock palette toward lighter colours
+const kPrefExplosionWhiteMix = 'explosionWhiteMix'; // share of shards forced white in lock palette
 
 // Defaults
 const kDefaultFailsafeMinutes = 1440;

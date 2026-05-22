@@ -104,3 +104,29 @@ List<double> lightnessWeights(List<Color> colors, double bias) {
   final exponent = b * _lightnessBiasMaxExponent;
   return [for (final l in lum) math.pow(l / maxL, exponent).toDouble()];
 }
+
+/// Builds the final shard palette for a lock-palette burst: the lock [colors]
+/// weighted toward lighter ones by [lightnessBias], plus a guaranteed white
+/// entry that captures [whiteMix] of the picks (0 = no white, 1 = all white).
+/// White's share is fixed regardless of [lightnessBias], so a touch of white
+/// always reads even when the lock sprite has none. Returns the colours and
+/// their matching weights, ready for [PixelBurst].
+({List<Color> colors, List<double> weights}) lockBurstPalette(
+  List<Color> colors,
+  double lightnessBias,
+  double whiteMix,
+) {
+  final base = lightnessWeights(colors, lightnessBias);
+  final w = whiteMix.clamp(0.0, 1.0);
+  if (w <= 0) return (colors: colors, weights: base);
+
+  // Scale the lock weights so they share (1 - w) of the picks, then white takes
+  // the remaining w. (The absolute scale is irrelevant to selection — only the
+  // ratio between white and the rest matters — but normalising keeps it clear.)
+  final total = base.fold<double>(0, (sum, x) => sum + x);
+  final scale = total > 0 ? (1 - w) / total : 0.0;
+  return (
+    colors: [...colors, const Color(0xFFFFFFFF)],
+    weights: [for (final x in base) x * scale, w],
+  );
+}
