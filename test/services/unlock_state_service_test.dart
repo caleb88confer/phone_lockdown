@@ -43,6 +43,28 @@ void main() {
       final svc = await _freshService();
       expect(svc.totalUnlockableCount(), 27);
     });
+
+    test('unlockableOwnedCount excludes the starting loadout', () async {
+      final svc = await _freshService();
+      expect(svc.unlockableOwnedCount(), 0);
+    });
+  });
+
+  group('unlockableOwnedCount', () {
+    test('only ticks up on items in kUnlockOrder', () async {
+      final svc = await _freshService();
+      await svc.debugSkipActive();
+      await svc.drainPendingClaims();
+      expect(svc.unlockableOwnedCount(), 1);
+    });
+
+    test('reaches 27 once every unlockable item is drained', () async {
+      final svc = await _freshService();
+      await svc.addLockedTime(const Duration(hours: 300));
+      await svc.drainPendingClaims();
+      expect(svc.unlockableOwnedCount(), 27);
+      expect(svc.totalOwnedCount(), 8 + 27);
+    });
   });
 
   group('helper queries', () {

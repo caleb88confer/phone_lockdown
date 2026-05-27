@@ -75,6 +75,12 @@ class UnlockStateService extends ChangeNotifier {
   int totalOwnedCount() => _ownedItemIds.length;
   int totalUnlockableCount() => kUnlockOrder.length;
 
+  /// Count of owned items that appear in [kUnlockOrder] — i.e. unlockable
+  /// items the user has earned. Excludes the starting loadout, which is
+  /// owned-from-day-one. Used for the X / 27 progress display.
+  int unlockableOwnedCount() =>
+      _ownedItemIds.where(_unlockOrderIds.contains).length;
+
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;

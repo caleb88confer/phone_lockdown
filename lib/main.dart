@@ -66,7 +66,9 @@ class PhoneLockdownApp extends StatelessWidget {
         ChangeNotifierProvider<MasterKeyService>.value(value: masterKey),
         ChangeNotifierProvider<UnlockStateService>.value(value: unlockState),
         ChangeNotifierProvider(create: (_) => ExplosionSettings(prefs: prefs)),
-        ChangeNotifierProvider(create: (_) => UnlockedItemsService()),
+        ChangeNotifierProvider(
+          create: (_) => UnlockedItemsService(unlockState: unlockState),
+        ),
       ],
       child: MaterialApp(
         title: 'Phone Lockdown',
