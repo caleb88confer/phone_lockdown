@@ -5,6 +5,7 @@ import '../customization/key_catalog.dart';
 import '../customization/lock_catalog.dart';
 import '../services/app_blocker_service.dart';
 import '../services/profile_manager.dart';
+import '../services/unlock_state_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
 import '../utils/duration_format.dart';
@@ -14,6 +15,7 @@ import 'lock_transition_screen.dart';
 import 'permissions_screen.dart';
 import 'scan_screen.dart';
 import 'settings_screen.dart';
+import 'unlock_reveal_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,23 +26,72 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Timer? _countdownTimer;
+  bool _revealing = false;
+  UnlockStateService? _unlockState;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final appBlocker = context.read<AppBlockerService>();
       final profileManager = context.read<ProfileManager>();
       appBlocker.restoreTimers(profileManager.profilesForBlocker);
       appBlocker.reconcileWithAndroid(profileManager.profilesForBlocker);
+      _maybeShowReveal();
     });
     _startCountdownRefresh();
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next = context.read<UnlockStateService>();
+    if (_unlockState == next) return;
+    _unlockState?.removeListener(_onUnlockStateChanged);
+    _unlockState = next;
+    _unlockState!.addListener(_onUnlockStateChanged);
+  }
+
+  @override
   void dispose() {
     _countdownTimer?.cancel();
+    _unlockState?.removeListener(_onUnlockStateChanged);
     super.dispose();
+  }
+
+  void _onUnlockStateChanged() {
+    // Defer to post-frame so we don't try to navigate during a build pass.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _maybeShowReveal();
+    });
+  }
+
+  Future<void> _maybeShowReveal() async {
+    if (_revealing) return;
+    if (!mounted) return;
+    final blocker = context.read<AppBlockerService>();
+    final unlock = context.read<UnlockStateService>();
+    // Reveal only between lockdowns — during a session the queue accumulates
+    // silently per the brainstorm doc.
+    if (blocker.isBlocking) return;
+    if (unlock.pendingClaimIds.isEmpty) return;
+    // Don't push on top of a transition / scan / settings screen — those
+    // routes own the foreground until they pop back to home.
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isCurrent) return;
+    _revealing = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const UnlockRevealScreen(),
+          fullscreenDialog: true,
+        ),
+      );
+    } finally {
+      _revealing = false;
+    }
   }
 
   void _startCountdownRefresh() {
@@ -175,6 +226,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+    // The unlock-state listener fires during deactivate while the transition
+    // is still on top (and gets skipped because we're not the current route).
+    // After the transition pops, no further listener call comes — so the
+    // explicit check here handles the manual-unlock path.
+    if (!mounted) return;
+    await _maybeShowReveal();
   }
 
   /// Pushes [page] with no route animation so it instantly covers the home —
