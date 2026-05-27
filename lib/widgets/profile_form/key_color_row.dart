@@ -48,7 +48,7 @@ class KeyColorRow extends StatelessWidget {
           if (i > 0) children.add(const SizedBox(width: spacing));
           final c = colors[i];
           final unlockId = 'kc_${c.id}';
-          final locked = !unlockState.isOwned(unlockId);
+          final locked = !unlockState.isColorAvailable(unlockId);
           final isSelected = !locked && c.id == selectedColorId;
           final swatch = KeyDisplay(
             style: style,

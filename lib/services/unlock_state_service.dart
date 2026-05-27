@@ -51,6 +51,12 @@ class UnlockStateService extends ChangeNotifier {
 
   bool isOwned(String id) => _ownedItemIds.contains(id);
 
+  /// True if a colour id is available to the palette pickers — either owned
+  /// outright via [kUnlockOrder] or earned as a bundled accent (chunk 9).
+  /// Accepts the same `kc_*`/`lc_*` namespacing as everywhere else.
+  bool isColorAvailable(String id) =>
+      _ownedItemIds.contains(id) || _ownedAccentColorIds.contains(id);
+
   /// True only for unlock-order items not yet unlocked and not awaiting
   /// reveal. Returns false for ids outside [kUnlockOrder] and for items in
   /// the pending-claim queue (the active index has already moved past them).
@@ -180,14 +186,16 @@ class UnlockStateService extends ChangeNotifier {
     _ownedAccentColorIds.clear();
   }
 
-  /// Pushes the active item into the pending-claim queue and advances the
-  /// index. Accumulator handling is the caller's responsibility — chunk 6's
-  /// threshold loop will subtract `item.hours * 3_600_000`; the debug skip
+  /// Pushes the active item into the pending-claim queue, folds in any
+  /// bundled accents (chunk 9 — global-on-first), and advances the index.
+  /// Accumulator handling is the caller's responsibility — chunk 6's
+  /// threshold loop subtracts `item.hours * 3_600_000`; the debug skip
   /// zeros it.
   void _unlockActiveItem() {
     final item = activeItem;
     if (item == null) return;
     _pendingClaimIds.add(item.id);
+    _ownedAccentColorIds.addAll(item.bundledAccents);
     _activeItemIndex += 1;
   }
 

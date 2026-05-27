@@ -221,6 +221,71 @@ void main() {
     });
   });
 
+  group('bundled accents (chunk 9)', () {
+    test('debugSkipActive past Triangle queues lc_beige globally', () async {
+      final svc = await _freshService();
+      // Triangle is item #13 (0-indexed 12). Skip 12 to reach it, then skip
+      // again to pass it.
+      for (var i = 0; i < 13; i++) {
+        await svc.debugSkipActive();
+      }
+      expect(svc.ownedAccentColorIds, contains('lc_beige'));
+    });
+
+    test('threshold-loop crossing Sturdy queues lc_red globally', () async {
+      final svc = await _freshService();
+      // Cumulative through Sturdy (#15) = 66h.
+      await svc.addLockedTime(const Duration(hours: 66));
+      expect(svc.pendingClaimIds, contains('sturdy'));
+      expect(svc.ownedAccentColorIds, contains('lc_red'));
+    });
+
+    test('a full cascade collects every bundled accent', () async {
+      final svc = await _freshService();
+      await svc.addLockedTime(const Duration(hours: 250));
+      expect(svc.ownedAccentColorIds, {
+        'lc_beige',
+        'lc_red',
+        'lc_copper',
+        'lc_mossy',
+        'kc_curse',
+      });
+    });
+
+    test('isColorAvailable reports accents as available', () async {
+      final svc = await _freshService();
+      await svc.addLockedTime(const Duration(hours: 66)); // crosses Sturdy
+      expect(svc.isColorAvailable('lc_red'), isTrue);
+      expect(svc.isColorAvailable('lc_copper'), isFalse);
+    });
+
+    test('isColorAvailable also reports outright-owned base colours', () async {
+      final svc = await _freshService();
+      expect(svc.isColorAvailable('kc_grey'), isTrue); // starting set
+      expect(svc.isColorAvailable('kc_gold'), isFalse); // unlockable, not owned
+    });
+
+    test('accents survive a restart', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final svc1 = UnlockStateService(prefs: prefs);
+      await svc1.init();
+      await svc1.addLockedTime(const Duration(hours: 66)); // crosses Sturdy
+
+      final svc2 = UnlockStateService(prefs: prefs);
+      await svc2.init();
+      expect(svc2.ownedAccentColorIds, contains('lc_red'));
+    });
+
+    test('debugReset clears accents', () async {
+      final svc = await _freshService();
+      await svc.addLockedTime(const Duration(hours: 66));
+      expect(svc.ownedAccentColorIds, isNotEmpty);
+      await svc.debugReset();
+      expect(svc.ownedAccentColorIds, isEmpty);
+    });
+  });
+
   group('drainPendingClaims', () {
     test('moves the queue into ownedItemIds and clears it', () async {
       final svc = await _freshService();

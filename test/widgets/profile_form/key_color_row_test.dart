@@ -195,5 +195,23 @@ void main() {
       // Now only kc_gold is locked.
       expect(find.byType(LockedSpriteOverlay), findsNWidgets(1));
     });
+
+    testWidgets('chunk 9: kc_curse becomes available on key_8 after Key 8 unlock', (tester) async {
+      final svc = await _freshUnlockState();
+      // Pre-unlock: key_8 has 4 colors (gold, silver, grey, curse). Of those,
+      // gold + silver are unlock-order, grey is starting, curse rides bundled
+      // with key_8. So 2 locked (gold + silver) plus curse = 3 locked.
+      await tester.pumpWidget(
+        _harness(unlockState: svc, styleId: 'key_8', colorId: 'grey'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(LockedSpriteOverlay), findsNWidgets(3));
+
+      // Unlock everything — Key 8 is the last item (#27) and bundles kc_curse.
+      await svc.addLockedTime(const Duration(hours: 250));
+      await svc.drainPendingClaims();
+      await tester.pumpAndSettle();
+      expect(find.byType(LockedSpriteOverlay), findsNothing);
+    });
   });
 }
