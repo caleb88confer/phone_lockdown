@@ -37,8 +37,8 @@ class UnlockItem {
 const List<UnlockItem> kUnlockOrder = <UnlockItem>[
   // Early phase — quick wins (basic locks + static keys + base colours).
   UnlockItem(id: 'small_sturdy', type: UnlockType.lock, hours: 2),
-  UnlockItem(id: 'kc_silver', type: UnlockType.keyColor, hours: 2),
-  UnlockItem(id: 'key_3', type: UnlockType.key, hours: 3),
+  UnlockItem(id: 'key_3', type: UnlockType.key, hours: 2),
+  UnlockItem(id: 'kc_silver', type: UnlockType.keyColor, hours: 3),
   UnlockItem(id: 'lc_bronze', type: UnlockType.lockColor, hours: 3),
   UnlockItem(id: 'small_oval', type: UnlockType.lock, hours: 3),
   UnlockItem(id: 'key_9', type: UnlockType.key, hours: 4),

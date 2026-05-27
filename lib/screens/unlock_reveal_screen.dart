@@ -66,7 +66,7 @@ class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
         _claimAndPop();
       },
       child: Scaffold(
-        backgroundColor: AppColors.nonBlockingBackground,
+        backgroundColor: AppColors.surfaceContainerHigh,
         body: SafeArea(
           child: Column(
             children: [
@@ -79,9 +79,7 @@ class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         letterSpacing: 2.0,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.surfaceContainerLowest.withValues(
-                          alpha: 0.85,
-                        ),
+                        color: AppColors.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -91,7 +89,7 @@ class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
                           ?.copyWith(
                             letterSpacing: 1.5,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.surfaceContainerLowest,
+                            color: AppColors.onSurface,
                           ),
                     ),
                   ],
@@ -160,12 +158,12 @@ class _RevealCard extends StatelessWidget {
       case UnlockType.key:
         return keyStyleById(id).displayName;
       case UnlockType.lock:
-        return lockStyleById(id).displayName;
+        return '${lockStyleById(id).displayName} Lock';
       case UnlockType.keyColor:
         final raw = id.substring(3);
         for (final style in kKeyCatalog) {
           for (final c in style.colors) {
-            if (c.id == raw) return '${c.displayName} keys';
+            if (c.id == raw) return '${c.displayName} key color';
           }
         }
         return raw;
@@ -173,7 +171,7 @@ class _RevealCard extends StatelessWidget {
         final raw = id.substring(3);
         for (final style in kLockCatalog) {
           for (final c in style.colors) {
-            if (c.id == raw) return '${c.displayName} locks';
+            if (c.id == raw) return '${c.displayName} lock color';
           }
         }
         return raw;
@@ -198,7 +196,7 @@ class _RevealCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.surfaceContainerLowest,
+              color: AppColors.onSurface,
             ),
           ),
         ],
@@ -312,8 +310,8 @@ class _PageDots extends StatelessWidget {
           height: 6,
           decoration: BoxDecoration(
             color: active
-                ? AppColors.surfaceContainerLowest
-                : AppColors.surfaceContainerLowest.withValues(alpha: 0.4),
+                ? AppColors.onSurface
+                : AppColors.onSurface.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(3),
           ),
         );
