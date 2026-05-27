@@ -8,45 +8,40 @@ import '../../key_display.dart';
 import '../../locked_sprite_overlay.dart';
 import 'sprite_carousel.dart';
 
-/// Carousel item order for keys. Positions anchor on the two starting keys
-/// (key_1, key_10) and then grow outward in alternating order as items
-/// unlock: 2nd, 4th, 6th unlocks fill in to the right of key_10; 1st, 3rd,
-/// 5th unlocks fill in to the left of key_1 (i.e. the tail of the looping
-/// array). Items that are neither owned nor inside the next-5 silhouette
-/// window are skipped.
+/// Carousel item order for keys. Linear left-to-right layout:
+///
+///   [u13, u11, ..., u3, u1, key_1, key_10, u2, u4, ..., u12]
+///
+/// `key_1` sits in the middle (default style); `key_10` is immediately to its
+/// right. Then unlocks fan out alternately: 1st, 3rd, 5th ... unlocks fill
+/// to the left of `key_1`; 2nd, 4th, 6th ... unlocks fill to the right of
+/// `key_10`. Every catalog key is always present — locked ones render as
+/// silhouettes — so the carousel never reshuffles as items unlock.
 List<KeyStyle> visibleKeyStyles(UnlockStateService unlockState) {
-  final windowIds = unlockState.nextLockedItems(5).map((i) => i.id).toSet();
-  bool visible(String id) =>
-      unlockState.isOwned(id) || windowIds.contains(id);
-
-  // Anchor pair: the default style (key_1) sits at position 0, key_10 to its
-  // right at position 1.
-  final result = <KeyStyle>[
-    keyStyleById(kDefaultKeyStyleId),
-    keyStyleById('key_10'),
-  ];
-
   final keyUnlocks = kUnlockOrder
       .where((u) => u.type == UnlockType.key)
       .toList(growable: false);
 
-  // Right side, chronological: 2nd, 4th, 6th, ... unlocks.
-  for (var i = 1; i < keyUnlocks.length; i += 2) {
-    final u = keyUnlocks[i];
-    if (visible(u.id)) result.add(keyStyleById(u.id));
-  }
-
-  // Left side, reverse-chronological so u1 lands at the very last position
-  // (immediately left of key_1 once the carousel wraps): u1 ends up last,
-  // u3 second-to-last, etc.
+  // Odd unlocks (1st, 3rd, 5th …) go on the left, reversed so u1 ends up
+  // immediately left of key_1 and the older unlocks recede further out.
   final leftSide = <KeyStyle>[];
   for (var i = 0; i < keyUnlocks.length; i += 2) {
-    final u = keyUnlocks[i];
-    if (visible(u.id)) leftSide.add(keyStyleById(u.id));
+    leftSide.add(keyStyleById(keyUnlocks[i].id));
   }
-  result.addAll(leftSide.reversed);
 
-  return List.unmodifiable(result);
+  // Even unlocks (2nd, 4th, 6th …) go on the right in chronological order
+  // so u2 sits immediately right of key_10.
+  final rightSide = <KeyStyle>[];
+  for (var i = 1; i < keyUnlocks.length; i += 2) {
+    rightSide.add(keyStyleById(keyUnlocks[i].id));
+  }
+
+  return List.unmodifiable(<KeyStyle>[
+    ...leftSide.reversed,
+    keyStyleById(kDefaultKeyStyleId),
+    keyStyleById('key_10'),
+    ...rightSide,
+  ]);
 }
 
 class KeyStyleCarousel extends StatelessWidget {
@@ -79,8 +74,6 @@ class KeyStyleCarousel extends StatelessWidget {
       selectedIndex: selectedIndex,
       onSelectedChanged: (i) {
         final style = visible[i];
-        // Silhouettes are browsable but not selectable — keep the parent's
-        // committed selection on the previous owned style.
         if (unlockState.isLocked(style.id)) return;
         onStyleChanged(style.id);
       },
@@ -90,7 +83,7 @@ class KeyStyleCarousel extends StatelessWidget {
       edgeSize: 26,
       cellGap: 8,
       peekCount: 5,
-      infiniteLoop: true,
+      infiniteLoop: false,
       centerBob: true,
       bobAmplitude: 4,
       bobPeriod: const Duration(milliseconds: 1400),
@@ -101,7 +94,7 @@ class KeyStyleCarousel extends StatelessWidget {
         final locked = unlockState.isLocked(style.id);
         if (locked) {
           // Every locked key reads as the same key_1 silhouette so the user
-          // doesn't preview which key is coming next — just that *something*
+          // can't preview which key is coming next — just that *something*
           // is. Pure black instead of the muted tint used elsewhere.
           return LockedSpriteOverlay(
             solidBlack: true,

@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:phone_lockdown/customization/key_catalog.dart';
+import 'package:phone_lockdown/customization/lock_catalog.dart';
 import 'package:phone_lockdown/services/unlock_state_service.dart';
 import 'package:phone_lockdown/widgets/profile_form/carousel/key_style_carousel.dart';
 import 'package:phone_lockdown/widgets/profile_form/carousel/lock_style_carousel.dart';
@@ -12,72 +14,88 @@ Future<UnlockStateService> _freshUnlockState() async {
   return svc;
 }
 
+// Expected linear layout: every catalog key, with key_1 + key_10 anchored in
+// the middle and unlocks fanning out by chronological order — odd unlocks
+// (u1, u3, u5 …) to the left in reverse, even unlocks (u2, u4, u6 …) to the
+// right in order. Locked items are still in the list; they render as
+// silhouettes but the bounded physics walls them off.
+const _expectedKeyOrder = <String>[
+  // Reversed odd key unlocks (oldest farthest out, u1 closest to key_1):
+  'key_8',  // u13
+  'key_7',  // u11
+  'key_12', // u9
+  'key_11', // u7
+  'key_2',  // u5
+  'key_14', // u3
+  'key_3',  // u1
+  // Anchor pair:
+  'key_1',
+  'key_10',
+  // Even key unlocks in chronological order:
+  'key_9',  // u2
+  'key_4',  // u4
+  'key_6',  // u6
+  'key_5',  // u8
+  'key_13', // u10
+  'key_15', // u12
+];
+
+const _expectedLockOrder = <String>[
+  // Reversed odd lock unlocks:
+  'hefty',        // u9
+  'robust',       // u7
+  'triangle',     // u5
+  'shield_like',  // u3
+  'small_sturdy', // u1
+  // Anchor pair:
+  'small_square',
+  'small_round',
+  // Even lock unlocks chronological:
+  'small_oval', // u2
+  'old',        // u4
+  'sturdy',     // u6
+  'round',      // u8
+  'extending',  // u10
+];
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('visibleKeyStyles', () {
-    test('starting state: anchor pair + key_3 silhouette appended on the left', () async {
+    test('returns every catalog key in the alternating linear layout', () async {
       final svc = await _freshUnlockState();
       final ids = visibleKeyStyles(svc).map((s) => s.id).toList();
-      // Anchor: key_1 at 0, key_10 at 1. key_3 is the 1st key unlock (odd) so
-      // it sits at the tail of the looping array — immediately left of key_1.
-      expect(ids, ['key_1', 'key_10', 'key_3']);
+      expect(ids, _expectedKeyOrder);
+      expect(ids, hasLength(kKeyCatalog.length));
     });
 
-    test('a debug skip materialises the next key silhouette on the right', () async {
+    test('layout is stable as items unlock', () async {
       final svc = await _freshUnlockState();
-      // Skip past the first three items: small_sturdy, kc_silver, key_3.
-      // key_3 enters pending — still not owned, still not locked (it's between).
-      // After drain, key_3 is owned. The next-5 window also slides forward.
       await svc.debugSkipActive(); // #1 small_sturdy
       await svc.debugSkipActive(); // #2 kc_silver
       await svc.debugSkipActive(); // #3 key_3
       await svc.drainPendingClaims();
-
       final ids = visibleKeyStyles(svc).map((s) => s.id).toList();
-      // Owned now: key_1, key_3, key_10. Next-5 starts at #4 (lc_bronze) and
-      // covers items 4–8: lc_bronze, small_oval, key_9, kc_gold, shield_like.
-      // Only key_9 is a key — and it's the 2nd key unlock (even), so it lands
-      // at position 2 (right of key_10). key_3 (1st key unlock, owned) stays
-      // at the tail.
-      expect(ids, ['key_1', 'key_10', 'key_9', 'key_3']);
-    });
-
-    test('with every item unlocked, every key in the catalog is visible', () async {
-      final svc = await _freshUnlockState();
-      await svc.addLockedTime(const Duration(hours: 300));
-      await svc.drainPendingClaims();
-      final ids = visibleKeyStyles(svc).map((s) => s.id).toList();
-      expect(ids, hasLength(15));
-      // Anchor stays at the front; everything else alternates outward.
-      expect(ids.first, 'key_1');
-      expect(ids[1], 'key_10');
+      // Same array regardless of progression — only the lock/unlock state on
+      // each entry changes.
+      expect(ids, _expectedKeyOrder);
     });
   });
 
   group('visibleLockStyles', () {
-    test('starting state: anchor pair + small_sturdy left, small_oval right', () async {
+    test('returns every catalog lock in the alternating linear layout', () async {
       final svc = await _freshUnlockState();
       final ids = visibleLockStyles(svc).map((s) => s.id).toList();
-      // Anchor: small_square (default) at 0, small_round at 1. Next-5 holds
-      // small_sturdy (1st lock unlock, odd → tail/left) and small_oval (2nd
-      // lock unlock, even → right of small_round).
-      expect(ids, ['small_square', 'small_round', 'small_oval', 'small_sturdy']);
+      expect(ids, _expectedLockOrder);
+      expect(ids, hasLength(kLockCatalog.length));
     });
 
-    test('a debug skip materialises the next lock silhouette', () async {
+    test('layout is stable as items unlock', () async {
       final svc = await _freshUnlockState();
-      // Skip the first lock (small_sturdy).
-      await svc.debugSkipActive(); // #1
+      await svc.debugSkipActive(); // #1 small_sturdy
       await svc.drainPendingClaims();
-
       final ids = visibleLockStyles(svc).map((s) => s.id).toList();
-      // Owned: small_sturdy, small_square, small_round. Next-5 starts at #2
-      // and covers kc_silver, key_3, lc_bronze, small_oval, key_9 — so
-      // small_oval is the only new lock silhouette in window. small_oval is
-      // the 2nd lock unlock (even → right). small_sturdy (1st, owned) sits
-      // at the tail.
-      expect(ids, ['small_square', 'small_round', 'small_oval', 'small_sturdy']);
+      expect(ids, _expectedLockOrder);
     });
   });
 }

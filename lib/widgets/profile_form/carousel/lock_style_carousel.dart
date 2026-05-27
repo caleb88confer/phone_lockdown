@@ -8,38 +8,32 @@ import '../../lock_picker_sprite.dart';
 import '../../locked_sprite_overlay.dart';
 import 'sprite_carousel.dart';
 
-/// Carousel item order for locks. Same alternating-around-the-anchor layout
-/// as [visibleKeyStyles]: small_square (default) at position 0, small_round
-/// at position 1, then 2nd/4th/6th lock unlocks fill in to the right,
-/// 1st/3rd/5th fill in to the left (tail of the looping array). Items
-/// outside the next-5 silhouette window and not yet owned are skipped.
+/// Carousel item order for locks. Same linear left-to-right layout as
+/// [visibleKeyStyles]: small_square (default) in the middle, small_round
+/// immediately right; 1st/3rd/5th … lock unlocks fan out to the left,
+/// 2nd/4th/6th … to the right. Every catalog lock is always present —
+/// locked ones render as silhouettes.
 List<LockStyle> visibleLockStyles(UnlockStateService unlockState) {
-  final windowIds = unlockState.nextLockedItems(5).map((i) => i.id).toSet();
-  bool visible(String id) =>
-      unlockState.isOwned(id) || windowIds.contains(id);
-
-  final result = <LockStyle>[
-    lockStyleById(kDefaultLockStyleId),
-    lockStyleById('small_round'),
-  ];
-
   final lockUnlocks = kUnlockOrder
       .where((u) => u.type == UnlockType.lock)
       .toList(growable: false);
 
-  for (var i = 1; i < lockUnlocks.length; i += 2) {
-    final u = lockUnlocks[i];
-    if (visible(u.id)) result.add(lockStyleById(u.id));
-  }
-
   final leftSide = <LockStyle>[];
   for (var i = 0; i < lockUnlocks.length; i += 2) {
-    final u = lockUnlocks[i];
-    if (visible(u.id)) leftSide.add(lockStyleById(u.id));
+    leftSide.add(lockStyleById(lockUnlocks[i].id));
   }
-  result.addAll(leftSide.reversed);
 
-  return List.unmodifiable(result);
+  final rightSide = <LockStyle>[];
+  for (var i = 1; i < lockUnlocks.length; i += 2) {
+    rightSide.add(lockStyleById(lockUnlocks[i].id));
+  }
+
+  return List.unmodifiable(<LockStyle>[
+    ...leftSide.reversed,
+    lockStyleById(kDefaultLockStyleId),
+    lockStyleById('small_round'),
+    ...rightSide,
+  ]);
 }
 
 class LockStyleCarousel extends StatelessWidget {
@@ -80,7 +74,7 @@ class LockStyleCarousel extends StatelessWidget {
       cellGap: 8,
       peekCount: 5,
       sideOutwardOffset: 12,
-      infiniteLoop: true,
+      infiniteLoop: false,
       centerBob: true,
       bobAmplitude: 4,
       bobPeriod: const Duration(milliseconds: 1400),

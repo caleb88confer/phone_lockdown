@@ -35,10 +35,11 @@ class SpriteCarousel<T> extends StatefulWidget {
   )
   itemBuilder;
 
-  /// Optional predicate: when true for an item, the carousel will refuse to
-  /// settle the center cell on it. Used to make locked unlock-order items
-  /// visible at the boundaries without letting the user scroll into them —
-  /// the carousel snaps back to the last-good page if a scroll lands on one.
+  /// Optional predicate: when true for an item, the carousel treats it as a
+  /// hard wall — the user can see it in the side/edge slots but the scroll
+  /// physics refuses to let the center cell cross into it. The navigable
+  /// range is the contiguous run of non-locked items around [selectedIndex].
+  /// Taps on locked cells are also a no-op.
   final bool Function(T item)? isItemLocked;
 
   const SpriteCarousel({
@@ -136,25 +137,36 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
 
     final roundedPage = page.round();
     if (roundedPage == _currentPage) return;
+    _currentPage = roundedPage;
 
     final rawIndex = roundedPage % widget.items.length;
     final positiveIndex =
         (rawIndex + widget.items.length) % widget.items.length;
-
-    // Refuse to land on a locked cell — bounce back to the last good page.
-    // _currentPage is left untouched so the snap-back animation lands at the
-    // same selectedIndex the user already had committed.
-    final lockedCheck = widget.isItemLocked;
-    if (lockedCheck != null && lockedCheck(widget.items[positiveIndex])) {
-      _animateToPage(_currentPage);
-      return;
-    }
-
-    _currentPage = roundedPage;
     if (positiveIndex != widget.selectedIndex) {
       HapticFeedback.selectionClick();
       widget.onSelectedChanged(positiveIndex);
     }
+  }
+
+  /// Contiguous range of non-locked items around the current selection. The
+  /// custom physics uses this as a hard scroll wall. With [infiniteLoop] on,
+  /// or no [isItemLocked] callback, returns the full range so physics is a
+  /// no-op.
+  (int, int) _navigableRange() {
+    final lockedCheck = widget.isItemLocked;
+    if (lockedCheck == null || widget.infiniteLoop) {
+      return (0, widget.items.length - 1);
+    }
+    var minIndex = widget.selectedIndex.clamp(0, widget.items.length - 1);
+    while (minIndex > 0 && !lockedCheck(widget.items[minIndex - 1])) {
+      minIndex--;
+    }
+    var maxIndex = widget.selectedIndex.clamp(0, widget.items.length - 1);
+    while (maxIndex < widget.items.length - 1 &&
+        !lockedCheck(widget.items[maxIndex + 1])) {
+      maxIndex++;
+    }
+    return (minIndex, maxIndex);
   }
 
   void _animateToPage(int pageIndex) {
@@ -188,12 +200,23 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
       _bobController.repeat();
     }
 
+    final (minPage, maxPage) = _navigableRange();
+    final useBoundedPhysics =
+        !widget.infiniteLoop && widget.isItemLocked != null;
+
     return SizedBox(
       height: widget.centerSize + widget.bobAmplitude * 2 + 16,
       child: PageView.builder(
         controller: _controller,
         scrollDirection: Axis.horizontal,
         itemCount: widget.infiniteLoop ? null : widget.items.length,
+        physics: useBoundedPhysics
+            ? _BoundedPagePhysics(
+                minPage: minPage,
+                maxPage: maxPage,
+                viewportFraction: 1.0 / widget.peekCount,
+              )
+            : null,
         itemBuilder: (context, pageIndex) {
           final itemIndex = _itemIndexForPage(pageIndex);
           final item = widget.items[itemIndex];
@@ -328,6 +351,97 @@ class _CarouselCell extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// PageScrollPhysics variant that walls off pages outside [minPage..maxPage].
+/// The PageView still renders cells outside that range (so locked silhouettes
+/// stay visible in the side/edge slots), but drags and flings cannot park the
+/// centre cell on them — the boundary behaves like the natural start/end of a
+/// non-looping PageView.
+///
+/// Implementation: [applyBoundaryConditions] returns overscroll for any drag
+/// past the bounds, and [createBallisticSimulation] clamps the post-fling
+/// target into the range so a flick can't overshoot into the locked zone.
+class _BoundedPagePhysics extends PageScrollPhysics {
+  final int minPage;
+  final int maxPage;
+  final double viewportFraction;
+
+  const _BoundedPagePhysics({
+    required this.minPage,
+    required this.maxPage,
+    required this.viewportFraction,
+    super.parent,
+  });
+
+  @override
+  _BoundedPagePhysics applyTo(ScrollPhysics? ancestor) {
+    return _BoundedPagePhysics(
+      minPage: minPage,
+      maxPage: maxPage,
+      viewportFraction: viewportFraction,
+      parent: buildParent(ancestor),
+    );
+  }
+
+  double _pageWidth(ScrollMetrics position) =>
+      position.viewportDimension * viewportFraction;
+
+  @override
+  double applyBoundaryConditions(ScrollMetrics position, double value) {
+    final pageW = _pageWidth(position);
+    final minPx = minPage * pageW;
+    final maxPx = maxPage * pageW;
+
+    // Already past min and moving further past — refuse the whole delta.
+    if (value < position.pixels && position.pixels <= minPx) {
+      return value - position.pixels;
+    }
+    // Already past max and moving further past — refuse the whole delta.
+    if (maxPx <= position.pixels && position.pixels < value) {
+      return value - position.pixels;
+    }
+    // Crossing min from inside — clamp at min.
+    if (value < minPx && minPx < position.pixels) {
+      return value - minPx;
+    }
+    // Crossing max from inside — clamp at max.
+    if (position.pixels < maxPx && maxPx < value) {
+      return value - maxPx;
+    }
+    return 0.0;
+  }
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    final pageW = _pageWidth(position);
+    final tolerance = toleranceFor(position);
+
+    // Same target-page logic as PageScrollPhysics: nudge half a page in the
+    // direction of the fling, then round to the nearest page. The clamp keeps
+    // a fast flick from sailing past the wall.
+    var page = position.pixels / pageW;
+    if (velocity < -tolerance.velocity) {
+      page -= 0.5;
+    } else if (velocity > tolerance.velocity) {
+      page += 0.5;
+    }
+    final targetPage =
+        page.roundToDouble().clamp(minPage.toDouble(), maxPage.toDouble());
+    final target = targetPage * pageW;
+
+    if ((target - position.pixels).abs() < tolerance.distance) return null;
+    return ScrollSpringSimulation(
+      spring,
+      position.pixels,
+      target,
+      velocity,
+      tolerance: tolerance,
     );
   }
 }
