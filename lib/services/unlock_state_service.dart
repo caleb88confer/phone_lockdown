@@ -101,14 +101,32 @@ class UnlockStateService extends ChangeNotifier {
       ..addAll(_prefs.getStringList(kPrefUnlockOwnedAccents) ?? const []);
   }
 
-  /// Engine-facing: bumps the accumulator. Chunk 6 will wrap this in a
-  /// threshold loop that advances the active item when crossings happen.
+  /// Engine entry: adds locked-phone time against the active item and fires
+  /// threshold crossings. A single call can queue multiple unlocks (e.g. a
+  /// 30h session crossing a 3h, an 8h, and a 25h threshold queues three
+  /// items in one pass).
   Future<void> addLockedTime(Duration delta) async {
     if (delta.inMilliseconds <= 0) return;
     if (activeItem == null) return;
     _activeAccumulatedMs += delta.inMilliseconds;
+    _processThresholds();
     await _persist();
     notifyListeners();
+  }
+
+  void _processThresholds() {
+    while (true) {
+      final item = activeItem;
+      if (item == null) {
+        // Ran out of unlocks; the residual accumulator is meaningless now.
+        _activeAccumulatedMs = 0;
+        return;
+      }
+      final threshold = item.hours * 3600 * 1000;
+      if (_activeAccumulatedMs < threshold) return;
+      _activeAccumulatedMs -= threshold;
+      _unlockActiveItem();
+    }
   }
 
   /// Reveal-flow (chunk 8): moves every pending id into [ownedItemIds] and

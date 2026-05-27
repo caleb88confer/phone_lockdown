@@ -104,11 +104,12 @@ void main() {
       expect(svc.activeItemIndex, indexBefore);
     });
 
-    test('debugAddHours bumps the accumulator without firing thresholds', () async {
+    test('debugAddHours under the first threshold leaves the index alone', () async {
       final svc = await _freshService();
-      await svc.debugAddHours(100);
-      expect(svc.activeAccumulatedMs, 100 * 3600 * 1000);
-      expect(svc.activeItemIndex, 1, reason: 'chunk 6 will add threshold logic');
+      // First item is Small Sturdy (2h).
+      await svc.debugAddHours(1);
+      expect(svc.activeAccumulatedMs, 3600 * 1000);
+      expect(svc.activeItemIndex, 1);
       expect(svc.pendingClaimIds, isEmpty);
     });
 
@@ -121,6 +122,80 @@ void main() {
       expect(svc.activeAccumulatedMs, 0);
       expect(svc.pendingClaimIds, isEmpty);
       expect(svc.totalOwnedCount(), 8);
+    });
+  });
+
+  group('threshold loop (chunk 6)', () {
+    test('crossing one threshold queues one unlock and carries the remainder', () async {
+      final svc = await _freshService();
+      // Small Sturdy is 2h. +3h crosses once with 1h remaining.
+      await svc.addLockedTime(const Duration(hours: 3));
+      expect(svc.activeItemIndex, 2);
+      expect(svc.pendingClaimIds, [kUnlockOrder[0].id]);
+      expect(svc.activeAccumulatedMs, 1 * 3600 * 1000);
+      // The unlocked item is queued, not yet owned.
+      expect(svc.isOwned(kUnlockOrder[0].id), isFalse);
+    });
+
+    test('stacked crossings queue multiple unlocks in one pass', () async {
+      final svc = await _freshService();
+      // First three items: Small Sturdy 2h, Key Silver 2h, Key 3 3h → sum 7h.
+      // +8h crosses all three with 1h remaining on Lock Bronze (3h).
+      await svc.addLockedTime(const Duration(hours: 8));
+      expect(svc.activeItemIndex, 4);
+      expect(svc.pendingClaimIds, [
+        kUnlockOrder[0].id,
+        kUnlockOrder[1].id,
+        kUnlockOrder[2].id,
+      ]);
+      expect(svc.activeAccumulatedMs, 1 * 3600 * 1000);
+    });
+
+    test('crossing exactly on the threshold leaves a zero accumulator', () async {
+      final svc = await _freshService();
+      // Small Sturdy is exactly 2h.
+      await svc.addLockedTime(const Duration(hours: 2));
+      expect(svc.activeItemIndex, 2);
+      expect(svc.pendingClaimIds, [kUnlockOrder[0].id]);
+      expect(svc.activeAccumulatedMs, 0);
+    });
+
+    test('crossing every threshold ends with a null active item', () async {
+      final svc = await _freshService();
+      // Total of every duration is 241h per the brainstorm; +250h crosses all.
+      await svc.addLockedTime(const Duration(hours: 250));
+      expect(svc.activeItem, isNull);
+      expect(svc.activeItemIndex, kUnlockOrder.length + 1);
+      expect(svc.pendingClaimIds, hasLength(kUnlockOrder.length));
+      expect(svc.activeAccumulatedMs, 0,
+          reason: 'residual time is discarded once every item has unlocked');
+    });
+
+    test('addLockedTime is a no-op once every item has unlocked', () async {
+      final svc = await _freshService();
+      await svc.addLockedTime(const Duration(hours: 250));
+      expect(svc.activeItem, isNull);
+      await svc.addLockedTime(const Duration(hours: 5));
+      expect(svc.activeAccumulatedMs, 0);
+      expect(svc.pendingClaimIds, hasLength(kUnlockOrder.length));
+    });
+
+    test('crossings survive restart', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final svc1 = UnlockStateService(prefs: prefs);
+      await svc1.init();
+      await svc1.addLockedTime(const Duration(hours: 8));
+
+      final svc2 = UnlockStateService(prefs: prefs);
+      await svc2.init();
+      expect(svc2.activeItemIndex, 4);
+      expect(svc2.pendingClaimIds, [
+        kUnlockOrder[0].id,
+        kUnlockOrder[1].id,
+        kUnlockOrder[2].id,
+      ]);
+      expect(svc2.activeAccumulatedMs, 1 * 3600 * 1000);
     });
   });
 
@@ -153,12 +228,14 @@ void main() {
       await svc1.init();
       await svc1.debugSkipActive();
       await svc1.debugSkipActive();
-      await svc1.debugAddHours(3);
+      // Active is now key_3 (3h); +2h stays under the threshold so we can
+      // assert the accumulator round-trips intact.
+      await svc1.debugAddHours(2);
 
       final svc2 = UnlockStateService(prefs: prefs);
       await svc2.init();
       expect(svc2.activeItemIndex, 3);
-      expect(svc2.activeAccumulatedMs, 3 * 3600 * 1000);
+      expect(svc2.activeAccumulatedMs, 2 * 3600 * 1000);
       expect(svc2.pendingClaimIds, [
         kUnlockOrder[0].id,
         kUnlockOrder[1].id,

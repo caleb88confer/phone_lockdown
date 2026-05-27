@@ -4,6 +4,7 @@ import 'package:phone_lockdown/main.dart';
 import 'package:phone_lockdown/services/app_blocker_service.dart';
 import 'package:phone_lockdown/services/master_key_service.dart';
 import 'package:phone_lockdown/services/platform_channel_service.dart';
+import 'package:phone_lockdown/services/unlock_state_service.dart';
 
 class FakePlatformService implements PlatformChannelService {
   @override
@@ -60,7 +61,13 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final platform = FakePlatformService();
     final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
-    final masterKey = MasterKeyService(prefs: prefs, appBlocker: appBlocker);
+    final unlockState = UnlockStateService(prefs: prefs);
+    await unlockState.init();
+    final masterKey = MasterKeyService(
+      prefs: prefs,
+      appBlocker: appBlocker,
+      unlockState: unlockState,
+    );
     await masterKey.init();
     await tester.pumpWidget(
       PhoneLockdownApp(
@@ -69,6 +76,7 @@ void main() {
         platform: platform,
         appBlocker: appBlocker,
         masterKey: masterKey,
+        unlockState: unlockState,
       ),
     );
     expect(find.text('Phone Lockdown'), findsOneWidget);

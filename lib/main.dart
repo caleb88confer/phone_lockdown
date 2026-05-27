@@ -18,10 +18,14 @@ void main() async {
   final onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
   final platform = MethodChannelPlatformService();
   final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
-  final masterKey = MasterKeyService(prefs: prefs, appBlocker: appBlocker);
-  await masterKey.init();
   final unlockState = UnlockStateService(prefs: prefs);
   await unlockState.init();
+  final masterKey = MasterKeyService(
+    prefs: prefs,
+    appBlocker: appBlocker,
+    unlockState: unlockState,
+  );
+  await masterKey.init();
   runApp(
     PhoneLockdownApp(
       onboardingComplete: onboardingComplete,

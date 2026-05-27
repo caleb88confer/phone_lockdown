@@ -31,28 +31,37 @@ void main() {
     expect(find.textContaining('0.00h'), findsOneWidget);
   });
 
-  testWidgets('+1h bumps the accumulator by one hour', (tester) async {
+  testWidgets('+1h stays under the first threshold (Small Sturdy is 2h)', (tester) async {
     final svc = await _freshService();
     await tester.pumpWidget(_harness(svc));
     await tester.tap(find.text('+1h'));
     await tester.pump();
     expect(svc.activeAccumulatedMs, 3600 * 1000);
+    expect(svc.activeItemIndex, 1);
+    expect(svc.pendingClaimIds, isEmpty);
   });
 
-  testWidgets('+5h bumps the accumulator by five hours', (tester) async {
+  testWidgets('+5h crosses thresholds — feeds the engine', (tester) async {
     final svc = await _freshService();
     await tester.pumpWidget(_harness(svc));
     await tester.tap(find.text('+5h'));
     await tester.pump();
-    expect(svc.activeAccumulatedMs, 5 * 3600 * 1000);
+    // Small Sturdy 2h + Key Silver 2h = 4h. Remainder 1h sits on Key 3 (3h).
+    expect(svc.activeItemIndex, 3);
+    expect(svc.pendingClaimIds, hasLength(2));
+    expect(svc.activeAccumulatedMs, 1 * 3600 * 1000);
   });
 
-  testWidgets('+24h bumps the accumulator by twenty-four hours', (tester) async {
+  testWidgets('+24h cascades multiple unlocks in one tap', (tester) async {
     final svc = await _freshService();
     await tester.pumpWidget(_harness(svc));
     await tester.tap(find.text('+24h'));
     await tester.pump();
-    expect(svc.activeAccumulatedMs, 24 * 3600 * 1000);
+    // Cumulative through #7 (Key Gold) = 21h, through #8 (Shield) = 25h.
+    // So 24h queues the first 7 items and lands on Shield with 3h logged.
+    expect(svc.activeItemIndex, 8);
+    expect(svc.pendingClaimIds, hasLength(7));
+    expect(svc.activeAccumulatedMs, 3 * 3600 * 1000);
   });
 
   testWidgets('SKIP ACTIVE queues the active item and advances the index', (tester) async {
@@ -68,7 +77,8 @@ void main() {
   testWidgets('RESET goes through a confirm dialog before wiping state', (tester) async {
     final svc = await _freshService();
     await svc.debugSkipActive();
-    await svc.debugAddHours(3);
+    // +1h stays under Key Silver's 2h threshold so the index doesn't move.
+    await svc.debugAddHours(1);
 
     await tester.pumpWidget(_harness(svc));
     await tester.tap(find.text('RESET UNLOCK STATE'));
@@ -108,8 +118,8 @@ void main() {
     final svc = await _freshService();
     await tester.pumpWidget(_harness(svc));
     expect(find.textContaining('0.00h'), findsOneWidget);
-    await tester.tap(find.text('+5h'));
+    await tester.tap(find.text('+1h'));
     await tester.pump();
-    expect(find.textContaining('5.00h'), findsOneWidget);
+    expect(find.textContaining('1.00h'), findsOneWidget);
   });
 }

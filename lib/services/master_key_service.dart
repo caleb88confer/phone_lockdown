@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../utils/app_logger.dart';
 import 'app_blocker_service.dart';
+import 'unlock_state_service.dart';
 
 /// Tracks cumulative phone-locked-down time and awards passive "master keys"
 /// the user can spend to unlock all active profiles without scanning.
@@ -15,6 +16,7 @@ import 'app_blocker_service.dart';
 class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
   final SharedPreferences _prefs;
   final AppBlockerService _appBlocker;
+  final UnlockStateService _unlockState;
 
   int _count = 0;
   int _totalLockdownMs = 0;
@@ -26,8 +28,10 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
   MasterKeyService({
     required SharedPreferences prefs,
     required AppBlockerService appBlocker,
+    required UnlockStateService unlockState,
   }) : _prefs = prefs,
-       _appBlocker = appBlocker;
+       _appBlocker = appBlocker,
+       _unlockState = unlockState;
 
   int get count => _count;
   int get totalLockdownMs => _totalLockdownMs;
@@ -132,6 +136,9 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
     if (delta == 0) return;
 
     _totalLockdownMs += delta;
+    // Feed the same delta into unlock progression — single source of timing
+    // truth (architecture doc chunk 6, option (a)).
+    await _unlockState.addLockedTime(Duration(milliseconds: delta));
 
     if (_count < kMasterKeyMaxCount) {
       _progressMs += delta;
