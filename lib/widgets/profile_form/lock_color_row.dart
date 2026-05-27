@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../customization/lock_catalog.dart';
+import '../../services/unlock_state_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/bevel.dart';
 import '../lock_picker_sprite.dart';
+import '../locked_sprite_overlay.dart';
 
 class LockColorRow extends StatelessWidget {
   final String selectedStyleId;
@@ -16,8 +20,18 @@ class LockColorRow extends StatelessWidget {
     required this.onColorChanged,
   });
 
+  void _showLockedHint(BuildContext context) {
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      const SnackBar(
+        content: Text('Locked — keep using the app to unlock'),
+        duration: Duration(milliseconds: 1200),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final unlockState = context.watch<UnlockStateService>();
     final style = lockStyleById(selectedStyleId);
     final colors = style.colors;
 
@@ -33,10 +47,20 @@ class LockColorRow extends StatelessWidget {
         for (var i = 0; i < colors.length; i++) {
           if (i > 0) children.add(const SizedBox(width: spacing));
           final c = colors[i];
-          final isSelected = c.id == selectedColorId;
+          final unlockId = 'lc_${c.id}';
+          final locked = !unlockState.isOwned(unlockId);
+          final isSelected = !locked && c.id == selectedColorId;
+          final swatch = LockPickerSprite(
+            style: style,
+            color: c,
+            size: cell * 0.65,
+            playing: false,
+          );
           children.add(
             GestureDetector(
-              onTap: () => onColorChanged(c.id),
+              onTap: locked
+                  ? () => _showLockedHint(context)
+                  : () => onColorChanged(c.id),
               child: Container(
                 width: cell,
                 height: cell,
@@ -47,12 +71,7 @@ class LockColorRow extends StatelessWidget {
                         fill: AppColors.surfaceContainerLow,
                         opacity: 0.4,
                       ),
-                child: LockPickerSprite(
-                  style: style,
-                  color: c,
-                  size: cell * 0.65,
-                  playing: false,
-                ),
+                child: locked ? LockedSpriteOverlay(child: swatch) : swatch,
               ),
             ),
           );

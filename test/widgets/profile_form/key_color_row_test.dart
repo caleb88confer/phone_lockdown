@@ -1,26 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:phone_lockdown/customization/key_catalog.dart';
+import 'package:phone_lockdown/services/unlock_state_service.dart';
+import 'package:phone_lockdown/widgets/locked_sprite_overlay.dart';
 import 'package:phone_lockdown/widgets/profile_form/key_color_row.dart';
 import 'package:phone_lockdown/widgets/sprite_sheet.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  testWidgets('renders one swatch per color of the active style', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 360,
-            child: KeyColorRow(
-              selectedStyleId: 'key_4',
-              selectedColorId: 'gold',
-              onColorChanged: (_) {},
-            ),
+Future<UnlockStateService> _freshUnlockState() async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  final svc = UnlockStateService(prefs: prefs);
+  await svc.init();
+  return svc;
+}
+
+Widget _harness({
+  required UnlockStateService unlockState,
+  required String styleId,
+  required String colorId,
+  ValueChanged<String>? onColorChanged,
+}) {
+  return ChangeNotifierProvider<UnlockStateService>.value(
+    value: unlockState,
+    child: MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          width: 360,
+          child: KeyColorRow(
+            selectedStyleId: styleId,
+            selectedColorId: colorId,
+            onColorChanged: onColorChanged ?? (_) {},
           ),
         ),
       ),
+    ),
+  );
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('renders one swatch per color of the active style', (tester) async {
+    final svc = await _freshUnlockState();
+    await tester.pumpWidget(
+      _harness(unlockState: svc, styleId: 'key_4', colorId: 'grey'),
     );
     await tester.pumpAndSettle();
 
@@ -29,88 +54,68 @@ void main() {
   });
 
   testWidgets('fits 5 swatches on a single row', (tester) async {
+    final svc = await _freshUnlockState();
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 360,
-            child: KeyColorRow(
-              selectedStyleId: 'key_4',
-              selectedColorId: 'gold',
-              onColorChanged: (_) {},
-            ),
-          ),
-        ),
-      ),
+      _harness(unlockState: svc, styleId: 'key_4', colorId: 'grey'),
     );
     await tester.pumpAndSettle();
 
-    // The KeyColorRow lays out for up to 5 cells with 8px spacing in a 360px
-    // box: cell = (360 - 32) / 5 = 65.6. Verify the Row's height stays at the
-    // single-cell height (no wrapping).
     final rowSize = tester.getSize(find.byType(Row));
     expect(rowSize.height, lessThanOrEqualTo(70));
   });
 
-  testWidgets(
-    'with unsupported saved color, does not call onColorChanged on build',
-    (tester) async {
-      String? mutated;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 360,
-              child: KeyColorRow(
-                selectedStyleId: 'key_4',
-                selectedColorId: 'curse', // not in key_4's colors
-                onColorChanged: (id) => mutated = id,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(mutated, isNull);
-    },
-  );
-
-  testWidgets('reshapes when selectedStyleId changes from key_4 to key_8', (
-    tester,
-  ) async {
-    String styleId = 'key_4';
-    String colorId = 'gold';
+  testWidgets('with unsupported saved color, does not call onColorChanged on build', (tester) async {
+    final svc = await _freshUnlockState();
+    String? mutated;
     await tester.pumpWidget(
-      StatefulBuilder(
-        builder: (context, setState) {
-          return MaterialApp(
-            home: Scaffold(
-              body: Column(
-                children: [
-                  SizedBox(
-                    width: 360,
-                    child: KeyColorRow(
-                      selectedStyleId: styleId,
-                      selectedColorId: colorId,
-                      onColorChanged: (id) => setState(() => colorId = id),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => setState(() => styleId = 'key_8'),
-                    child: const Text('switch'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      _harness(
+        unlockState: svc,
+        styleId: 'key_4',
+        colorId: 'curse',
+        onColorChanged: (id) => mutated = id,
       ),
     );
     await tester.pumpAndSettle();
-    final initialColorIds = keyStyleById(
-      'key_4',
-    ).colors.map((c) => c.id).toList();
+    expect(mutated, isNull);
+  });
+
+  testWidgets('reshapes when selectedStyleId changes from key_4 to key_8', (tester) async {
+    final svc = await _freshUnlockState();
+    String styleId = 'key_4';
+    String colorId = 'grey';
+    await tester.pumpWidget(
+      ChangeNotifierProvider<UnlockStateService>.value(
+        value: svc,
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return MaterialApp(
+              home: Scaffold(
+                body: Column(
+                  children: [
+                    SizedBox(
+                      width: 360,
+                      child: KeyColorRow(
+                        selectedStyleId: styleId,
+                        selectedColorId: colorId,
+                        onColorChanged: (id) => setState(() => colorId = id),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => setState(() => styleId = 'key_8'),
+                      child: const Text('switch'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final initialColorIds =
+        keyStyleById('key_4').colors.map((c) => c.id).toList();
     expect(initialColorIds, containsAll(['gold', 'silver', 'bronze', 'grey']));
 
     await tester.tap(find.text('switch'));
@@ -119,5 +124,76 @@ void main() {
     final newColorIds = keyStyleById('key_8').colors.map((c) => c.id).toList();
     expect(newColorIds, containsAll(['gold', 'silver', 'grey', 'curse']));
     expect(newColorIds.contains('bronze'), isFalse);
+  });
+
+  group('chunk 7: locked swatches', () {
+    testWidgets('starting state: bronze + grey are unlocked, gold + silver are locked', (tester) async {
+      final svc = await _freshUnlockState();
+      await tester.pumpWidget(
+        _harness(unlockState: svc, styleId: 'key_4', colorId: 'grey'),
+      );
+      await tester.pumpAndSettle();
+      // key_4 has 4 colors (gold, silver, bronze, grey); 2 locked.
+      expect(find.byType(LockedSpriteOverlay), findsNWidgets(2));
+    });
+
+    testWidgets('tap on a locked swatch does not fire onColorChanged', (tester) async {
+      final svc = await _freshUnlockState();
+      String? mutated;
+      await tester.pumpWidget(
+        _harness(
+          unlockState: svc,
+          styleId: 'key_4',
+          colorId: 'grey',
+          onColorChanged: (id) => mutated = id,
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Tap the gold swatch (kc_gold is locked at start).
+      final lockedOverlay = find.byType(LockedSpriteOverlay).first;
+      await tester.tap(lockedOverlay, warnIfMissed: false);
+      await tester.pump();
+      expect(mutated, isNull);
+    });
+
+    testWidgets('tap on an unlocked swatch fires onColorChanged', (tester) async {
+      final svc = await _freshUnlockState();
+      String? mutated;
+      await tester.pumpWidget(
+        _harness(
+          unlockState: svc,
+          styleId: 'key_4',
+          colorId: 'grey',
+          onColorChanged: (id) => mutated = id,
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Find the bronze swatch by walking GestureDetectors and matching the
+      // non-locked-overlay child. Simpler: just tap by GestureDetector index —
+      // catalog order is gold(L), silver(L), bronze(U), grey(U). Indices 2 + 3
+      // are unlocked. Bronze is index 2.
+      final detectors = find.byType(GestureDetector);
+      await tester.tap(detectors.at(2));
+      await tester.pump();
+      expect(mutated, 'bronze');
+    });
+
+    testWidgets('unlocking via the service refreshes the row live', (tester) async {
+      final svc = await _freshUnlockState();
+      await tester.pumpWidget(
+        _harness(unlockState: svc, styleId: 'key_4', colorId: 'grey'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(LockedSpriteOverlay), findsNWidgets(2));
+
+      // kc_silver is unlock-order item #2. Skipping past it queues it; drain
+      // moves it into ownedItemIds.
+      await svc.debugSkipActive(); // #1 small_sturdy
+      await svc.debugSkipActive(); // #2 kc_silver
+      await svc.drainPendingClaims();
+      await tester.pumpAndSettle();
+      // Now only kc_gold is locked.
+      expect(find.byType(LockedSpriteOverlay), findsNWidgets(1));
+    });
   });
 }
