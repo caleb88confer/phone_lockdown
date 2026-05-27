@@ -6,6 +6,7 @@ import 'services/explosion_settings.dart';
 import 'services/master_key_service.dart';
 import 'services/platform_channel_service.dart';
 import 'services/profile_manager.dart';
+import 'services/unlock_state_service.dart';
 import 'services/unlocked_items_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -19,6 +20,8 @@ void main() async {
   final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
   final masterKey = MasterKeyService(prefs: prefs, appBlocker: appBlocker);
   await masterKey.init();
+  final unlockState = UnlockStateService(prefs: prefs);
+  await unlockState.init();
   runApp(
     PhoneLockdownApp(
       onboardingComplete: onboardingComplete,
@@ -26,6 +29,7 @@ void main() async {
       platform: platform,
       appBlocker: appBlocker,
       masterKey: masterKey,
+      unlockState: unlockState,
     ),
   );
 }
@@ -36,6 +40,7 @@ class PhoneLockdownApp extends StatelessWidget {
   final PlatformChannelService platform;
   final AppBlockerService appBlocker;
   final MasterKeyService masterKey;
+  final UnlockStateService unlockState;
 
   const PhoneLockdownApp({
     super.key,
@@ -44,6 +49,7 @@ class PhoneLockdownApp extends StatelessWidget {
     required this.platform,
     required this.appBlocker,
     required this.masterKey,
+    required this.unlockState,
   });
 
   @override
@@ -54,6 +60,7 @@ class PhoneLockdownApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileManager(prefs: prefs)),
         ChangeNotifierProvider<AppBlockerService>.value(value: appBlocker),
         ChangeNotifierProvider<MasterKeyService>.value(value: masterKey),
+        ChangeNotifierProvider<UnlockStateService>.value(value: unlockState),
         ChangeNotifierProvider(create: (_) => ExplosionSettings(prefs: prefs)),
         ChangeNotifierProvider(create: (_) => UnlockedItemsService()),
       ],

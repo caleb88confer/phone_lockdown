@@ -18,6 +18,14 @@ const kMasterKeyMaxCount = 3;
 const kMasterKeyAwardMs = 40 * 60 * 60 * 1000; // 40 hours
 const kMasterKeyTickSeconds = 30;
 
+// Unlock state (chunk 3 of unlockables pilot)
+const kPrefUnlockActiveIndex = 'unlockActiveIndex';
+const kPrefUnlockAccumulatedMs = 'unlockAccumulatedMs';
+const kPrefUnlockOwned = 'unlockOwnedIds';
+const kPrefUnlockPending = 'unlockPendingIds';
+const kPrefUnlockOwnedAccents = 'unlockOwnedAccents';
+const kPrefUnlockHasInitialized = 'unlockHasInitialized';
+
 // Lock-landing explosion (pixel burst) tuning
 const kPrefExplosionSetupMode = 'explosionSetupMode';
 const kPrefExplosionCount = 'explosionCount';
