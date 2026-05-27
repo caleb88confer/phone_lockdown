@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../customization/key_catalog.dart';
@@ -10,6 +11,7 @@ import '../theme/app_colors.dart';
 import '../theme/bevel.dart';
 import '../utils/app_logger.dart';
 import '../utils/duration_format.dart';
+import '../widgets/debug/unlock_debug_sheet.dart';
 import '../widgets/key_display.dart';
 import '../widgets/lock_display.dart';
 import 'profile_form/profile_form_dialog.dart';
@@ -194,6 +196,12 @@ class StatsInfoSection extends StatelessWidget {
                             label: 'UNLOCKED ITEMS',
                             value:
                                 '${unlocked.unlockedCount} / ${unlocked.totalCount}',
+                            // Hidden long-press entry for the debug panel.
+                            // Stripped from release builds by tree-shaking the
+                            // null callback.
+                            onLongPress: kDebugMode
+                                ? () => showUnlockDebugSheet(context)
+                                : null,
                           ),
                         ],
                       ),
@@ -234,8 +242,14 @@ class _StatRow extends StatelessWidget {
   final String label;
   final String value;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const _StatRow({required this.label, required this.value, this.onTap});
+  const _StatRow({
+    required this.label,
+    required this.value,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -264,9 +278,10 @@ class _StatRow extends StatelessWidget {
       ],
     );
 
-    if (onTap == null) return content;
+    if (onTap == null && onLongPress == null) return content;
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: content,
     );
