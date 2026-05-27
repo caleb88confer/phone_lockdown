@@ -30,7 +30,8 @@ Widget _harness({
           sideSquish: false,
           sideFade: false,
           centerBevel: false,
-          itemBuilder: (_, item, __) => Text(item, key: ValueKey('cell-$item')),
+          itemBuilder: (_, item, _, _) =>
+              Text(item, key: ValueKey('cell-$item')),
         ),
       ),
     ),
@@ -190,7 +191,7 @@ void main() {
               sideSquish: false,
               sideFade: false,
               centerBevel: false,
-              itemBuilder: (_, item, __) => SizedBox(
+              itemBuilder: (_, item, _, _) => SizedBox(
                 key: ValueKey('cell-$item'),
                 width: 32,
                 height: 32,
@@ -240,7 +241,7 @@ void main() {
                 sideSquish: false,
                 sideFade: false,
                 centerBevel: false,
-                itemBuilder: (_, item, __) => SizedBox(
+                itemBuilder: (_, item, _, _) => SizedBox(
                   key: ValueKey('cell-$item'),
                   width: 32,
                   height: 32,
@@ -283,10 +284,10 @@ void main() {
               sideSquish: true,
               sideFade: true,
               centerBevel: false,
-              itemBuilder: (_, item, centerness, targetSize) => SizedBox(
+              itemBuilder: (_, item, _, targetSize) => SizedBox(
                 key: ValueKey('cell-$item'),
-                width: 64,
-                height: 64,
+                width: targetSize,
+                height: targetSize,
                 child: Center(child: Text(item)),
               ),
             ),

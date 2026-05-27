@@ -47,7 +47,7 @@ void main() {
       _harness(unlockState: svc, styleId: 'small_square', colorId: 'grey'),
     );
     await tester.pumpAndSettle();
-    // small_square has 4 colors: grey, gold, bronze, black. Starting: grey + black.
+    // small_square has 4 colors: grey, black, bronze, gold. Starting: grey + black.
     expect(find.byType(LockedSpriteOverlay), findsNWidgets(2));
   });
 
@@ -58,7 +58,7 @@ void main() {
         _harness(unlockState: svc, styleId: 'round', colorId: 'grey'),
       );
       await tester.pumpAndSettle();
-      // round has 4 colors: grey, gold, bronze, beige. Starting: grey only
+      // round has 4 colors: grey, bronze, gold, beige. Starting: grey only
       // (lock palette starting set is grey + black; bronze, gold, beige
       // locked). So 3 locked.
       expect(find.byType(LockedSpriteOverlay), findsNWidgets(3));
@@ -80,7 +80,7 @@ void main() {
         _harness(unlockState: svc, styleId: 'round', colorId: 'grey'),
       );
       await tester.pumpAndSettle();
-      // Round's palette: grey, gold, bronze, beige. After this state all
+      // Round's palette: grey, bronze, gold, beige. After this state all
       // four are available (grey starting; gold + bronze drained; beige via
       // accent), so no LockedSpriteOverlay.
       expect(find.byType(LockedSpriteOverlay), findsNothing);
@@ -97,7 +97,7 @@ void main() {
         _harness(unlockState: svc, styleId: 'robust', colorId: 'grey'),
       );
       await tester.pumpAndSettle();
-      // Robust's palette: grey, gold, black, red. Robust itself isn't
+      // Robust's palette: grey, black, gold, red. Robust itself isn't
       // unlocked yet (#17, 85h cumulative) but red rides bundled with
       // Sturdy. So: grey + black starting, gold drained, red via accent —
       // all four available.
@@ -113,7 +113,7 @@ void main() {
         _harness(unlockState: svc, styleId: 'hefty', colorId: 'grey'),
       );
       await tester.pumpAndSettle();
-      // Hefty's palette: grey, gold, bronze, black, red. Same accounting as
+      // Hefty's palette: grey, black, bronze, gold, red. Same accounting as
       // Robust: all five now available.
       expect(find.byType(LockedSpriteOverlay), findsNothing);
     });
@@ -133,7 +133,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Robust's color order: grey, gold, black, red. Red is the last
+      // Robust's color order: grey, black, gold, red. Red is the last
       // GestureDetector.
       final detectors = find.byType(GestureDetector);
       await tester.tap(detectors.at(lockStyleById('robust').colors.length - 1));

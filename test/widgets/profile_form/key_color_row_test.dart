@@ -149,7 +149,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Tap the gold swatch (kc_gold is locked at start).
+      // Tap the first locked swatch (silver at index 2 — both silver and gold
+      // are locked at start).
       final lockedOverlay = find.byType(LockedSpriteOverlay).first;
       await tester.tap(lockedOverlay, warnIfMissed: false);
       await tester.pump();
@@ -168,12 +169,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Find the bronze swatch by walking GestureDetectors and matching the
-      // non-locked-overlay child. Simpler: just tap by GestureDetector index —
-      // catalog order is gold(L), silver(L), bronze(U), grey(U). Indices 2 + 3
-      // are unlocked. Bronze is index 2.
+      // Catalog order is grey(U), bronze(U), silver(L), gold(L). Indices 0 + 1
+      // are unlocked. Bronze is index 1.
       final detectors = find.byType(GestureDetector);
-      await tester.tap(detectors.at(2));
+      await tester.tap(detectors.at(1));
       await tester.pump();
       expect(mutated, 'bronze');
     });

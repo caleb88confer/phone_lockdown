@@ -78,8 +78,8 @@ const _curse = KeyColorOption(
   swatchColor: 0xFF6A1B9A,
 );
 
-const _standardColors = <KeyColorOption>[_gold, _silver, _bronze, _grey];
-const _key8Colors = <KeyColorOption>[_gold, _silver, _grey, _curse];
+const _standardColors = <KeyColorOption>[_grey, _bronze, _silver, _gold];
+const _key8Colors = <KeyColorOption>[_grey, _silver, _gold, _curse];
 
 const kKeyCatalog = <KeyStyle>[
   KeyStyle(

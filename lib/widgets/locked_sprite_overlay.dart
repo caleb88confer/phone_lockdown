@@ -9,24 +9,29 @@ import '../theme/bevel.dart';
 class LockedSpriteOverlay extends StatelessWidget {
   final Widget child;
   final double badgeIconSize;
+  // When true, paint the silhouette fully opaque black instead of the muted
+  // on-surface tint. Used by the key carousel so locked keys read as a single
+  // black shape rather than a darkened version of their own sprite.
+  final bool solidBlack;
 
   const LockedSpriteOverlay({
     super.key,
     required this.child,
     this.badgeIconSize = 12,
+    this.solidBlack = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final silhouette = solidBlack
+        ? const Color(0xFF000000)
+        : AppColors.onSurface.withValues(alpha: 0.45);
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
         ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            AppColors.onSurface.withValues(alpha: 0.45),
-            BlendMode.srcIn,
-          ),
+          colorFilter: ColorFilter.mode(silhouette, BlendMode.srcIn),
           child: child,
         ),
         Positioned(

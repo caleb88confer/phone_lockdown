@@ -35,6 +35,12 @@ class SpriteCarousel<T> extends StatefulWidget {
   )
   itemBuilder;
 
+  /// Optional predicate: when true for an item, the carousel will refuse to
+  /// settle the center cell on it. Used to make locked unlock-order items
+  /// visible at the boundaries without letting the user scroll into them —
+  /// the carousel snaps back to the last-good page if a scroll lands on one.
+  final bool Function(T item)? isItemLocked;
+
   const SpriteCarousel({
     super.key,
     required this.items,
@@ -54,6 +60,7 @@ class SpriteCarousel<T> extends StatefulWidget {
     required this.sideFade,
     required this.centerBevel,
     required this.itemBuilder,
+    this.isItemLocked,
   });
 
   @override
@@ -129,11 +136,21 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
 
     final roundedPage = page.round();
     if (roundedPage == _currentPage) return;
-    _currentPage = roundedPage;
 
     final rawIndex = roundedPage % widget.items.length;
     final positiveIndex =
         (rawIndex + widget.items.length) % widget.items.length;
+
+    // Refuse to land on a locked cell — bounce back to the last good page.
+    // _currentPage is left untouched so the snap-back animation lands at the
+    // same selectedIndex the user already had committed.
+    final lockedCheck = widget.isItemLocked;
+    if (lockedCheck != null && lockedCheck(widget.items[positiveIndex])) {
+      _animateToPage(_currentPage);
+      return;
+    }
+
+    _currentPage = roundedPage;
     if (positiveIndex != widget.selectedIndex) {
       HapticFeedback.selectionClick();
       widget.onSelectedChanged(positiveIndex);
@@ -180,13 +197,16 @@ class _SpriteCarouselState<T> extends State<SpriteCarousel<T>>
         itemBuilder: (context, pageIndex) {
           final itemIndex = _itemIndexForPage(pageIndex);
           final item = widget.items[itemIndex];
+          final lockedCheck = widget.isItemLocked;
+          final tapLocked =
+              lockedCheck != null && lockedCheck(item);
           return _CarouselCell(
             pageIndex: pageIndex,
             initialPage: _currentPage,
             controller: _controller,
             bobController: _bobController,
             bobAmplitude: widget.centerBob ? widget.bobAmplitude : 0,
-            onTap: () => _animateToPage(pageIndex),
+            onTap: tapLocked ? null : () => _animateToPage(pageIndex),
             centerSize: widget.centerSize,
             sideSize: widget.sideSize,
             edgeSize: widget.edgeSize,
@@ -208,7 +228,7 @@ class _CarouselCell extends StatelessWidget {
   final PageController controller;
   final AnimationController bobController;
   final double bobAmplitude;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final double centerSize;
   final double sideSize;
   final double edgeSize;

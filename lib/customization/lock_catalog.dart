@@ -123,7 +123,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 22,
     unlockedFrame: 0,
     lockedFrame: 9,
-    colors: [_grey, _gold, _bronze, _black],
+    colors: [_grey, _black, _bronze, _gold],
   ),
   LockStyle(
     id: 'small_round',
@@ -133,7 +133,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 23,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black],
+    colors: [_grey, _black, _bronze, _gold],
   ),
   LockStyle(
     id: 'small_oval',
@@ -143,7 +143,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 23,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black],
+    colors: [_grey, _black, _bronze, _gold],
   ),
   LockStyle(
     id: 'small_square',
@@ -153,7 +153,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 20,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black],
+    colors: [_grey, _black, _bronze, _gold],
   ),
   LockStyle(
     id: 'shield_like',
@@ -163,7 +163,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 27,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black],
+    colors: [_grey, _black, _bronze, _gold],
   ),
   LockStyle(
     id: 'sturdy',
@@ -173,7 +173,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 30,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black, _red],
+    colors: [_grey, _black, _bronze, _gold, _red],
   ),
   LockStyle(
     id: 'robust',
@@ -183,7 +183,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 31,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _black, _red],
+    colors: [_grey, _black, _gold, _red],
   ),
   LockStyle(
     id: 'round',
@@ -193,7 +193,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 36,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _beige],
+    colors: [_grey, _bronze, _gold, _beige],
   ),
   LockStyle(
     id: 'triangle',
@@ -203,7 +203,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 33,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _beige],
+    colors: [_grey, _bronze, _gold, _beige],
   ),
   LockStyle(
     id: 'old',
@@ -213,7 +213,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 32,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black],
+    colors: [_grey, _black, _bronze, _gold],
   ),
   LockStyle(
     id: 'hefty',
@@ -223,7 +223,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 33,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _black, _red],
+    colors: [_grey, _black, _bronze, _gold, _red],
   ),
   LockStyle(
     id: 'extending',
@@ -233,7 +233,7 @@ const kLockCatalog = <LockStyle>[
     frameHeight: 25,
     unlockedFrame: 0,
     lockedFrame: 0,
-    colors: [_grey, _gold, _bronze, _copper, _mossy],
+    colors: [_grey, _bronze, _gold, _copper, _mossy],
   ),
 ];
 

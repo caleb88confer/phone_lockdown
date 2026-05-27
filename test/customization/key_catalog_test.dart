@@ -35,15 +35,16 @@ void main() {
   group('colorCenterIndex', () {
     test('returns the index of the saved color when supported', () {
       final style = keyStyleById('key_4');
-      // _standardColors order: gold, silver, bronze, grey.
-      expect(colorCenterIndex(style, 'gold'), 0);
-      expect(colorCenterIndex(style, 'bronze'), 2);
+      // _standardColors order: grey, bronze, silver, gold.
+      expect(colorCenterIndex(style, 'grey'), 0);
+      expect(colorCenterIndex(style, 'bronze'), 1);
+      expect(colorCenterIndex(style, 'gold'), 3);
     });
 
     test('returns the grey index when saved color is unsupported', () {
       final style = keyStyleById('key_4');
-      // grey is at index 3 in _standardColors.
-      expect(colorCenterIndex(style, 'curse'), 3);
+      // grey is at index 0 in _standardColors.
+      expect(colorCenterIndex(style, 'curse'), 0);
     });
 
     test('returns 0 when neither saved color nor grey are present', () {

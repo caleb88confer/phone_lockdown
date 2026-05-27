@@ -2,19 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../customization/lock_catalog.dart';
+import '../../../customization/unlock_order.dart';
 import '../../../services/unlock_state_service.dart';
 import '../../lock_picker_sprite.dart';
 import '../../locked_sprite_overlay.dart';
 import 'sprite_carousel.dart';
 
-/// Filter applied to [kLockCatalog] before handing it to the carousel:
-/// every owned lock plus any locked lock that appears in the global next-5
-/// unlock window. Catalog order is preserved.
+/// Carousel item order for locks. Same alternating-around-the-anchor layout
+/// as [visibleKeyStyles]: small_square (default) at position 0, small_round
+/// at position 1, then 2nd/4th/6th lock unlocks fill in to the right,
+/// 1st/3rd/5th fill in to the left (tail of the looping array). Items
+/// outside the next-5 silhouette window and not yet owned are skipped.
 List<LockStyle> visibleLockStyles(UnlockStateService unlockState) {
   final windowIds = unlockState.nextLockedItems(5).map((i) => i.id).toSet();
-  return kLockCatalog
-      .where((s) => unlockState.isOwned(s.id) || windowIds.contains(s.id))
+  bool visible(String id) =>
+      unlockState.isOwned(id) || windowIds.contains(id);
+
+  final result = <LockStyle>[
+    lockStyleById(kDefaultLockStyleId),
+    lockStyleById('small_round'),
+  ];
+
+  final lockUnlocks = kUnlockOrder
+      .where((u) => u.type == UnlockType.lock)
       .toList(growable: false);
+
+  for (var i = 1; i < lockUnlocks.length; i += 2) {
+    final u = lockUnlocks[i];
+    if (visible(u.id)) result.add(lockStyleById(u.id));
+  }
+
+  final leftSide = <LockStyle>[];
+  for (var i = 0; i < lockUnlocks.length; i += 2) {
+    final u = lockUnlocks[i];
+    if (visible(u.id)) leftSide.add(lockStyleById(u.id));
+  }
+  result.addAll(leftSide.reversed);
+
+  return List.unmodifiable(result);
 }
 
 class LockStyleCarousel extends StatelessWidget {
@@ -48,6 +73,7 @@ class LockStyleCarousel extends StatelessWidget {
         if (unlockState.isLocked(style.id)) return;
         onStyleChanged(style.id);
       },
+      isItemLocked: (style) => unlockState.isLocked(style.id),
       centerSize: 85,
       sideSize: 50,
       edgeSize: 28,
