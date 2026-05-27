@@ -136,21 +136,110 @@ Same question for `beige`.
 
 ---
 
-## 8. Open questions (before we build)
+## 8. Timer & progression mechanics
 
-1. **Unlock trigger / cost.** What actually unlocks the next item? We already
-   have `MasterKeyService` (earns "master keys" from cumulative lockdown time,
-   `consume()`-able). Spend master keys per unlock? Streak/time milestones?
-2. **Forced sequence vs. pick-any.** Does the path force the next item in order,
-   or does reaching a tier let the user choose what to claim?
-3. **Accent scope** — global-on-first vs. per-lock (see §7).
-4. **Palette gaps.** Some extra-color locks lack a base color: Robust has no
-   bronze; Round/Triangle/Extending have no black. Fine, but worth noting that
-   "full base palette" isn't literal on every lock.
+**Per-item timers (decided).**
+- Each unlockable carries its own duration (in locked-phone hours).
+- Only **one timer is active at a time** — the next item in line per the §6 order.
+- When the active item's timer hits its duration, the item enters **"pending
+  claim"** state and the next item's timer starts immediately, even if the phone
+  is still locked. Long lockdowns are never wasted; multiple items can stack up
+  in pending-claim during a single session.
+- Forced sequence (no pick-any): order is fixed, you always work on the next
+  one. Adding/reordering items just changes which one is "next" — totals never
+  need rebalancing.
+
+**Duration curve (decided: scales up).**
+- Target: a user locking 8h/day clears all 27 in ~30 days. Total ≈ 240h locked.
+- Early phase items are quick wins (2-5h each); late phase ramps; finale items
+  are the heaviest commitment.
+- Starting proposal — tune to taste:
+
+| # | Item | Hours | Cumulative |
+|---|---|---|---|
+| 1 | Small Sturdy | 2 | 2 |
+| 2 | Key Silver | 2 | 4 |
+| 3 | Key 3 | 3 | 7 |
+| 4 | Lock Bronze | 3 | 10 |
+| 5 | Small Oval | 3 | 13 |
+| 6 | Key 9 | 4 | 17 |
+| 7 | Key Gold | 4 | 21 |
+| 8 | Shield | 4 | 25 |
+| 9 | Key 14 | 5 | 30 |
+| 10 | Lock Gold | 5 | 35 |
+| 11 | Old | 5 | 40 |
+| 12 | Key 4 | 5 | 45 |
+| 13 | Triangle | 6 | 51 |
+| 14 | Key 2 | 7 | 58 |
+| 15 | Sturdy | 8 | 66 |
+| 16 | Key 6 | 9 | 75 |
+| 17 | Robust | 10 | 85 |
+| 18 | Key 11 | 10 | 95 |
+| 19 | Round | 11 | 106 |
+| 20 | Key 5 | 12 | 118 |
+| 21 | Hefty | 13 | 131 |
+| 22 | Key 12 | 14 | 145 |
+| 23 | Key 13 | 15 | 160 |
+| 24 | Key 7 | 16 | 176 |
+| 25 | Key 15 | 18 | 194 |
+| 26 | **Extending** | 22 | 216 |
+| 27 | **Key 8** | 25 | 241 |
+
+Total: **241h ≈ 30.1 days at 8h/day.** Early phase (1–11) ≈ 5 days, late phase
+(12–25) ≈ 19 days, finale (26–27) ≈ 6 days.
 
 ---
 
-## 9. Implementation notes (for when we build)
+## 9. Carousel UX
+
+**Locked items in the carousel — rolling 5-silhouette window.**
+- Show: all unlocked items + the **next 5** locked items as silhouettes.
+- When an item unlocks, the next blocked one slides into the window. The user
+  always sees a teaser of what's coming but never has to scroll past dozens of
+  dead slots.
+- Silhouettes show the item's outline (so the user can tell key from lock and
+  roughly anticipate what's next) — colour and detail hidden.
+
+**Locked colours in the palette picker.**
+- Different problem — palette is small (4 + 4 swatches), no scroll burden.
+  Just grey out the swatch with a small lock badge. No rolling window needed.
+
+---
+
+## 10. Unlock delivery & reveal screen
+
+**Trigger.**
+- Threshold-crossing happens silently — the item moves to **"pending claim"**
+  state and the next item's timer starts.
+- The user only "receives" their items when **the phone is unlocked** (lockdown
+  ended). At that point we show one consolidated reveal screen.
+
+**Reveal screen.**
+- Header: **"You have unlocked X items"** (X = number pending).
+- Swipeable card stack — one card per unlocked item:
+  - **Keys:** sprite playing its continuous animation + bobbing.
+  - **Locks:** sprite playing its continuous animation.
+  - **Colours:** 3 sample items shown in the new colour (3 keys for a key
+    colour, 3 locks for a lock colour) — no animation. Showing multiple items
+    implicitly conveys "this applies to everything."
+- After the user swipes through all cards and dismisses, items move from
+  "pending claim" → owned.
+
+---
+
+## 11. Open questions (before we build)
+
+1. **Accent scope** — global-on-first vs. per-lock (see §7).
+2. **Palette gaps.** Some extra-color locks lack a base color: Robust has no
+   bronze; Round/Triangle/Extending have no black. Fine, but worth noting that
+   "full base palette" isn't literal on every lock.
+3. **Silhouette style** (§9) — outline-true (recognisable shape) vs. generic
+   blob (more mystery). Currently leaning outline-true since a generic blob
+   would be less motivating.
+
+---
+
+## 12. Implementation notes (for when we build)
 
 - Catalog defaults currently **conflict** with the pilot starting loadout and
   will need updating:
@@ -161,5 +250,15 @@ Same question for `beige`.
     Small Sturdy is *unlockable*. Default should be Small Square or Small Round.
 - Replace the dummy `4 / 40` in `UnlockedItemsService` with real counts derived
   from a single source-of-truth list (e.g. `lib/customization/unlock_order.dart`).
-- That list should encode: the ordered 27 items + the free starting set + the
-  accent-bundling map, so UI and counts stay in sync.
+- That list should encode: the ordered 27 items + per-item durations (§8) + the
+  free starting set + the accent-bundling map, so UI and counts stay in sync.
+- Persisted state needs: active-item index, active-item accumulated hours,
+  pending-claim queue, owned set.
+
+**Debug / testing controls (required).**
+- From the lock screen, expose **dev-only** controls to:
+  - Adjust the current locked-time accumulator (jump forward / backward by Nh)
+    so unlock thresholds can be crossed without waiting.
+  - Reset the entire unlock state (clear pending claims, clear owned set,
+    return to the §3 starting loadout, reset active-item index to 1).
+- Gate behind a debug flag so the controls don't ship to users.
