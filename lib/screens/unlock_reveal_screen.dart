@@ -25,6 +25,7 @@ class UnlockRevealScreen extends StatefulWidget {
 class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
   late final PageController _controller;
   late final List<String> _claims;
+  late final Set<String> _ownedAtOpen;
   int _page = 0;
   bool _claimed = false;
 
@@ -32,9 +33,13 @@ class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
   void initState() {
     super.initState();
     _controller = PageController();
-    // Snapshot the queue once on entry so the reveal stays stable even if
-    // the underlying service changes mid-screen.
-    _claims = context.read<UnlockStateService>().pendingClaimIds.toList();
+    // Snapshot the queue and owned set once on entry so the reveal stays
+    // stable even if the underlying service changes mid-screen. The owned
+    // snapshot is the strict pre-drain set — color-sample rows use it so
+    // they never spoil styles the user hasn't actually earned yet.
+    final svc = context.read<UnlockStateService>();
+    _claims = svc.pendingClaimIds.toList();
+    _ownedAtOpen = svc.ownedItemIds.toSet();
   }
 
   @override
@@ -100,7 +105,8 @@ class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
                   controller: _controller,
                   itemCount: count,
                   onPageChanged: (i) => setState(() => _page = i),
-                  itemBuilder: (_, i) => _RevealCard(id: _claims[i]),
+                  itemBuilder: (_, i) =>
+                      _RevealCard(id: _claims[i], owned: _ownedAtOpen),
                 ),
               ),
               _PageDots(count: count, current: _page),
@@ -144,7 +150,8 @@ class _UnlockRevealScreenState extends State<UnlockRevealScreen> {
 
 class _RevealCard extends StatelessWidget {
   final String id;
-  const _RevealCard({required this.id});
+  final Set<String> owned;
+  const _RevealCard({required this.id, required this.owned});
 
   UnlockType _typeOf(String id) {
     if (id.startsWith('kc_')) return UnlockType.keyColor;
@@ -188,7 +195,9 @@ class _RevealCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Expanded(
-            child: Center(child: _RevealVisual(id: id, type: type)),
+            child: Center(
+              child: _RevealVisual(id: id, type: type, owned: owned),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -208,7 +217,12 @@ class _RevealCard extends StatelessWidget {
 class _RevealVisual extends StatelessWidget {
   final String id;
   final UnlockType type;
-  const _RevealVisual({required this.id, required this.type});
+  final Set<String> owned;
+  const _RevealVisual({
+    required this.id,
+    required this.type,
+    required this.owned,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -230,9 +244,15 @@ class _RevealVisual extends StatelessWidget {
           playing: true,
         );
       case UnlockType.keyColor:
-        return _ColorSamplesRow.keys(rawColorId: id.substring(3));
+        return _ColorSamplesRow.keys(
+          rawColorId: id.substring(3),
+          owned: owned,
+        );
       case UnlockType.lockColor:
-        return _ColorSamplesRow.locks(rawColorId: id.substring(3));
+        return _ColorSamplesRow.locks(
+          rawColorId: id.substring(3),
+          owned: owned,
+        );
     }
   }
 }
@@ -242,9 +262,17 @@ class _ColorSamplesRow extends StatelessWidget {
   final List<Widget> samples;
   const _ColorSamplesRow._(this.samples);
 
-  factory _ColorSamplesRow.keys({required String rawColorId}) {
+  factory _ColorSamplesRow.keys({
+    required String rawColorId,
+    required Set<String> owned,
+  }) {
+    // Only render styles the user already owns at reveal time, so the
+    // colour preview never spoils an unrevealed key style.
     final styles = kKeyCatalog
-        .where((s) => s.colors.any((c) => c.id == rawColorId))
+        .where(
+          (s) => owned.contains(s.id) &&
+              s.colors.any((c) => c.id == rawColorId),
+        )
         .take(3)
         .toList();
     return _ColorSamplesRow._(
@@ -261,9 +289,15 @@ class _ColorSamplesRow extends StatelessWidget {
     );
   }
 
-  factory _ColorSamplesRow.locks({required String rawColorId}) {
+  factory _ColorSamplesRow.locks({
+    required String rawColorId,
+    required Set<String> owned,
+  }) {
     final styles = kLockCatalog
-        .where((s) => s.colors.any((c) => c.id == rawColorId))
+        .where(
+          (s) => owned.contains(s.id) &&
+              s.colors.any((c) => c.id == rawColorId),
+        )
         .take(3)
         .toList();
     return _ColorSamplesRow._(

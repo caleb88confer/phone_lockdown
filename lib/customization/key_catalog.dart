@@ -84,7 +84,7 @@ const _key8Colors = <KeyColorOption>[_grey, _silver, _gold, _curse];
 const kKeyCatalog = <KeyStyle>[
   KeyStyle(
     id: 'key_4',
-    displayName: 'Key 4',
+    displayName: 'Dynamo Key',
     animated: true,
     frameCount: 5,
     frameWidth: 14,
@@ -94,7 +94,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_1',
-    displayName: 'Key 1',
+    displayName: 'Starter Key 1',
     animated: false,
     frameCount: 1,
     frameWidth: 10,
@@ -103,7 +103,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_2',
-    displayName: 'Key 2',
+    displayName: 'Enchanted Key',
     animated: true,
     frameCount: 12,
     frameWidth: 10,
@@ -112,7 +112,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_3',
-    displayName: 'Key 3',
+    displayName: 'Loop Key',
     animated: false,
     frameCount: 1,
     frameWidth: 19,
@@ -121,7 +121,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_5',
-    displayName: 'Key 5',
+    displayName: 'Grid Key',
     animated: true,
     frameCount: 18,
     frameWidth: 13,
@@ -130,7 +130,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_6',
-    displayName: 'Key 6',
+    displayName: 'Holy Key',
     animated: true,
     frameCount: 12,
     frameWidth: 16,
@@ -139,7 +139,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_7',
-    displayName: 'Key 7',
+    displayName: 'Lucky Key',
     animated: true,
     frameCount: 28,
     frameWidth: 17,
@@ -148,7 +148,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_8',
-    displayName: 'Key 8',
+    displayName: 'Cursed Key',
     animated: true,
     frameCount: 27,
     frameWidth: 21,
@@ -159,7 +159,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_9',
-    displayName: 'Key 9',
+    displayName: 'Simple Key',
     animated: false,
     frameCount: 1,
     frameWidth: 9,
@@ -168,7 +168,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_10',
-    displayName: 'Key 10',
+    displayName: 'Starter Key 2',
     animated: false,
     frameCount: 1,
     frameWidth: 9,
@@ -177,7 +177,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_11',
-    displayName: 'Key 11',
+    displayName: 'Flutter Key',
     animated: true,
     frameCount: 12,
     frameWidth: 11,
@@ -186,7 +186,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_12',
-    displayName: 'Key 12',
+    displayName: 'Demon Key',
     animated: true,
     frameCount: 21,
     frameWidth: 10,
@@ -195,7 +195,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_13',
-    displayName: 'Key 13',
+    displayName: 'Voltage Key',
     animated: true,
     frameCount: 25,
     frameWidth: 10,
@@ -205,7 +205,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_14',
-    displayName: 'Key 14',
+    displayName: 'Power Key',
     animated: false,
     frameCount: 1,
     frameWidth: 10,
@@ -214,7 +214,7 @@ const kKeyCatalog = <KeyStyle>[
   ),
   KeyStyle(
     id: 'key_15',
-    displayName: 'Key 15',
+    displayName: 'Bushido Key',
     animated: true,
     frameCount: 48,
     frameWidth: 15,
