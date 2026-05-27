@@ -12,8 +12,6 @@ class FailsafeSelector extends StatelessWidget {
   });
 
   static const presets = [
-    (minutes: 15, label: '15 min'),
-    (minutes: 30, label: '30 min'),
     (minutes: 60, label: '1 hour'),
     (minutes: 120, label: '2 hours'),
     (minutes: 240, label: '4 hours'),
