@@ -59,6 +59,8 @@ class LockStyleCarousel extends StatelessWidget {
         .indexWhere((s) => s.id == selectedStyleId)
         .clamp(0, visible.length - 1);
 
+    final smallSquare = lockStyleById(kDefaultLockStyleId);
+
     return SpriteCarousel<LockStyle>(
       items: visible,
       selectedIndex: selectedIndex,
@@ -83,16 +85,29 @@ class LockStyleCarousel extends StatelessWidget {
       centerBevel: false,
       itemBuilder: (context, style, centerness, targetSize) {
         final locked = unlockState.isLocked(style.id);
+        if (locked) {
+          // Every locked lock reads as the same small_square silhouette so
+          // the user can't preview which lock is coming next, mirroring the
+          // key carousel's key_1 silhouette treatment.
+          return LockedSpriteOverlay(
+            solidBlack: true,
+            child: LockPickerSprite(
+              key: ValueKey('lockcar-locked-${style.id}'),
+              style: smallSquare,
+              color: smallSquare.colors.first,
+              size: targetSize,
+              playing: false,
+            ),
+          );
+        }
         final renderColorId = renderLockColorIdFor(style, selectedColorId);
-        final sprite = LockPickerSprite(
-          key: ValueKey('lockcar-${style.id}-$renderColorId-$locked'),
+        return LockPickerSprite(
+          key: ValueKey('lockcar-${style.id}-$renderColorId'),
           style: style,
           color: lockColorById(style, renderColorId),
           size: targetSize,
-          playing: !locked && style.id == selectedStyleId,
+          playing: style.id == selectedStyleId,
         );
-        if (!locked) return sprite;
-        return LockedSpriteOverlay(child: sprite);
       },
     );
   }
