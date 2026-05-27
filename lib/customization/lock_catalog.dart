@@ -237,7 +237,7 @@ const kLockCatalog = <LockStyle>[
   ),
 ];
 
-const kDefaultLockStyleId = 'small_sturdy';
+const kDefaultLockStyleId = 'small_square';
 const kDefaultLockColorId = 'grey';
 
 LockStyle lockStyleById(String id) => kLockCatalog.firstWhere(

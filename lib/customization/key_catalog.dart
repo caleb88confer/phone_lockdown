@@ -224,8 +224,8 @@ const kKeyCatalog = <KeyStyle>[
   ),
 ];
 
-const kDefaultKeyStyleId = 'key_4';
-const kDefaultKeyColorId = 'gold';
+const kDefaultKeyStyleId = 'key_1';
+const kDefaultKeyColorId = 'grey';
 
 KeyStyle keyStyleById(String id) =>
     kKeyCatalog.firstWhere((s) => s.id == id, orElse: () => kKeyCatalog.first);
