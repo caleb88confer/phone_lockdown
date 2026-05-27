@@ -104,7 +104,7 @@ class _ProfileFormDialogState extends State<ProfileFormDialog> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('CUSTOMIZE LOCK'),
+        title: const Text('SETUP'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),

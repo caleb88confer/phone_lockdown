@@ -221,7 +221,7 @@ class StatsInfoSection extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text(
-                      'CUSTOMIZE LOCK',
+                      'SETUP',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,

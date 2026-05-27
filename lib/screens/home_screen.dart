@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         title: 'No Unlock Code',
         message:
-            'Cannot lock — no unlock code is set. Tap CUSTOMIZE LOCK to register a key.',
+            'Cannot lock — no unlock code is set. Tap SETUP to register a key.',
       );
       return;
     }

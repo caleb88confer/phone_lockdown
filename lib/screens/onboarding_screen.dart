@@ -118,10 +118,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          'Customize your lock — pick which apps and websites to block, '
+          'Set up your lock — pick which apps and websites to block, '
           'register a QR code or barcode as your key, and set a failsafe '
           'timer that auto-unlocks after a set period.\n\n'
-          'Tap CUSTOMIZE LOCK on the home screen to set everything up.',
+          'Tap SETUP on the home screen to get started.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
