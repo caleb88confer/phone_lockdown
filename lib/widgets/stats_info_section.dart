@@ -14,6 +14,7 @@ import '../utils/duration_format.dart';
 import '../widgets/debug/unlock_debug_sheet.dart';
 import '../widgets/key_display.dart';
 import '../widgets/lock_display.dart';
+import '../screens/dashboard_screen.dart';
 import 'profile_form/profile_form_dialog.dart';
 
 class StatsInfoSection extends StatelessWidget {
@@ -182,6 +183,11 @@ class StatsInfoSection extends StatelessWidget {
                           _StatRow(
                             label: 'TOTAL TIME LOCKED',
                             value: formatDurationShort(masterKey.totalLockdown),
+                            onLongPress: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const DashboardScreen(),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           _StatRow(

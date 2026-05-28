@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../utils/app_logger.dart';
 import 'app_blocker_service.dart';
+import 'lock_history_service.dart';
 import 'unlock_state_service.dart';
 
 /// Tracks cumulative phone-locked-down time and awards passive "master keys"
@@ -17,6 +18,7 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
   final SharedPreferences _prefs;
   final AppBlockerService _appBlocker;
   final UnlockStateService _unlockState;
+  final LockHistoryService _lockHistory;
 
   int _count = 0;
   int _totalLockdownMs = 0;
@@ -29,9 +31,11 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
     required SharedPreferences prefs,
     required AppBlockerService appBlocker,
     required UnlockStateService unlockState,
+    required LockHistoryService lockHistory,
   }) : _prefs = prefs,
        _appBlocker = appBlocker,
-       _unlockState = unlockState;
+       _unlockState = unlockState,
+       _lockHistory = lockHistory;
 
   int get count => _count;
   int get totalLockdownMs => _totalLockdownMs;
@@ -79,6 +83,7 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
       // Session ended while app was dead (native failsafe likely fired).
       // Best-effort commit; slight overcount acceptable for MVP.
       await commitElapsed();
+      await _lockHistory.onSessionEnded();
       AppLogger.d('MasterKey', 'Committed orphaned session on startup');
     }
 
@@ -116,12 +121,21 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
     if (!wasActive && nowActive) {
       _sessionStartMs = DateTime.now().millisecondsSinceEpoch;
       _persist();
+      _lockHistory.onSessionStarted();
       _startTickTimer();
       notifyListeners();
     } else if (wasActive && !nowActive) {
-      commitElapsed();
-      _stopTickTimer();
+      _endSession();
     }
+  }
+
+  /// Commits the final slice of locked time, then closes the session so its
+  /// length folds into the longest-session record. Ordered so the closing
+  /// commit lands before [LockHistoryService.onSessionEnded] reads it.
+  Future<void> _endSession() async {
+    await commitElapsed();
+    await _lockHistory.onSessionEnded();
+    _stopTickTimer();
   }
 
   /// Commits time elapsed since the current session started (or since the last
@@ -139,6 +153,8 @@ class MasterKeyService extends ChangeNotifier with WidgetsBindingObserver {
     // Feed the same delta into unlock progression — single source of timing
     // truth (architecture doc chunk 6, option (a)).
     await _unlockState.addLockedTime(Duration(milliseconds: delta));
+    // Parallel feed into the stats recorder (same single source of truth).
+    await _lockHistory.recordLockedTime(Duration(milliseconds: delta));
 
     if (_count < kMasterKeyMaxCount) {
       _progressMs += delta;

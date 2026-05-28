@@ -18,6 +18,12 @@ const kMasterKeyMaxCount = 3;
 const kMasterKeyAwardMs = 40 * 60 * 60 * 1000; // 40 hours
 const kMasterKeyTickSeconds = 30;
 
+// Lock history (stats dashboard)
+const kPrefLockHistoryDaily = 'lockHistoryDaily'; // JSON { "yyyy-mm-dd": ms }
+const kPrefLockHistorySessionCount = 'lockHistorySessionCount';
+const kPrefLockHistoryLongestSessionMs = 'lockHistoryLongestSessionMs';
+const kPrefLockHistoryCurrentSessionMs = 'lockHistoryCurrentSessionMs';
+
 // Unlock state (chunk 3 of unlockables pilot)
 const kPrefUnlockActiveIndex = 'unlockActiveIndex';
 const kPrefUnlockAccumulatedMs = 'unlockAccumulatedMs';

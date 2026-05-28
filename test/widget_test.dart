@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:phone_lockdown/main.dart';
 import 'package:phone_lockdown/services/app_blocker_service.dart';
+import 'package:phone_lockdown/services/lock_history_service.dart';
 import 'package:phone_lockdown/services/master_key_service.dart';
 import 'package:phone_lockdown/services/platform_channel_service.dart';
 import 'package:phone_lockdown/services/unlock_state_service.dart';
@@ -63,10 +64,13 @@ void main() {
     final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
     final unlockState = UnlockStateService(prefs: prefs);
     await unlockState.init();
+    final lockHistory = LockHistoryService(prefs: prefs);
+    await lockHistory.init();
     final masterKey = MasterKeyService(
       prefs: prefs,
       appBlocker: appBlocker,
       unlockState: unlockState,
+      lockHistory: lockHistory,
     );
     await masterKey.init();
     await tester.pumpWidget(
@@ -77,6 +81,7 @@ void main() {
         appBlocker: appBlocker,
         masterKey: masterKey,
         unlockState: unlockState,
+        lockHistory: lockHistory,
       ),
     );
     expect(find.text('Phone Lockdown'), findsOneWidget);

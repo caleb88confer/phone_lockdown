@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/app_blocker_service.dart';
 import 'services/explosion_settings.dart';
+import 'services/lock_history_service.dart';
 import 'services/master_key_service.dart';
 import 'services/platform_channel_service.dart';
 import 'services/profile_manager.dart';
@@ -20,10 +21,13 @@ void main() async {
   final appBlocker = AppBlockerService(platform: platform, prefs: prefs);
   final unlockState = UnlockStateService(prefs: prefs);
   await unlockState.init();
+  final lockHistory = LockHistoryService(prefs: prefs);
+  await lockHistory.init();
   final masterKey = MasterKeyService(
     prefs: prefs,
     appBlocker: appBlocker,
     unlockState: unlockState,
+    lockHistory: lockHistory,
   );
   await masterKey.init();
   runApp(
@@ -34,6 +38,7 @@ void main() async {
       appBlocker: appBlocker,
       masterKey: masterKey,
       unlockState: unlockState,
+      lockHistory: lockHistory,
     ),
   );
 }
@@ -45,6 +50,7 @@ class PhoneLockdownApp extends StatelessWidget {
   final AppBlockerService appBlocker;
   final MasterKeyService masterKey;
   final UnlockStateService unlockState;
+  final LockHistoryService lockHistory;
 
   const PhoneLockdownApp({
     super.key,
@@ -54,6 +60,7 @@ class PhoneLockdownApp extends StatelessWidget {
     required this.appBlocker,
     required this.masterKey,
     required this.unlockState,
+    required this.lockHistory,
   });
 
   @override
@@ -65,6 +72,7 @@ class PhoneLockdownApp extends StatelessWidget {
         ChangeNotifierProvider<AppBlockerService>.value(value: appBlocker),
         ChangeNotifierProvider<MasterKeyService>.value(value: masterKey),
         ChangeNotifierProvider<UnlockStateService>.value(value: unlockState),
+        ChangeNotifierProvider<LockHistoryService>.value(value: lockHistory),
         ChangeNotifierProvider(create: (_) => ExplosionSettings(prefs: prefs)),
         ChangeNotifierProvider(
           create: (_) => UnlockedItemsService(unlockState: unlockState),
