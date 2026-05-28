@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../customization/key_catalog.dart';
 import '../theme/app_colors.dart';
@@ -54,10 +55,14 @@ class _ScanScreenState extends State<ScanScreen> {
   void _onDetect(BarcodeCapture capture) {
     if (_hasScanned) return;
 
+    // With a scanWindow set, the controller only reports barcodes whose
+    // bounding box falls inside the reticle, so a stray code elsewhere in
+    // the camera view is ignored.
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
 
     _hasScanned = true;
+    HapticFeedback.mediumImpact();
     Navigator.of(context).pop(ScanResult.scanned(barcode.rawValue));
   }
 
@@ -100,10 +105,41 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
-          Positioned(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = constraints.biggest;
+          final scanWindow = Rect.fromCenter(
+            center: size.center(Offset.zero),
+            width: size.width * 0.8,
+            height: size.height * 0.32,
+          );
+          return Stack(
+            children: [
+              MobileScanner(
+                controller: _controller,
+                onDetect: _onDetect,
+                scanWindow: scanWindow,
+              ),
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _ScannerOverlayPainter(
+                    scanWindow: scanWindow,
+                    cornerColor: AppColors.primaryContainer,
+                  ),
+                ),
+              ),
+              Positioned.fill(child: _buildOverlays()),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOverlays() {
+    return Stack(
+      children: [
+        Positioned(
             top: 0,
             left: 0,
             right: 0,
@@ -158,7 +194,6 @@ class _ScanScreenState extends State<ScanScreen> {
             ),
           ),
         ],
-      ),
     );
   }
 
@@ -198,4 +233,48 @@ class _ScanScreenState extends State<ScanScreen> {
       ),
     );
   }
+}
+
+/// Dims everything outside [scanWindow] and draws bright corner brackets around
+/// it, so the user can aim the reticle at the intended code.
+class _ScannerOverlayPainter extends CustomPainter {
+  _ScannerOverlayPainter({required this.scanWindow, required this.cornerColor});
+
+  final Rect scanWindow;
+  final Color cornerColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cutout = RRect.fromRectAndRadius(
+      scanWindow,
+      const Radius.circular(12),
+    );
+    final scrim = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Offset.zero & size),
+      Path()..addRRect(cutout),
+    );
+    canvas.drawPath(scrim, Paint()..color = Colors.black.withValues(alpha: 0.6));
+
+    final cornerPaint = Paint()
+      ..color = cornerColor
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    const len = 28.0;
+    void corner(Offset o, double dx, double dy) {
+      canvas.drawLine(o, o + Offset(dx, 0), cornerPaint);
+      canvas.drawLine(o, o + Offset(0, dy), cornerPaint);
+    }
+
+    corner(scanWindow.topLeft, len, len);
+    corner(scanWindow.topRight, -len, len);
+    corner(scanWindow.bottomLeft, len, -len);
+    corner(scanWindow.bottomRight, -len, -len);
+  }
+
+  @override
+  bool shouldRepaint(_ScannerOverlayPainter oldDelegate) =>
+      oldDelegate.scanWindow != scanWindow ||
+      oldDelegate.cornerColor != cornerColor;
 }

@@ -118,9 +118,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (code == null || code.isEmpty) {
       _showAlert(
         context,
-        title: 'No Unlock Code',
+        title: 'No Key Set',
         message:
-            'Cannot lock — no unlock code is set. Tap SETUP to register a key.',
+            'You need to set a key before you can lockdown. Tap SETUP to register a key',
       );
       return;
     }
