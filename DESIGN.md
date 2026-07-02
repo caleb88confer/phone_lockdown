@@ -19,7 +19,7 @@ The palette is anchored by a vibrant, saturated Gold that commands attention wit
 ### The "No-Line" Rule & Surface Hierarchy
 - **No 1px Borders for Sectioning:** Traditional 1px solid borders are prohibited for layout division. Instead, define space through background shifts.
 - **Tonal Nesting:** Treat the UI as a series of machined plates. A `surface` (#fbf9f2) base should host `surface_container_low` (#f6f4ec) modules, which in turn house `surface_container_high` (#eae8e1) interactive components. This "nested" depth creates a physical sense of hierarchy.
-- **Signature Texture:** Main CTAs should utilize a subtle vertical gradient transitioning from `primary_container` (#ffb800) to `primary` (#7c5800). This mimics the metallic sheen of industrial hardware.
+- **Flat Fills First:** Prefer flat, solid tonal fills for surfaces and CTAs. A solid `primary_container` (#ffb800) plate with a raised machined bevel already reads as premium hardware — the bevel carries the depth, not a gradient. Gradients are deprioritized: the gold→brown vertical gradient tends to muddy and should be treated as a rare, deliberate exception, never a default for hero blocks or standard CTAs.
 
 ---
 

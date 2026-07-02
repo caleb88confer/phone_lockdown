@@ -112,10 +112,9 @@ void main() {
     await tester.pumpWidget(await buildDashboard());
     await tester.pumpAndSettle();
 
-    // Hero — friendly total of 105h.
+    // Hero — compact reference strip with the friendly total of 105h.
     expect(find.text('TOTAL TIME LOCKED'), findsOneWidget);
     expect(find.text('4d 9h'), findsOneWidget);
-    expect(find.text('105 hours total'), findsOneWidget);
 
     // Sections.
     expect(find.text('THIS WEEK'), findsOneWidget);

@@ -107,49 +107,34 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final friendly = formatDurationFriendly(total);
+    // Compact solid gold plate with a raised machined bevel. The total is the
+    // headline on the home screen, so here it's a de-emphasized reference strip
+    // rather than a hero block. Gradient removed per DESIGN §2 (flat fills).
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-      decoration: const BoxDecoration(
-        // Signature gold gradient (DESIGN §2 "metallic sheen") with a raised
-        // machined bevel — the boldest element on the screen.
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.primaryContainer, AppColors.primary],
-        ),
-        border: Border(
-          top: BorderSide(color: AppColors.surfaceContainerLowest, width: 2),
-          left: BorderSide(color: AppColors.surfaceContainerLowest, width: 2),
-          bottom: BorderSide(color: AppColors.outlineVariant, width: 2),
-          right: BorderSide(color: AppColors.outlineVariant, width: 2),
-        ),
-      ),
-      child: Column(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      decoration: Bevel.raised(fill: AppColors.primaryContainer),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            'TOTAL TIME LOCKED',
-            style: text.labelMedium?.copyWith(
-              letterSpacing: 2.0,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onPrimaryContainer,
+          Flexible(
+            child: Text(
+              'TOTAL TIME LOCKED',
+              style: text.labelSmall?.copyWith(
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onPrimaryContainer,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(width: 12),
           Text(
             friendly.big,
-            style: text.displaySmall?.copyWith(
-              fontSize: 52,
+            style: text.headlineSmall?.copyWith(
               height: 1.0,
               fontWeight: FontWeight.w700,
               color: AppColors.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            friendly.sub,
-            style: text.bodyMedium?.copyWith(
-              color: AppColors.onPrimaryContainer.withValues(alpha: 0.8),
             ),
           ),
         ],
